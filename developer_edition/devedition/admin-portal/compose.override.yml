@@ -1,0 +1,9 @@
+# Local override for <ADMIN_PORTAL_ROOT>/InaiEra_admin_portal_backend/docker-compose.yml (see up.sh)
+# The base file mounts ../InaiEra_support_portal_Backend/infra/postgres/init.sql, which
+# does not exist on this machine (Docker would mount an empty directory and the
+# Postgres init script would fail on `\i`). Replace it with an empty stub.
+services:
+  postgres:
+    volumes:
+      # DEVEDITION_ADMIN_PORTAL_DIR is exported by up.sh (this folder).
+      - ${DEVEDITION_ADMIN_PORTAL_DIR:?run via devedition/admin-portal/up.sh}/support-schema-stub.sql:/schemas/support-schema.sql:ro
