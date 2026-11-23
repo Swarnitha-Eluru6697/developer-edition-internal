@@ -52,6 +52,21 @@ def edition_services(edition):
     return services(edition) - services()
 
 
+def missing_dockerfiles(editions, wanted):
+    """Build files Docker cannot read for these services: [(service, path)]. Empty means all are there."""
+    cmd, env = compose(*[a for e in editions for a in ("--profile", e)], "config", "--format", "json")
+    cfg = json.loads(subprocess.run(cmd, env=env, capture_output=True, text=True, check=True).stdout)
+    out = []
+    for name in wanted:
+        b = (cfg["services"].get(name) or {}).get("build")
+        if not b or "://" in str(b.get("context", "")):
+            continue
+        path = os.path.join(b["context"], b.get("dockerfile") or "Dockerfile")
+        if not os.path.isfile(path):
+            out.append((name, path))
+    return out
+
+
 def save():
     os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
     tmp = STATE_FILE + ".tmp"
@@ -87,6 +102,20 @@ def install(editions, build=True):
         others = sorted(set().union(*[edition_services(e) for e in EDITIONS if e not in editions]) - set(wanted))
         set_state(editions=editions, status="installing",
                   message=f"{'Installing' if build else 'Starting'} {' and '.join(NAMES[e] for e in editions)}: {len(wanted)} services")
+        if build:
+            missing = missing_dockerfiles(editions, wanted)
+            if missing:
+                for name, path in missing:
+                    log(f"missing: {path} (needed to build {name})")
+                if not os.path.isfile(os.path.join(PROJECT_DIR, "devedition", "init-env.sh")):
+                    why = (f"Docker cannot see the developer_edition folder ({PROJECT_DIR}). Share it with Docker "
+                           "(Docker Desktop > Settings > Resources > File sharing), or on Windows run from WSL2 "
+                           "inside the Linux file system, then run docker compose up -d again.")
+                else:
+                    why = (f"{len(missing)} build file(s) are missing from the developer_edition folder, so the copy "
+                           f"is incomplete (first: {missing[0][1]}). Copy the whole folder again.")
+                set_state(status="failed", message=why)
+                return
         if others:
             cmd, env = compose(*[a for e in EDITIONS for a in ("--profile", e)], "stop", *others)
             run(cmd, env)

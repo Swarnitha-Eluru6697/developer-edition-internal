@@ -1,0 +1,12 @@
+# Node modules
+node_modules/
+
+# Documents
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+*.pdf
+~$*
