@@ -1,0 +1,77 @@
+
+> @inaiera/workspace-frontend@0.1.0 dev
+> vite
+
+
+  VITE v5.4.21  ready in 219 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://192.168.1.3:5173/
+10:29:07 AM [vite] hmr update /src/main.tsx, /src/components/App.tsx, /src/components/NotebookView.tsx, /src/components/QueryHistoryPanel.tsx, /src/components/FlinkPanel.tsx, /src/components/GitModal.tsx, /src/components/DbtRunnerPanel.tsx, /src/components/FilePanelTabs.tsx, /src/components/CodegenChatPanel.tsx, /src/components/ObjectExplorer.tsx, /src/components/DatabaseConnectionModal.tsx
+10:29:07 AM [vite] hmr invalidate /src/main.tsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:29:07 AM [vite] page reload src/main.tsx
+10:29:17 AM [vite] hmr update /src/main.tsx, /src/components/App.tsx, /src/components/NotebookView.tsx, /src/components/QueryHistoryPanel.tsx, /src/components/FlinkPanel.tsx, /src/components/GitModal.tsx, /src/components/DbtRunnerPanel.tsx, /src/components/FilePanelTabs.tsx, /src/components/CodegenChatPanel.tsx, /src/components/ObjectExplorer.tsx, /src/components/DatabaseConnectionModal.tsx
+10:29:17 AM [vite] hmr invalidate /src/main.tsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:29:17 AM [vite] page reload src/main.tsx
+10:29:23 AM [vite] hmr update /src/main.tsx, /src/components/App.tsx, /src/components/NotebookView.tsx, /src/components/QueryHistoryPanel.tsx, /src/components/FlinkPanel.tsx, /src/components/GitModal.tsx, /src/components/DbtRunnerPanel.tsx, /src/components/FilePanelTabs.tsx, /src/components/CodegenChatPanel.tsx, /src/components/ObjectExplorer.tsx, /src/components/DatabaseConnectionModal.tsx
+10:29:23 AM [vite] hmr invalidate /src/main.tsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:29:23 AM [vite] page reload src/main.tsx
+10:29:23 AM [vite] ws proxy socket error:
+Error: write EPIPE
+    at afterWriteDispatched (node:internal/stream_base_commons:159:15)
+    at writeGeneric (node:internal/stream_base_commons:150:3)
+    at Socket._writeGeneric (node:net:1026:11)
+    at Socket._write (node:net:1038:8)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+    at Socket.ondata (node:internal/streams/readable:1022:24)
+    at Socket.emit (node:events:509:20)
+    at Readable.read (node:internal/streams/readable:794:10)
+    at Socket.read (node:net:845:39)
+    at flow (node:internal/streams/readable:1305:53)
+    at emitReadable_ (node:internal/streams/readable:859:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:89:21)
+10:29:29 AM [vite] hmr update /src/components/CodeEditor.tsx
+10:29:35 AM [vite] hmr update /src/components/HomeScreen.tsx
+10:29:44 AM [vite] hmr update /src/components/HomeScreen.tsx
+10:29:57 AM [vite] hmr update /src/components/App.tsx
+10:30:09 AM [vite] hmr update /src/components/App.tsx
+10:30:15 AM [vite] hmr update /src/components/App.tsx
+10:30:27 AM [vite] hmr update /src/components/App.tsx
+10:30:34 AM [vite] hmr update /src/components/App.tsx
+10:30:43 AM [vite] hmr update /src/components/App.tsx
+10:30:52 AM [vite] hmr update /src/components/App.tsx
+10:30:58 AM [vite] hmr update /src/components/App.tsx
+10:31:15 AM [vite] hmr update /src/components/App.tsx
+10:31:27 AM [vite] hmr update /src/components/App.tsx
+10:31:34 AM [vite] hmr update /src/components/App.tsx
+10:31:39 AM [vite] hmr update /src/components/App.tsx
+10:31:45 AM [vite] hmr update /src/components/App.tsx
+10:31:53 AM [vite] hmr update /src/components/FilePanelTabs.tsx
+10:32:00 AM [vite] hmr update /src/components/FilePanelTabs.tsx
+10:32:06 AM [vite] hmr update /src/components/FilePanelTabs.tsx
+10:33:09 AM [vite] hmr update /src/components/FlinkPanel.tsx
+10:35:19 AM [vite] hmr update /src/main.tsx, /src/components/App.tsx, /src/components/NotebookView.tsx, /src/components/FlinkPanel.tsx, /src/components/GitModal.tsx, /src/components/DbtRunnerPanel.tsx, /src/components/HomeScreen.tsx, /src/components/FilePanelTabs.tsx, /src/components/ObjectExplorer.tsx, /src/components/DatabaseConnectionModal.tsx
+10:35:19 AM [vite] hmr invalidate /src/main.tsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:35:19 AM [vite] page reload src/main.tsx
+10:35:25 AM [vite] hmr update /src/main.tsx, /src/components/App.tsx, /src/components/NotebookView.tsx, /src/components/FlinkPanel.tsx, /src/components/GitModal.tsx, /src/components/DbtRunnerPanel.tsx, /src/components/HomeScreen.tsx, /src/components/FilePanelTabs.tsx, /src/components/ObjectExplorer.tsx, /src/components/DatabaseConnectionModal.tsx
+10:35:25 AM [vite] hmr invalidate /src/main.tsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:35:25 AM [vite] page reload src/main.tsx
+10:35:30 AM [vite] hmr update /src/main.tsx, /src/components/App.tsx, /src/components/NotebookView.tsx, /src/components/FlinkPanel.tsx, /src/components/GitModal.tsx, /src/components/DbtRunnerPanel.tsx, /src/components/HomeScreen.tsx, /src/components/FilePanelTabs.tsx, /src/components/ObjectExplorer.tsx, /src/components/DatabaseConnectionModal.tsx
+10:35:30 AM [vite] hmr invalidate /src/main.tsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:35:30 AM [vite] page reload src/main.tsx
+10:35:39 AM [vite] hmr update /src/main.tsx, /src/components/App.tsx, /src/components/NotebookView.tsx, /src/components/FlinkPanel.tsx, /src/components/GitModal.tsx, /src/components/DbtRunnerPanel.tsx, /src/components/HomeScreen.tsx, /src/components/FilePanelTabs.tsx, /src/components/ObjectExplorer.tsx, /src/components/DatabaseConnectionModal.tsx
+10:35:39 AM [vite] hmr invalidate /src/main.tsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:35:39 AM [vite] page reload src/main.tsx
+10:44:41 AM [vite] hmr update /src/components/App.tsx
+10:44:48 AM [vite] hmr update /src/components/App.tsx
+10:47:37 AM [vite] ws proxy error:
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1194:18)
+    at afterConnectMultiple (node:net:1784:7)
+10:47:38 AM [vite] ws proxy error:
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+4:12:00 PM [vite] hmr update /src/components/App.tsx
+4:12:19 PM [vite] hmr update /src/components/App.tsx

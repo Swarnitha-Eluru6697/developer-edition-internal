@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "workspace.fullname" . }}
+  labels:
+    {{- include "workspace.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "workspace.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "workspace.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: api
+        inaiera.com/product: workspace
+        inaiera.com/org-id: {{ .Values.tenant.orgId | quote }}
+      annotations:
+        # Force pod restart on configmap change
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      {{- include "workspace.podSpecSecurity" . | nindent 6 }}
+      containers:
+        - name: workspace
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "workspace.fullname" . }}-config
+          env:
+            # WS-EXEC-005: API pods only accept work; the worker Deployment
+            # (worker.yaml) runs it.
+            - name: EXECUTION_WORKER_ENABLED
+              value: "false"
+            {{- include "workspace.secretEnv" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          startupProbe:
+            {{- toYaml .Values.probes.startup | nindent 12 }}
+          livenessProbe:
+            {{- toYaml .Values.probes.liveness | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.probes.readiness | nindent 12 }}
+          volumeMounts:
+            {{- include "workspace.scratchVolumeMounts" . | nindent 12 }}
+      volumes:
+        {{- include "workspace.scratchVolumes" . | nindent 8 }}
+      terminationGracePeriodSeconds: 30

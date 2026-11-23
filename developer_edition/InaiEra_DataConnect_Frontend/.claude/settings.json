@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(which podman *)",
+      "Read(//Applications/**)",
+      "Read(//Users/manishagarwal/.docker/**)"
+    ]
+  }
+}

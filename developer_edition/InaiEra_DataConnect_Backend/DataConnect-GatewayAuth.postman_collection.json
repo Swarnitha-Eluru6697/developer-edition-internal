@@ -1,0 +1,192 @@
+{
+  "info": {
+    "name": "DataConnect — Gate 1 (gateway-auth) manual verification",
+    "description": "Walks the real (non-bypass) Gate 1 path end-to-end: the deny progression from no headers through to a granted request, plus the read/write and capability-matrix checks. Requires the backend running with TRUST_ENVOY_HEADERS=true and ENVOY_INTERNAL_SECRET set to {{gateway_secret}} below — DEV_BYPASS must be OFF or every request in this collection will succeed regardless of headers, which defeats the point. Run top-to-bottom; each request's Tests tab asserts the expected status code so a Collection Runner pass/fail is meaningful on its own.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8001/api/v1/dataconnect" },
+    { "key": "org_id", "value": "org_1001" },
+    { "key": "gateway_secret", "value": "local-dev-secret" }
+  ],
+  "item": [
+    {
+      "name": "1. Deny path — walk the 401/403 progression",
+      "item": [
+        {
+          "name": "No headers at all -> 401 (secret missing)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('401', function () { pm.response.to.have.status(401); });",
+            "pm.test('reason is the gateway secret', function () { pm.expect(pm.response.json().message).to.include('did not come through the gateway'); });"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-Org-Id", "value": "{{org_id}}" }],
+            "url": { "raw": "{{base_url}}/connections", "host": ["{{base_url}}"], "path": ["connections"] }
+          }
+        },
+        {
+          "name": "Wrong secret -> 401 (secret mismatch)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('401', function () { pm.response.to.have.status(401); });",
+            "pm.test('reason is the gateway secret', function () { pm.expect(pm.response.json().message).to.include('did not come through the gateway'); });"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Org-Id", "value": "{{org_id}}" },
+              { "key": "X-Inaiera-Gateway-Secret", "value": "definitely-not-it" },
+              { "key": "X-User-Name", "value": "alice" },
+              { "key": "X-User-Roles", "value": "data-engineer" }
+            ],
+            "url": { "raw": "{{base_url}}/connections", "host": ["{{base_url}}"], "path": ["connections"] }
+          }
+        },
+        {
+          "name": "Right secret, no X-User-Name -> 401 (missing identity)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('401', function () { pm.response.to.have.status(401); });",
+            "pm.test('reason is missing identity', function () { pm.expect(pm.response.json().message).to.include('missing identity headers'); });"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Org-Id", "value": "{{org_id}}" },
+              { "key": "X-Inaiera-Gateway-Secret", "value": "{{gateway_secret}}" },
+              { "key": "X-User-Roles", "value": "data-engineer" }
+            ],
+            "url": { "raw": "{{base_url}}/connections", "host": ["{{base_url}}"], "path": ["connections"] }
+          }
+        },
+        {
+          "name": "Valid secret+identity, unrecognized role -> 403 app_not_in_role",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('403', function () { pm.response.to.have.status(403); });",
+            "pm.test('reason is app_not_in_role', function () { pm.expect(pm.response.json().message).to.include('app_not_in_role'); });"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Org-Id", "value": "{{org_id}}" },
+              { "key": "X-Inaiera-Gateway-Secret", "value": "{{gateway_secret}}" },
+              { "key": "X-User-Name", "value": "alice" },
+              { "key": "X-User-Roles", "value": "ai-ml-engineer" }
+            ],
+            "url": { "raw": "{{base_url}}/connections", "host": ["{{base_url}}"], "path": ["connections"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Allow path — read vs write, role by role",
+      "item": [
+        {
+          "name": "reader — GET connections -> 200",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', function () { pm.response.to.have.status(200); });"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Org-Id", "value": "{{org_id}}" },
+              { "key": "X-Inaiera-Gateway-Secret", "value": "{{gateway_secret}}" },
+              { "key": "X-User-Name", "value": "alice" },
+              { "key": "X-User-Roles", "value": "reader" },
+              { "key": "X-Tenant-Id", "value": "default" }
+            ],
+            "url": { "raw": "{{base_url}}/connections", "host": ["{{base_url}}"], "path": ["connections"] }
+          }
+        },
+        {
+          "name": "reader — POST transform-policies -> 403 read_only_role",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('403', function () { pm.response.to.have.status(403); });",
+            "pm.test('reason is read_only_role', function () { pm.expect(pm.response.json().message).to.include('read_only_role'); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Org-Id", "value": "{{org_id}}" },
+              { "key": "X-Inaiera-Gateway-Secret", "value": "{{gateway_secret}}" },
+              { "key": "X-User-Name", "value": "alice" },
+              { "key": "X-User-Roles", "value": "reader" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"gateway-auth-test\"\n}" },
+            "url": { "raw": "{{base_url}}/transform-policies", "host": ["{{base_url}}"], "path": ["transform-policies"] }
+          }
+        },
+        {
+          "name": "data-engineer — POST transform-policies -> 201",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201', function () { pm.response.to.have.status(201); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Org-Id", "value": "{{org_id}}" },
+              { "key": "X-Inaiera-Gateway-Secret", "value": "{{gateway_secret}}" },
+              { "key": "X-User-Name", "value": "bob" },
+              { "key": "X-User-Roles", "value": "data-engineer" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"gateway-auth-test-de\"\n}" },
+            "url": { "raw": "{{base_url}}/transform-policies", "host": ["{{base_url}}"], "path": ["transform-policies"] }
+          }
+        },
+        {
+          "name": "data-engineer — POST connector-templates (admin-only) -> 403",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('403 from DataConnect capability matrix, not the gate', function () { pm.response.to.have.status(403); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Org-Id", "value": "{{org_id}}" },
+              { "key": "X-Inaiera-Gateway-Secret", "value": "{{gateway_secret}}" },
+              { "key": "X-User-Name", "value": "bob" },
+              { "key": "X-User-Roles", "value": "data-engineer" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"gateway-auth-test-template\"\n}" },
+            "url": { "raw": "{{base_url}}/connector-templates", "host": ["{{base_url}}"], "path": ["connector-templates"] }
+          }
+        },
+        {
+          "name": "admin — POST connector-templates -> 201",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201', function () { pm.response.to.have.status(201); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Org-Id", "value": "{{org_id}}" },
+              { "key": "X-Inaiera-Gateway-Secret", "value": "{{gateway_secret}}" },
+              { "key": "X-User-Name", "value": "carol" },
+              { "key": "X-User-Roles", "value": "admin" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"gateway-auth-test-admin\"\n}" },
+            "url": { "raw": "{{base_url}}/connector-templates", "host": ["{{base_url}}"], "path": ["connector-templates"] }
+          }
+        },
+        {
+          "name": "Comma-list roles (no base64 needed) -> 200",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', function () { pm.response.to.have.status(200); });"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Org-Id", "value": "{{org_id}}" },
+              { "key": "X-Inaiera-Gateway-Secret", "value": "{{gateway_secret}}" },
+              { "key": "X-User-Name", "value": "alice" },
+              { "key": "X-User-Roles", "value": "reader,data-engineer" }
+            ],
+            "url": { "raw": "{{base_url}}/connections", "host": ["{{base_url}}"], "path": ["connections"] }
+          }
+        }
+      ]
+    }
+  ]
+}

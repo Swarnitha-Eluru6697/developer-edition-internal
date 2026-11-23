@@ -1,0 +1,190 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dbtrunner.fullname" . }}
+  labels:
+    {{- include "dbtrunner.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "dbtrunner.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "dbtrunner.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "dbtrunner.serviceAccountName" . }}
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- range . }}
+        - maxSkew: {{ .maxSkew }}
+          topologyKey: {{ .topologyKey }}
+          whenUnsatisfiable: {{ .whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              {{- include "dbtrunner.selectorLabels" $ | nindent 14 }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: dbtrunner
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "dbtrunner.fullname" . }}-config
+          env:
+            {{- include "dbtrunner.dbEnv" . | nindent 12 }}
+            - name: INTERNAL_SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.internalServiceToken.secretRef.name }}
+                  key: {{ .Values.internalServiceToken.secretRef.key }}
+            {{- if .Values.schedulerJwt.enabled }}
+            - name: SCHEDULER_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.schedulerJwt.secretRef.name }}
+                  key: {{ .Values.schedulerJwt.secretRef.key }}
+            {{- end }}
+            {{- if .Values.jobs.workspace.enabled }}
+            - name: WORKSPACE_JOB_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.jobs.workspace.secretRef.name }}
+                  key: {{ .Values.jobs.workspace.secretRef.key }}
+            {{- end }}
+            - name: DELEGATION_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.delegation.secretRef.name }}
+                  key: {{ .Values.delegation.secretRef.key }}
+            {{- /* DBT-009: git tokens never live in a repository URL; a project names one by `credential_ref`. */}}
+            {{- range $ref, $secret := .Values.gitCredentials }}
+            - name: GIT_CREDENTIAL_{{ $ref | upper }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required (printf "gitCredentials.%s.name is required" $ref) $secret.name }}
+                  key: {{ required (printf "gitCredentials.%s.key is required" $ref) $secret.key }}
+            {{- end }}
+            {{- if .Values.delegation.dq.enabled }}
+            - name: DQ_DELEGATION_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.delegation.dq.secretRef.name }}
+                  key: {{ .Values.delegation.dq.secretRef.key }}
+            {{- end }}
+            {{- if .Values.integrations.dataQuality.enabled }}
+            - name: SERVICE_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.serviceJwt.secretRef.name }}
+                  key: {{ .Values.serviceJwt.secretRef.key }}
+            {{- end }}
+            {{- if .Values.integrations.openlineage.enabled }}
+            - name: UCS_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "integrations.openlineage.ucsTokenSecretRef.name is required when openlineage is enabled" .Values.integrations.openlineage.ucsTokenSecretRef.name }}
+                  key: {{ .Values.integrations.openlineage.ucsTokenSecretRef.key }}
+            {{- end }}
+            {{- if .Values.integrations.datasets.enabled }}
+            - name: DATASETS_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "integrations.datasets.tokenSecretRef.name is required when datasets is enabled" .Values.integrations.datasets.tokenSecretRef.name }}
+                  key: {{ .Values.integrations.datasets.tokenSecretRef.key }}
+            {{- end }}
+            {{- with .Values.engines.pgLake.dsnSecretRef }}
+            {{- if .name }}
+            - name: PG_LAKE_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .name }}
+                  key: {{ .key }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.engines.trino.jwtSecretRef }}
+            {{- if .name }}
+            - name: TRINO_JWT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .name }}
+                  key: {{ .key }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.engines.clickhouse }}
+            {{- if and .host .passwordSecretRef.name }}
+            - name: CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .passwordSecretRef.name }}
+                  key: {{ .passwordSecretRef.key }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.polaris.credentialsSecretRef }}
+            {{- if .name }}
+            - name: POLARIS_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .name }}
+                  key: {{ .clientIdKey }}
+            - name: POLARIS_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .name }}
+                  key: {{ .clientSecretKey }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.artifactStore.s3.credentialsSecretRef }}
+            {{- if and .name (eq $.Values.artifactStore.backend "s3") }}
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .name }}
+                  key: {{ .accessKeyIdKey }}
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .name }}
+                  key: {{ .secretAccessKeyKey }}
+            {{- end }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          livenessProbe:
+            {{- toYaml .Values.probes.liveness | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.probes.readiness | nindent 12 }}
+          volumeMounts:
+            - name: git-workdir
+              mountPath: /var/lib/dbtrunner/git
+            - name: artifacts
+              mountPath: /var/lib/dbtrunner/artifacts
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: git-workdir
+          emptyDir:
+            sizeLimit: 5Gi
+        - name: artifacts
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
+      terminationGracePeriodSeconds: 30

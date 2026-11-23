@@ -1,0 +1,55 @@
+name: CI
+
+# Repository model: this repo (React/Vite, code at repo root) and
+# AadhyaAnalyticsInc/InaiEra_DataConnect_Backend (FastAPI, also at its own
+# repo root) are two independently owned, independently versioned
+# repositories, not a monorepo. This workflow only ever builds/tests/lints
+# this repo's own code — no working-directory assumptions about a sibling
+# backend/ directory that doesn't exist here.
+#
+# Cross-repo compatibility (does this repo's committed
+# src/types/dataconnect-api.generated.ts still match the backend's current
+# OpenAPI schema?) is checked from the backend repo's own CI
+# (contract-check job in its ci.yml), not here — that job needs a live
+# instance of the backend's route definitions, which only exists in that
+# repo. See docs/REPOSITORY_MODEL.md for the full rationale.
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  lint-typecheck-test-build:
+    name: Frontend — Lint, Type Check, Test & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - name: ESLint
+        run: npm run lint
+      - name: TypeScript compile check
+        run: npm run typecheck
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Unit + E2E tests
+        run: npm test
+      - name: Build
+        run: npm run build
+
+  docker-build:
+    name: Docker Build Check
+    runs-on: ubuntu-latest
+    needs: [lint-typecheck-test-build]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build frontend image
+        run: docker build -t dataconnect-frontend:ci .

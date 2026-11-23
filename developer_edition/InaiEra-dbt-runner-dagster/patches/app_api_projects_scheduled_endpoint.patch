@@ -1,0 +1,27 @@
+--- a/app/api/projects.py
++++ b/app/api/projects.py
+@@ -after router = APIRouter(...) @@
++# ---------------------------------------------------------------------------
++# Internal endpoint: list all scheduled projects (used by Dagster sensor).
++# Accepts INTERNAL_SERVICE_TOKEN only — no per-org JWT required.
++# ---------------------------------------------------------------------------
++@router.get("/projects/scheduled", response_model=list[ProjectOut])
++async def list_scheduled_projects(caller: InternalCaller, db: DB) -> list[ProjectOut]:
++    """Return all projects with schedule_enabled=true across all orgs.
++
++    Intended for the Dagster project_schedule_sensor running in the
++    Dagster code server. Auth: X-Internal-Service-Token header only —
++    this route is not reachable from the public internet (data-plane
++    NetworkPolicy).
++    """
++    svc = ProjectService(db)
++    projects = await svc.list_scheduled_internal()
++    return [ProjectOut.model_validate(p) for p in projects]
++
++
++@router.get("/projects/{project_id}/internal", response_model=ProjectOut)
++async def get_project_internal(project_id: UUID, caller: InternalCaller, db: DB) -> ProjectOut:
++    """Get a single project by ID without org-scoping (internal use only)."""
++    svc = ProjectService(db)
++    project = await svc.get_internal(project_id)
++    return ProjectOut.model_validate(project)

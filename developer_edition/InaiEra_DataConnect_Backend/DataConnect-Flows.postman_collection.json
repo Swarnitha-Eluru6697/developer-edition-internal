@@ -1,0 +1,3864 @@
+{
+  "info": {
+    "name": "DataConnect \u2014 Flows (transforms\u2192schema\u2192quality\u2192pipelines\u2192lifecycle\u2192lineage\u2192exec\u2192drift\u2192monitoring)",
+    "description": "End-to-end, dependency-ordered tests. Run folders top-to-bottom in the Collection Runner; test scripts chain ids through collection variables.\n\nBase URL prefix is /api/v1/dataconnect. Org header X-Org-Id=org_1001 on org-scoped routes (connector-templates, schemas/infer and monitoring need NO org header).\n\nOrder: 0 Setup -> 1 Transform -> 2 Schema -> 3 Quality -> 4 Pipelines -> 5 Lifecycle -> 6 Lineage (needs a deploy) -> 7 Quality Execution -> 8 Schema Drift -> 9 Monitoring.\n\nEach folder includes positive cases for every endpoint, all enum possibilities, and NEG- prefixed negative cases (400/404/409/422).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api/v1/dataconnect"
+    },
+    {
+      "key": "org_id",
+      "value": "org_1001"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Setup (template + connection)",
+      "item": [
+        {
+          "name": "Create connector template",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connector-templates",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connector-templates"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Debezium PostgreSQL CDC\",\n  \"connector_type\": \"source\",\n  \"category\": \"database_cdc\",\n  \"connector_class\": \"io.debezium.connector.postgresql.PostgresConnector\",\n  \"runtime_pool_type\": \"connect-cdc-pool\",\n  \"config_schema\": {\n    \"database.hostname\": {\n      \"type\": \"string\",\n      \"required\": true\n    }\n  },\n  \"default_config\": {\n    \"plugin.name\": \"pgoutput\",\n    \"tasks.max\": \"1\",\n    \"snapshot.mode\": \"initial\"\n  },\n  \"default_transforms\": [],\n  \"version\": \"v1\",\n  \"is_active\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var v = pm.response.json().id; if (v !== undefined && v !== null) { pm.collectionVariables.set('template_id', v); console.log('saved template_id=' + v); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create connection (postgres)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"orders-postgres\",\n  \"source_type\": \"postgres\",\n  \"connection_config\": {\n    \"hostname\": \"pg.internal\",\n    \"port\": 5432,\n    \"database\": \"orders\",\n    \"tables\": [\n      \"public.orders\",\n      \"public.customers\"\n    ]\n  },\n  \"secret_ref\": \"vault://dataconnect/org_1001/orders-pg\",\n  \"status\": \"draft\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var v = pm.response.json().id; if (v !== undefined && v !== null) { pm.collectionVariables.set('connection_profile_id', v); console.log('saved connection_profile_id=' + v); }"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Run first. Saves {{template_id}} and {{connection_profile_id}} used by pipelines."
+    },
+    {
+      "name": "1. Transform Policies",
+      "item": [
+        {
+          "name": "List transform policies",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/transform-policies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "transform-policies"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create \u2014 ALL 10 SMT types (positive)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/transform-policies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "transform-policies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"all-smt\",\n  \"description\": \"every supported SMT type\",\n  \"transforms\": [\n    {\n      \"order\": 1,\n      \"name\": \"createKey\",\n      \"type\": \"ValueToKey\",\n      \"scope\": \"value\",\n      \"config\": {\n        \"fields\": \"id\"\n      }\n    },\n    {\n      \"order\": 2,\n      \"name\": \"extractId\",\n      \"type\": \"ExtractField\",\n      \"scope\": \"key\",\n      \"config\": {\n        \"field\": \"id\"\n      }\n    },\n    {\n      \"order\": 3,\n      \"name\": \"hoist\",\n      \"type\": \"HoistField\",\n      \"scope\": \"value\",\n      \"config\": {\n        \"field\": \"payload\"\n      }\n    },\n    {\n      \"order\": 4,\n      \"name\": \"flatten\",\n      \"type\": \"Flatten\",\n      \"scope\": \"value\",\n      \"config\": {\n        \"delimiter\": \"_\"\n      }\n    },\n    {\n      \"order\": 5,\n      \"name\": \"route\",\n      \"type\": \"RegexRouter\",\n      \"scope\": \"value\",\n      \"config\": {\n        \"regex\": \"(.*)\",\n        \"replacement\": \"$1\"\n      }\n    },\n    {\n      \"order\": 6,\n      \"name\": \"headerFrom\",\n      \"type\": \"HeaderFrom\",\n      \"scope\": \"value\",\n      \"config\": {\n        \"fields\": \"id\",\n        \"headers\": \"id\"\n      }\n    },\n    {\n      \"order\": 7,\n      \"name\": \"maskPII\",\n      \"type\": \"MaskField\",\n      \"scope\": \"value\",\n      \"config\": {\n        \"fields\": \"email,phone\"\n      }\n    },\n    {\n      \"order\": 8,\n      \"name\": \"replaceField\",\n      \"type\": \"ReplaceField\",\n      \"scope\": \"value\",\n      \"config\": {\n        \"exclude\": \"ssn\"\n      }\n    },\n    {\n      \"order\": 9,\n      \"name\": \"insertSource\",\n      \"type\": \"InsertField\",\n      \"scope\": \"value\",\n      \"config\": {\n        \"static.field\": \"src\",\n        \"static.value\": \"orders_app\"\n      }\n    },\n    {\n      \"order\": 10,\n      \"name\": \"tsConvert\",\n      \"type\": \"TimestampConverter\",\n      \"scope\": \"value\",\n      \"config\": {\n        \"target.type\": \"string\",\n        \"field\": \"created_at\",\n        \"format\": \"yyyy-MM-dd\"\n      }\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var v = pm.response.json().id; if (v !== undefined && v !== null) { pm.collectionVariables.set('transform_policy_id', v); console.log('saved transform_policy_id=' + v); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create \u2014 minimal (key + mask)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/transform-policies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "transform-policies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"customer-basic\",\n  \"transforms\": [\n    {\n      \"order\": 1,\n      \"name\": \"createKey\",\n      \"type\": \"ValueToKey\",\n      \"scope\": \"value\",\n      \"config\": {\n        \"fields\": \"customer_id\"\n      }\n    },\n    {\n      \"order\": 2,\n      \"name\": \"maskPII\",\n      \"type\": \"MaskField\",\n      \"scope\": \"value\",\n      \"config\": {\n        \"fields\": \"email\"\n      }\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var v = pm.response.json().id; if (v !== undefined && v !== null) { pm.collectionVariables.set('transform_throwaway_id', v); console.log('saved transform_throwaway_id=' + v); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get transform policy",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/transform-policies/{{transform_policy_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "transform-policies",
+                "{{transform_policy_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update transform policy",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/transform-policies/{{transform_policy_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "transform-policies",
+                "{{transform_policy_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"all-smt-updated\",\n  \"transforms\": [\n    {\n      \"order\": 1,\n      \"name\": \"createKey\",\n      \"type\": \"ValueToKey\",\n      \"scope\": \"value\",\n      \"config\": {\n        \"fields\": \"id\"\n      }\n    },\n    {\n      \"order\": 2,\n      \"name\": \"extractId\",\n      \"type\": \"ExtractField\",\n      \"scope\": \"key\",\n      \"config\": {\n        \"field\": \"id\"\n      }\n    },\n    {\n      \"order\": 3,\n      \"name\": \"hoist\",\n      \"type\": \"HoistField\",\n      \"scope\": \"value\",\n      \"config\": {\n        \"field\": \"payload\"\n      }\n    },\n    {\n      \"order\": 4,\n      \"name\": \"flatten\",\n      \"type\": \"Flatten\",\n      \"scope\": \"value\",\n      \"config\": {\n        \"delimiter\": \"_\"\n      }\n    },\n    {\n      \"order\": 5,\n      \"name\": \"route\",\n      \"type\": \"RegexRouter\",\n      \"scope\": \"value\",\n      \"config\": {\n        \"regex\": \"(.*)\",\n        \"replacement\": \"$1\"\n      }\n    },\n    {\n      \"order\": 6,\n      \"name\": \"headerFrom\",\n      \"type\": \"HeaderFrom\",\n      \"scope\": \"value\",\n      \"config\": {\n        \"fields\": \"id\",\n        \"headers\": \"id\"\n      }\n    },\n    {\n      \"order\": 7,\n      \"name\": \"maskPII\",\n      \"type\": \"MaskField\",\n      \"scope\": \"value\",\n      \"config\": {\n        \"fields\": \"email,phone\"\n      }\n    },\n    {\n      \"order\": 8,\n      \"name\": \"replaceField\",\n      \"type\": \"ReplaceField\",\n      \"scope\": \"value\",\n      \"config\": {\n        \"exclude\": \"ssn\"\n      }\n    },\n    {\n      \"order\": 9,\n      \"name\": \"insertSource\",\n      \"type\": \"InsertField\",\n      \"scope\": \"value\",\n      \"config\": {\n        \"static.field\": \"src\",\n        \"static.value\": \"orders_app\"\n      }\n    },\n    {\n      \"order\": 10,\n      \"name\": \"tsConvert\",\n      \"type\": \"TimestampConverter\",\n      \"scope\": \"value\",\n      \"config\": {\n        \"target.type\": \"string\",\n        \"field\": \"created_at\",\n        \"format\": \"yyyy-MM-dd\"\n      }\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Validate transform policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/transform-policies/{{transform_policy_id}}/validate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "transform-policies",
+                "{{transform_policy_id}}",
+                "validate"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('valid', function(){ pm.expect(pm.response.json().valid).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Preview transform policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/transform-policies/{{transform_policy_id}}/preview",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "transform-policies",
+                "{{transform_policy_id}}",
+                "preview"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input_record\": {\n    \"id\": \"1\",\n    \"customer_id\": \"c1\",\n    \"email\": \"a@b.com\",\n    \"phone\": \"555\",\n    \"ssn\": \"111\",\n    \"created_at\": \"2024-01-01\"\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete throwaway policy",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/transform-policies/{{transform_throwaway_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "transform-policies",
+                "{{transform_throwaway_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', function () { pm.expect(pm.response.code).to.eql(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG create \u2014 non-SMT type 'join' (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/transform-policies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "transform-policies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"bad-join\",\n  \"transforms\": [\n    {\n      \"order\": 1,\n      \"name\": \"j\",\n      \"type\": \"join\",\n      \"config\": {}\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.expect(pm.response.code).to.eql(422); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG create \u2014 unknown SMT 'FooField' (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/transform-policies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "transform-policies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"bad-foo\",\n  \"transforms\": [\n    {\n      \"order\": 1,\n      \"name\": \"f\",\n      \"type\": \"FooField\",\n      \"config\": {}\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.expect(pm.response.code).to.eql(422); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG create \u2014 bad scope (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/transform-policies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "transform-policies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"bad-scope\",\n  \"transforms\": [\n    {\n      \"order\": 1,\n      \"name\": \"k\",\n      \"type\": \"ValueToKey\",\n      \"scope\": \"footer\",\n      \"config\": {}\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.expect(pm.response.code).to.eql(422); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG create \u2014 bad name (non-alnum) (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/transform-policies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "transform-policies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"bad-name\",\n  \"transforms\": [\n    {\n      \"order\": 1,\n      \"name\": \"bad name!\",\n      \"type\": \"ValueToKey\",\n      \"config\": {}\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.expect(pm.response.code).to.eql(422); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG list \u2014 missing X-Org-Id (400)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/transform-policies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "transform-policies"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', function () { pm.expect(pm.response.code).to.eql(400); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "All SMT types: ValueToKey, ExtractField, HoistField, Flatten, RegexRouter, HeaderFrom, MaskField, ReplaceField, InsertField, TimestampConverter. Saves {{transform_policy_id}}."
+    },
+    {
+      "name": "2. Schema Versions",
+      "item": [
+        {
+          "name": "Infer \u2014 mixed types (string/int/number/bool/timestamp/object/array, nulls)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas/infer",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas",
+                "infer"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"records\": [\n    {\n      \"id\": \"1\",\n      \"qty\": 3,\n      \"price\": 9.99,\n      \"active\": true,\n      \"created_at\": \"2024-01-01T00:00:00Z\",\n      \"meta\": {\n        \"k\": \"v\"\n      },\n      \"tags\": [\n        \"a\",\n        \"b\"\n      ]\n    },\n    {\n      \"id\": \"2\",\n      \"qty\": 5,\n      \"price\": 19.0,\n      \"active\": false,\n      \"created_at\": \"2024-02-01T00:00:00Z\",\n      \"meta\": {\n        \"k\": \"w\"\n      },\n      \"tags\": [\n        \"c\"\n      ],\n      \"note\": \"sometimes\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Infer \u2014 empty records (confidence 0)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas/infer",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas",
+                "infer"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"records\": []\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('confidence 0', function(){ pm.expect(pm.response.json().confidence).to.eql(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List schemas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create schema version (with fields for drift)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"orders\",\n  \"version\": \"v1\",\n  \"schema_format\": \"json_schema\",\n  \"compatibility\": \"BACKWARD\",\n  \"status\": \"active\",\n  \"schema_definition\": {\n    \"fields\": [\n      {\n        \"name\": \"id\",\n        \"type\": \"string\",\n        \"nullable\": false,\n        \"primary_key\": true\n      },\n      {\n        \"name\": \"amount\",\n        \"type\": \"number\",\n        \"nullable\": true,\n        \"primary_key\": false\n      }\n    ]\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var v = pm.response.json().id; if (v !== undefined && v !== null) { pm.collectionVariables.set('schema_version_id', v); console.log('saved schema_version_id=' + v); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get schema version",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas/{{schema_version_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas",
+                "{{schema_version_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create child version (POST /{id}/versions)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas/{{schema_version_id}}/versions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas",
+                "{{schema_version_id}}",
+                "versions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"orders\",\n  \"version\": \"v2\",\n  \"schema_definition\": {\n    \"fields\": [\n      {\n        \"name\": \"id\",\n        \"type\": \"string\",\n        \"primary_key\": true\n      }\n    ]\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Validate compatibility",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas/{{schema_version_id}}/validate-compatibility",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas",
+                "{{schema_version_id}}",
+                "validate-compatibility"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get drift events",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas/{{schema_version_id}}/drift-events",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas",
+                "{{schema_version_id}}",
+                "drift-events"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG get \u2014 unknown id (404)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas/does-not-exist",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas",
+                "does-not-exist"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', function () { pm.expect(pm.response.code).to.eql(404); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG list \u2014 missing X-Org-Id (400)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/schemas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', function () { pm.expect(pm.response.code).to.eql(400); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Saves {{schema_version_id}}. /infer needs NO org header. Schema stores fields under schema_definition.fields for drift."
+    },
+    {
+      "name": "3. Quality Policies",
+      "item": [
+        {
+          "name": "List quality policies",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/quality-policies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "quality-policies"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create \u2014 ALL 10 rule types (positive)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/quality-policies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "quality-policies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"orders-quality\",\n  \"description\": \"all supported rule types\",\n  \"rules\": [\n    {\n      \"name\": \"id_required\",\n      \"type\": \"required\",\n      \"field\": \"id\"\n    },\n    {\n      \"name\": \"amount_type\",\n      \"type\": \"type_check\",\n      \"field\": \"amount\",\n      \"expected_type\": \"number\"\n    },\n    {\n      \"name\": \"email_regex\",\n      \"type\": \"regex\",\n      \"field\": \"email\",\n      \"pattern\": \"^[^@]+@[^@]+$\"\n    },\n    {\n      \"name\": \"status_allowed\",\n      \"type\": \"allowed_values\",\n      \"field\": \"status\",\n      \"values\": [\n        \"new\",\n        \"paid\",\n        \"void\"\n      ]\n    },\n    {\n      \"name\": \"amount_range\",\n      \"type\": \"min_max_numeric\",\n      \"field\": \"amount\",\n      \"min\": 0,\n      \"max\": 100000\n    },\n    {\n      \"name\": \"name_len\",\n      \"type\": \"min_max_string_length\",\n      \"field\": \"name\",\n      \"min\": 1,\n      \"max\": 120\n    },\n    {\n      \"name\": \"fresh\",\n      \"type\": \"timestamp_freshness\",\n      \"field\": \"created_at\",\n      \"max_age_seconds\": 86400\n    },\n    {\n      \"name\": \"null_pct\",\n      \"type\": \"null_percentage_threshold\",\n      \"field\": \"email\",\n      \"threshold\": 0.2\n    },\n    {\n      \"name\": \"dup_key\",\n      \"type\": \"duplicate_key_batch\",\n      \"field\": \"id\"\n    },\n    {\n      \"name\": \"ref_hint\",\n      \"type\": \"referential_hint\",\n      \"field\": \"customer_id\",\n      \"references\": \"customers.id\"\n    }\n  ],\n  \"on_failure\": \"route_to_quarantine\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var v = pm.response.json().id; if (v !== undefined && v !== null) { pm.collectionVariables.set('quality_policy_id', v); console.log('saved quality_policy_id=' + v); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create \u2014 throwaway (for delete)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/quality-policies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "quality-policies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"tmp-quality\",\n  \"rules\": [\n    {\n      \"name\": \"id_required\",\n      \"type\": \"required\",\n      \"field\": \"id\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var v = pm.response.json().id; if (v !== undefined && v !== null) { pm.collectionVariables.set('quality_throwaway_id', v); console.log('saved quality_throwaway_id=' + v); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get quality policy",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/quality-policies/{{quality_policy_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "quality-policies",
+                "{{quality_policy_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update quality policy",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/quality-policies/{{quality_policy_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "quality-policies",
+                "{{quality_policy_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"orders-quality-v2\",\n  \"rules\": [\n    {\n      \"name\": \"id_required\",\n      \"type\": \"required\",\n      \"field\": \"id\"\n    },\n    {\n      \"name\": \"amount_type\",\n      \"type\": \"type_check\",\n      \"field\": \"amount\",\n      \"expected_type\": \"number\"\n    },\n    {\n      \"name\": \"email_regex\",\n      \"type\": \"regex\",\n      \"field\": \"email\",\n      \"pattern\": \"^[^@]+@[^@]+$\"\n    },\n    {\n      \"name\": \"status_allowed\",\n      \"type\": \"allowed_values\",\n      \"field\": \"status\",\n      \"values\": [\n        \"new\",\n        \"paid\",\n        \"void\"\n      ]\n    },\n    {\n      \"name\": \"amount_range\",\n      \"type\": \"min_max_numeric\",\n      \"field\": \"amount\",\n      \"min\": 0,\n      \"max\": 100000\n    },\n    {\n      \"name\": \"name_len\",\n      \"type\": \"min_max_string_length\",\n      \"field\": \"name\",\n      \"min\": 1,\n      \"max\": 120\n    },\n    {\n      \"name\": \"fresh\",\n      \"type\": \"timestamp_freshness\",\n      \"field\": \"created_at\",\n      \"max_age_seconds\": 86400\n    },\n    {\n      \"name\": \"null_pct\",\n      \"type\": \"null_percentage_threshold\",\n      \"field\": \"email\",\n      \"threshold\": 0.2\n    },\n    {\n      \"name\": \"dup_key\",\n      \"type\": \"duplicate_key_batch\",\n      \"field\": \"id\"\n    },\n    {\n      \"name\": \"ref_hint\",\n      \"type\": \"referential_hint\",\n      \"field\": \"customer_id\",\n      \"references\": \"customers.id\"\n    }\n  ],\n  \"on_failure\": \"drop\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Validate quality policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/quality-policies/{{quality_policy_id}}/validate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "quality-policies",
+                "{{quality_policy_id}}",
+                "validate"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('valid', function(){ pm.expect(pm.response.json().valid).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List quality results",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/quality-results",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "quality-results"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete throwaway policy",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/quality-policies/{{quality_throwaway_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "quality-policies",
+                "{{quality_throwaway_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', function () { pm.expect(pm.response.code).to.eql(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG create \u2014 unknown rule type (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/quality-policies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "quality-policies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"bad-rule\",\n  \"rules\": [\n    {\n      \"name\": \"x\",\n      \"type\": \"made_up_rule\",\n      \"field\": \"id\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', function () { pm.expect(pm.response.code).to.eql(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG create \u2014 invalid regex (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/quality-policies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "quality-policies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"bad-regex\",\n  \"rules\": [\n    {\n      \"name\": \"r\",\n      \"type\": \"regex\",\n      \"field\": \"x\",\n      \"pattern\": \"([a-z\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', function () { pm.expect(pm.response.code).to.eql(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG list \u2014 missing X-Org-Id (400)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/quality-policies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "quality-policies"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', function () { pm.expect(pm.response.code).to.eql(400); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Rule types: required, type_check, regex, allowed_values, min_max_numeric, min_max_string_length, timestamp_freshness, null_percentage_threshold, duplicate_key_batch, referential_hint. Note: only the first six are evaluated at execution time. Saves {{quality_policy_id}}."
+    },
+    {
+      "name": "4. Pipelines",
+      "item": [
+        {
+          "name": "List pipelines",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pipelines",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pipelines"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create pipeline (full refs: transform+schema+quality)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pipelines",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pipelines"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"ingest-orders\",\n  \"template_id\": \"{{template_id}}\",\n  \"connection_profile_id\": \"{{connection_profile_id}}\",\n  \"zone\": \"raw\",\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"orders\",\n  \"mode\": \"cdc\",\n  \"version\": \"v1\",\n  \"connector_config\": {\n    \"tasks.max\": \"1\"\n  },\n  \"status\": \"draft\",\n  \"description\": \"Orders CDC -> raw\",\n  \"transform_policy_id\": \"{{transform_policy_id}}\",\n  \"schema_version_id\": \"{{schema_version_id}}\",\n  \"quality_policy_id\": \"{{quality_policy_id}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var v = pm.response.json().id; if (v !== undefined && v !== null) { pm.collectionVariables.set('pipeline_id', v); console.log('saved pipeline_id=' + v); }",
+                  "var v = pm.response.json().connector_name; if (v !== undefined && v !== null) { pm.collectionVariables.set('connector_name', v); console.log('saved connector_name=' + v); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get pipeline",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pipelines/{{pipeline_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pipelines",
+                "{{pipeline_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get pipeline status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pipelines/{{pipeline_id}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pipelines",
+                "{{pipeline_id}}",
+                "status"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get generated config",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pipelines/{{pipeline_id}}/generated-config",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pipelines",
+                "{{pipeline_id}}",
+                "generated-config"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update pipeline",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pipelines/{{pipeline_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pipelines",
+                "{{pipeline_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"ingest-orders\",\n  \"template_id\": \"{{template_id}}\",\n  \"connection_profile_id\": \"{{connection_profile_id}}\",\n  \"zone\": \"raw\",\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"orders\",\n  \"mode\": \"cdc\",\n  \"version\": \"v1\",\n  \"connector_config\": {\n    \"tasks.max\": \"1\"\n  },\n  \"status\": \"draft\",\n  \"description\": \"updated\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "All zones (5)",
+          "item": [
+            {
+              "name": "Create pipeline \u2014 zone=raw",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Org-Id",
+                    "value": "{{org_id}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/pipelines",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "pipelines"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"pipe-zone-raw\",\n  \"template_id\": \"{{template_id}}\",\n  \"connection_profile_id\": \"{{connection_profile_id}}\",\n  \"zone\": \"raw\",\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"orders_raw\",\n  \"mode\": \"cdc\",\n  \"version\": \"v1\",\n  \"connector_config\": {\n    \"tasks.max\": \"1\"\n  },\n  \"status\": \"draft\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Create pipeline \u2014 zone=prepared",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Org-Id",
+                    "value": "{{org_id}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/pipelines",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "pipelines"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"pipe-zone-prepared\",\n  \"template_id\": \"{{template_id}}\",\n  \"connection_profile_id\": \"{{connection_profile_id}}\",\n  \"zone\": \"prepared\",\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"orders_prepared\",\n  \"mode\": \"cdc\",\n  \"version\": \"v1\",\n  \"connector_config\": {\n    \"tasks.max\": \"1\"\n  },\n  \"status\": \"draft\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Create pipeline \u2014 zone=curated",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Org-Id",
+                    "value": "{{org_id}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/pipelines",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "pipelines"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"pipe-zone-curated\",\n  \"template_id\": \"{{template_id}}\",\n  \"connection_profile_id\": \"{{connection_profile_id}}\",\n  \"zone\": \"curated\",\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"orders_curated\",\n  \"mode\": \"cdc\",\n  \"version\": \"v1\",\n  \"connector_config\": {\n    \"tasks.max\": \"1\"\n  },\n  \"status\": \"draft\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Create pipeline \u2014 zone=quarantine",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Org-Id",
+                    "value": "{{org_id}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/pipelines",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "pipelines"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"pipe-zone-quarantine\",\n  \"template_id\": \"{{template_id}}\",\n  \"connection_profile_id\": \"{{connection_profile_id}}\",\n  \"zone\": \"quarantine\",\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"orders_quarantine\",\n  \"mode\": \"cdc\",\n  \"version\": \"v1\",\n  \"connector_config\": {\n    \"tasks.max\": \"1\"\n  },\n  \"status\": \"draft\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Create pipeline \u2014 zone=meta",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Org-Id",
+                    "value": "{{org_id}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/pipelines",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "pipelines"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"pipe-zone-meta\",\n  \"template_id\": \"{{template_id}}\",\n  \"connection_profile_id\": \"{{connection_profile_id}}\",\n  \"zone\": \"meta\",\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"orders_meta\",\n  \"mode\": \"cdc\",\n  \"version\": \"v1\",\n  \"connector_config\": {\n    \"tasks.max\": \"1\"\n  },\n  \"status\": \"draft\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "All modes (7)",
+          "item": [
+            {
+              "name": "Create pipeline \u2014 mode=cdc",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Org-Id",
+                    "value": "{{org_id}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/pipelines",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "pipelines"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"pipe-mode-cdc\",\n  \"template_id\": \"{{template_id}}\",\n  \"connection_profile_id\": \"{{connection_profile_id}}\",\n  \"zone\": \"raw\",\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"orders_cdc\",\n  \"mode\": \"cdc\",\n  \"version\": \"v1\",\n  \"connector_config\": {\n    \"tasks.max\": \"1\"\n  },\n  \"status\": \"draft\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Create pipeline \u2014 mode=snapshot",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Org-Id",
+                    "value": "{{org_id}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/pipelines",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "pipelines"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"pipe-mode-snapshot\",\n  \"template_id\": \"{{template_id}}\",\n  \"connection_profile_id\": \"{{connection_profile_id}}\",\n  \"zone\": \"raw\",\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"orders_snapshot\",\n  \"mode\": \"snapshot\",\n  \"version\": \"v1\",\n  \"connector_config\": {\n    \"tasks.max\": \"1\"\n  },\n  \"status\": \"draft\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Create pipeline \u2014 mode=batch",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Org-Id",
+                    "value": "{{org_id}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/pipelines",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "pipelines"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"pipe-mode-batch\",\n  \"template_id\": \"{{template_id}}\",\n  \"connection_profile_id\": \"{{connection_profile_id}}\",\n  \"zone\": \"raw\",\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"orders_batch\",\n  \"mode\": \"batch\",\n  \"version\": \"v1\",\n  \"connector_config\": {\n    \"tasks.max\": \"1\"\n  },\n  \"status\": \"draft\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Create pipeline \u2014 mode=api",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Org-Id",
+                    "value": "{{org_id}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/pipelines",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "pipelines"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"pipe-mode-api\",\n  \"template_id\": \"{{template_id}}\",\n  \"connection_profile_id\": \"{{connection_profile_id}}\",\n  \"zone\": \"raw\",\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"orders_api\",\n  \"mode\": \"api\",\n  \"version\": \"v1\",\n  \"connector_config\": {\n    \"tasks.max\": \"1\"\n  },\n  \"status\": \"draft\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Create pipeline \u2014 mode=stream",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Org-Id",
+                    "value": "{{org_id}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/pipelines",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "pipelines"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"pipe-mode-stream\",\n  \"template_id\": \"{{template_id}}\",\n  \"connection_profile_id\": \"{{connection_profile_id}}\",\n  \"zone\": \"raw\",\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"orders_stream\",\n  \"mode\": \"stream\",\n  \"version\": \"v1\",\n  \"connector_config\": {\n    \"tasks.max\": \"1\"\n  },\n  \"status\": \"draft\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Create pipeline \u2014 mode=validation",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Org-Id",
+                    "value": "{{org_id}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/pipelines",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "pipelines"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"pipe-mode-validation\",\n  \"template_id\": \"{{template_id}}\",\n  \"connection_profile_id\": \"{{connection_profile_id}}\",\n  \"zone\": \"raw\",\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"orders_validation\",\n  \"mode\": \"validation\",\n  \"version\": \"v1\",\n  \"connector_config\": {\n    \"tasks.max\": \"1\"\n  },\n  \"status\": \"draft\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Create pipeline \u2014 mode=replay",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Org-Id",
+                    "value": "{{org_id}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/pipelines",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "pipelines"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"pipe-mode-replay\",\n  \"template_id\": \"{{template_id}}\",\n  \"connection_profile_id\": \"{{connection_profile_id}}\",\n  \"zone\": \"raw\",\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"orders_replay\",\n  \"mode\": \"replay\",\n  \"version\": \"v1\",\n  \"connector_config\": {\n    \"tasks.max\": \"1\"\n  },\n  \"status\": \"draft\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "NEG create \u2014 bad zone 'bronze' (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pipelines",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pipelines"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"bad-zone\",\n  \"template_id\": \"{{template_id}}\",\n  \"connection_profile_id\": \"{{connection_profile_id}}\",\n  \"zone\": \"bronze\",\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"orders\",\n  \"mode\": \"cdc\",\n  \"version\": \"v1\",\n  \"connector_config\": {\n    \"tasks.max\": \"1\"\n  },\n  \"status\": \"draft\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.expect(pm.response.code).to.eql(422); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG create \u2014 bad mode 'etl' (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pipelines",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pipelines"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"bad-mode\",\n  \"template_id\": \"{{template_id}}\",\n  \"connection_profile_id\": \"{{connection_profile_id}}\",\n  \"zone\": \"raw\",\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"orders\",\n  \"mode\": \"etl\",\n  \"version\": \"v1\",\n  \"connector_config\": {\n    \"tasks.max\": \"1\"\n  },\n  \"status\": \"draft\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.expect(pm.response.code).to.eql(422); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG create \u2014 bad version 'ver1' (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pipelines",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pipelines"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"bad-version\",\n  \"template_id\": \"{{template_id}}\",\n  \"connection_profile_id\": \"{{connection_profile_id}}\",\n  \"zone\": \"raw\",\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"orders\",\n  \"mode\": \"cdc\",\n  \"version\": \"ver1\",\n  \"connector_config\": {\n    \"tasks.max\": \"1\"\n  },\n  \"status\": \"draft\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.expect(pm.response.code).to.eql(422); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG create \u2014 uppercase domain (422 topic segment)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pipelines",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pipelines"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"bad-domain\",\n  \"template_id\": \"{{template_id}}\",\n  \"connection_profile_id\": \"{{connection_profile_id}}\",\n  \"zone\": \"raw\",\n  \"domain\": \"Sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"orders\",\n  \"mode\": \"cdc\",\n  \"version\": \"v1\",\n  \"connector_config\": {\n    \"tasks.max\": \"1\"\n  },\n  \"status\": \"draft\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.expect(pm.response.code).to.eql(422); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG create \u2014 unknown template_id (404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pipelines",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pipelines"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"bad-tpl\",\n  \"template_id\": \"nope\",\n  \"connection_profile_id\": \"{{connection_profile_id}}\",\n  \"zone\": \"raw\",\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"orders\",\n  \"mode\": \"cdc\",\n  \"version\": \"v1\",\n  \"connector_config\": {\n    \"tasks.max\": \"1\"\n  },\n  \"status\": \"draft\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', function () { pm.expect(pm.response.code).to.eql(404); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG create \u2014 unknown connection (404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pipelines",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pipelines"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"bad-conn\",\n  \"template_id\": \"{{template_id}}\",\n  \"connection_profile_id\": \"nope\",\n  \"zone\": \"raw\",\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"orders\",\n  \"mode\": \"cdc\",\n  \"version\": \"v1\",\n  \"connector_config\": {\n    \"tasks.max\": \"1\"\n  },\n  \"status\": \"draft\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', function () { pm.expect(pm.response.code).to.eql(404); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG list \u2014 missing X-Org-Id (400)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/pipelines",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pipelines"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', function () { pm.expect(pm.response.code).to.eql(400); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Saves {{pipeline_id}} and {{connector_name}}. Includes every valid zone (5) and mode (7)."
+    },
+    {
+      "name": "5. Pipeline Lifecycle",
+      "item": [
+        {
+          "name": "Create lifecycle pipeline (raw/cdc)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pipelines",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pipelines"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"lifecycle-orders\",\n  \"template_id\": \"{{template_id}}\",\n  \"connection_profile_id\": \"{{connection_profile_id}}\",\n  \"zone\": \"raw\",\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"lifecycle\",\n  \"mode\": \"cdc\",\n  \"version\": \"v1\",\n  \"connector_config\": {\n    \"tasks.max\": \"1\"\n  },\n  \"status\": \"draft\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var v = pm.response.json().id; if (v !== undefined && v !== null) { pm.collectionVariables.set('pipeline_lc_id', v); console.log('saved pipeline_lc_id=' + v); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deploy (draft -> deployed)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pipelines/{{pipeline_lc_id}}/deploy",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pipelines",
+                "{{pipeline_lc_id}}",
+                "deploy"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Status after deploy",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pipelines/{{pipeline_lc_id}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pipelines",
+                "{{pipeline_lc_id}}",
+                "status"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('deployed', function(){ pm.expect(pm.response.json().status).to.eql('deployed'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Pause (deployed -> paused)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pipelines/{{pipeline_lc_id}}/pause",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pipelines",
+                "{{pipeline_lc_id}}",
+                "pause"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resume (paused -> running)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pipelines/{{pipeline_lc_id}}/resume",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pipelines",
+                "{{pipeline_lc_id}}",
+                "resume"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Restart (running -> restarting)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pipelines/{{pipeline_lc_id}}/restart",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pipelines",
+                "{{pipeline_lc_id}}",
+                "restart"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG pause after restart (409 \u2014 restarting allows only running/failed)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pipelines/{{pipeline_lc_id}}/pause",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pipelines",
+                "{{pipeline_lc_id}}",
+                "pause"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', function () { pm.expect(pm.response.code).to.eql(409); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG deploy again (409 \u2014 restarting->deployed not allowed)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pipelines/{{pipeline_lc_id}}/deploy",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pipelines",
+                "{{pipeline_lc_id}}",
+                "deploy"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', function () { pm.expect(pm.response.code).to.eql(409); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Run in order. Deploy also materializes lineage assets/edges used by folder 6. Saves {{pipeline_lc_id}}."
+    },
+    {
+      "name": "6. Lineage",
+      "item": [
+        {
+          "name": "List assets (after deploy)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/assets",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "assets"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "var v = (pm.response.json()[0] || {}).id; if (v !== undefined && v !== null) { pm.collectionVariables.set('asset_id', v); console.log('saved asset_id=' + v); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Graph for asset",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/lineage/{{asset_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lineage",
+                "{{asset_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Graph for pipeline (deployed lifecycle pipeline)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/lineage/pipeline/{{pipeline_lc_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lineage",
+                "pipeline",
+                "{{pipeline_lc_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Post runtime lineage event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/lineage/events",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lineage",
+                "events"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"org_1001\",\n  \"event_type\": \"runtime_emit\",\n  \"from_asset\": {\n    \"asset_type\": \"kafka_topic\",\n    \"name\": \"src-topic\",\n    \"qualified_name\": \"org_1001:topic:raw:orders\",\n    \"metadata\": {}\n  },\n  \"to_asset\": {\n    \"asset_type\": \"processor\",\n    \"name\": \"orders-quality\",\n    \"qualified_name\": \"org_1001:processor:orders:quality\",\n    \"metadata\": {}\n  },\n  \"edge_type\": \"VALIDATED_BY\",\n  \"pipeline_id\": \"{{pipeline_lc_id}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Post runtime event \u2014 mismatched org_id (header wins)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/lineage/events",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lineage",
+                "events"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"org_OTHER\",\n  \"event_type\": \"runtime_emit\",\n  \"from_asset\": {\n    \"asset_type\": \"kafka_topic\",\n    \"name\": \"t2\",\n    \"qualified_name\": \"org_1001:topic:raw:t2\",\n    \"metadata\": {}\n  },\n  \"to_asset\": {\n    \"asset_type\": \"processor\",\n    \"name\": \"p2\",\n    \"qualified_name\": \"org_1001:processor:t2\",\n    \"metadata\": {}\n  },\n  \"edge_type\": \"EMITS_TO\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG assets \u2014 missing X-Org-Id (400)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/assets",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "assets"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', function () { pm.expect(pm.response.code).to.eql(400); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Run AFTER folder 5 (deploy creates assets). Saves {{asset_id}}."
+    },
+    {
+      "name": "7. Quality Execution",
+      "item": [
+        {
+          "name": "Execute \u2014 mixed pass/fail records",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/quality-policies/{{quality_policy_id}}/execute",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "quality-policies",
+                "{{quality_policy_id}}",
+                "execute"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pipeline_id\": \"{{pipeline_id}}\",\n  \"records\": [\n    {\n      \"id\": \"1\",\n      \"amount\": 10,\n      \"status\": \"new\",\n      \"email\": \"a@b.com\",\n      \"name\": \"Ann\"\n    },\n    {\n      \"id\": \"\",\n      \"amount\": 999999,\n      \"status\": \"???\",\n      \"email\": \"bad\",\n      \"name\": \"\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('has failures', function(){ pm.expect(pm.response.json().failed_count).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Execute \u2014 all passing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/quality-policies/{{quality_policy_id}}/execute",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "quality-policies",
+                "{{quality_policy_id}}",
+                "execute"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pipeline_id\": \"{{pipeline_id}}\",\n  \"records\": [\n    {\n      \"id\": \"1\",\n      \"amount\": 10,\n      \"status\": \"paid\",\n      \"email\": \"a@b.com\",\n      \"name\": \"Ann\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Stream process \u2014 passing record (valid)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/quality-policies/{{quality_policy_id}}/stream/process",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "quality-policies",
+                "{{quality_policy_id}}",
+                "stream",
+                "process"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pipeline_id\": \"{{pipeline_id}}\",\n  \"record\": {\n    \"id\": \"2\",\n    \"amount\": 20,\n    \"status\": \"paid\",\n    \"email\": \"c@d.com\",\n    \"name\": \"Bob\"\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('valid', function(){ pm.expect(pm.response.json().status).to.eql('valid'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Stream process \u2014 failing record (quarantined)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/quality-policies/{{quality_policy_id}}/stream/process",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "quality-policies",
+                "{{quality_policy_id}}",
+                "stream",
+                "process"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pipeline_id\": \"{{pipeline_id}}\",\n  \"record\": {\n    \"id\": \"\",\n    \"amount\": 10,\n    \"status\": \"nope\",\n    \"email\": \"bad\",\n    \"name\": \"\"\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('quarantined', function(){ pm.expect(pm.response.json().status).to.eql('quarantined'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List quality results (now populated)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/quality-results",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "quality-results"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG execute \u2014 unknown pipeline_id (404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/quality-policies/{{quality_policy_id}}/execute",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "quality-policies",
+                "{{quality_policy_id}}",
+                "execute"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pipeline_id\": \"nope\",\n  \"records\": [\n    {\n      \"id\": \"1\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', function () { pm.expect(pm.response.code).to.eql(404); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG execute \u2014 missing X-Org-Id (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/quality-policies/{{quality_policy_id}}/execute",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "quality-policies",
+                "{{quality_policy_id}}",
+                "execute"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pipeline_id\": \"{{pipeline_id}}\",\n  \"records\": []\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', function () { pm.expect(pm.response.code).to.eql(400); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Uses {{quality_policy_id}} (folder 3) and {{pipeline_id}} (folder 4)."
+    },
+    {
+      "name": "8. Schema Drift",
+      "item": [
+        {
+          "name": "Create approved schema (no PK) for drift",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"drift_demo\",\n  \"version\": \"v1\",\n  \"schema_definition\": {\n    \"fields\": [\n      {\n        \"name\": \"id\",\n        \"type\": \"string\",\n        \"nullable\": false,\n        \"primary_key\": false\n      },\n      {\n        \"name\": \"amount\",\n        \"type\": \"number\",\n        \"nullable\": true,\n        \"primary_key\": false\n      }\n    ]\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var v = pm.response.json().id; if (v !== undefined && v !== null) { pm.collectionVariables.set('drift_schema_id', v); console.log('saved drift_schema_id=' + v); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detect drift \u2014 compatible (new OPTIONAL field, allow_and_notify)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas/{{drift_schema_id}}/detect-drift",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas",
+                "{{drift_schema_id}}",
+                "detect-drift"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"records\": [\n    {\n      \"id\": \"1\",\n      \"amount\": 10,\n      \"note\": \"x\"\n    },\n    {\n      \"id\": \"2\",\n      \"amount\": 20\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('compatible', function(){ pm.expect(pm.response.json().compatible).to.be.true; });",
+                  "pm.test('no approval', function(){ pm.expect(pm.response.json().approval_required).to.be.false; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detect drift \u2014 type_changed (quarantine, still compatible)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas/{{drift_schema_id}}/detect-drift",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas",
+                "{{drift_schema_id}}",
+                "detect-drift"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"records\": [\n    {\n      \"id\": \"1\",\n      \"amount\": \"NaN\"\n    },\n    {\n      \"id\": \"2\",\n      \"amount\": \"oops\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detect drift \u2014 new REQUIRED field (hold_for_approval -> approval_required)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas/{{drift_schema_id}}/detect-drift",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas",
+                "{{drift_schema_id}}",
+                "detect-drift"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"records\": [\n    {\n      \"id\": \"1\",\n      \"amount\": 10,\n      \"region\": \"us\"\n    },\n    {\n      \"id\": \"2\",\n      \"amount\": 20,\n      \"region\": \"eu\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('approval required', function(){ pm.expect(pm.response.json().approval_required).to.be.true; });",
+                  "var v = pm.response.json().approval_request_id; if (v !== undefined && v !== null) { pm.collectionVariables.set('approval_request_id', v); console.log('saved approval_request_id=' + v); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create approved schema (PK=id) for BLOCK case",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"domain\": \"sales\",\n  \"source_system\": \"orders_app\",\n  \"entity\": \"drift_pk\",\n  \"version\": \"v1\",\n  \"schema_definition\": {\n    \"fields\": [\n      {\n        \"name\": \"id\",\n        \"type\": \"string\",\n        \"nullable\": false,\n        \"primary_key\": true\n      }\n    ]\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var v = pm.response.json().id; if (v !== undefined && v !== null) { pm.collectionVariables.set('drift_pk_schema_id', v); console.log('saved drift_pk_schema_id=' + v); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detect drift \u2014 primary_key_changed (block_deployment, incompatible)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas/{{drift_pk_schema_id}}/detect-drift",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas",
+                "{{drift_pk_schema_id}}",
+                "detect-drift"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"records\": [\n    {\n      \"id\": \"1\"\n    },\n    {\n      \"id\": \"2\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('incompatible', function(){ pm.expect(pm.response.json().compatible).to.be.false; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List drift approvals",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas/drift-approvals",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas",
+                "drift-approvals"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List drift approvals \u2014 status=pending",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas/drift-approvals?status=pending",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas",
+                "drift-approvals"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Approve auto-created approval (from detect-drift)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas/drift-approvals/{{approval_request_id}}/approve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas",
+                "drift-approvals",
+                "{{approval_request_id}}",
+                "approve"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reviewed_by\": \"reviewer\",\n  \"comment\": \"looks good\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('approved', function(){ pm.expect(pm.response.json().status).to.eql('approved'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create drift approval manually",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas/drift-approvals",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas",
+                "drift-approvals"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schema_version_id\": \"{{drift_schema_id}}\",\n  \"pipeline_id\": \"{{pipeline_id}}\",\n  \"observed_schema\": {\n    \"fields\": [\n      {\n        \"name\": \"id\",\n        \"type\": \"string\"\n      }\n    ]\n  },\n  \"drift_events\": [],\n  \"requested_by\": \"swarnitha\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status in [200,201]', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var v = pm.response.json().id; if (v !== undefined && v !== null) { pm.collectionVariables.set('manual_approval_id', v); console.log('saved manual_approval_id=' + v); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject manual approval",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas/drift-approvals/{{manual_approval_id}}/reject",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas",
+                "drift-approvals",
+                "{{manual_approval_id}}",
+                "reject"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reviewed_by\": \"reviewer\",\n  \"comment\": \"breaking change\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('rejected', function(){ pm.expect(pm.response.json().status).to.eql('rejected'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List drift approvals \u2014 status=approved",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas/drift-approvals?status=approved",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas",
+                "drift-approvals"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "approved"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG approve \u2014 unknown approval id (404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas/drift-approvals/nope/approve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas",
+                "drift-approvals",
+                "nope",
+                "approve"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reviewed_by\": \"x\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', function () { pm.expect(pm.response.code).to.eql(404); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "NEG detect-drift \u2014 unknown schema (404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schemas/nope/detect-drift",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schemas",
+                "nope",
+                "detect-drift"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"records\": [\n    {\n      \"id\": \"1\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', function () { pm.expect(pm.response.code).to.eql(404); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Demonstrates drift actions: allow_and_notify, hold_for_approval, quarantine (type_changed), block_deployment (primary_key_changed). Saves {{drift_schema_id}}, {{approval_request_id}}."
+    },
+    {
+      "name": "9. Monitoring",
+      "item": [
+        {
+          "name": "List connect clusters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/runtime/connect-clusters",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "runtime",
+                "connect-clusters"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "var v = (pm.response.json()[0] || {}).id; if (v !== undefined && v !== null) { pm.collectionVariables.set('cluster_id', v); console.log('saved cluster_id=' + v); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List connectors in cluster",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/runtime/connect-clusters/{{cluster_id}}/connectors",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "runtime",
+                "connect-clusters",
+                "{{cluster_id}}",
+                "connectors"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Connector status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/runtime/connectors/{{connector_name}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "runtime",
+                "connectors",
+                "{{connector_name}}",
+                "status"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Connector tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/runtime/connectors/{{connector_name}}/tasks",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "runtime",
+                "connectors",
+                "{{connector_name}}",
+                "tasks"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Metrics summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/runtime/metrics/summary",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "runtime",
+                "metrics",
+                "summary"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "No X-Org-Id needed. Uses {{cluster_id}} and {{connector_name}} (from folder 4)."
+    }
+  ]
+}

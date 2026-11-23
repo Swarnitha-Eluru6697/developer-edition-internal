@@ -1,0 +1,146 @@
+{{- include "dbtrunner.validate" . -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "dbtrunner.fullname" . }}-config
+  labels:
+    {{- include "dbtrunner.labels" . | nindent 4 }}
+data:
+  ENVIRONMENT: {{ .Values.environment | quote }}
+  ORG_ID: {{ .Values.tenant.orgId | quote }}
+
+  CONTROL_PLANE_JWKS_URL: {{ .Values.controlPlane.jwksUrl | quote }}
+  CONTROL_PLANE_ISSUER: {{ .Values.controlPlane.issuer | quote }}
+  CONTROL_PLANE_AUDIENCE: {{ .Values.controlPlane.audience | quote }}
+  # list settings are JSON for pydantic-settings
+  CORS_ORIGINS: {{ .Values.controlPlane.corsOrigins | toJson | quote }}
+
+  # Database — discrete fields; the app composes (and escapes) the URL with
+  # DATABASE_PASSWORD from its Secret. No $(VAR) expansion; TLS via asyncpg ssl.
+  DATABASE_HOST: {{ .Values.database.host | quote }}
+  DATABASE_PORT: {{ .Values.database.port | quote }}
+  DATABASE_NAME: {{ .Values.database.name | quote }}
+  DATABASE_USER: {{ .Values.database.user | quote }}
+  DATABASE_SSL: {{ .Values.database.ssl | quote }}
+
+  # Engines
+  TRINO_HOST: {{ .Values.engines.trino.host | quote }}
+  TRINO_PORT: {{ .Values.engines.trino.port | quote }}
+  TRINO_CATALOG: {{ .Values.engines.trino.catalog | quote }}
+  TRINO_HTTP_SCHEME: {{ .Values.engines.trino.httpScheme | quote }}
+  {{- with .Values.engines.trino.jwtSecretRef }}
+  {{- if .name }}
+  TRINO_JWT_SECRET_NAME: {{ .name | quote }}
+  TRINO_JWT_SECRET_KEY: {{ .key | quote }}
+  {{- end }}
+  {{- end }}
+  {{- with .Values.engines.pgLake.dsnSecretRef }}
+  {{- if .name }}
+  # Name/key only — the run Job references the SAME Secret.
+  PG_LAKE_DSN_SECRET_NAME: {{ .name | quote }}
+  PG_LAKE_DSN_SECRET_KEY: {{ .key | quote }}
+  {{- end }}
+  {{- end }}
+
+  {{- with .Values.engines.clickhouse }}
+  {{- if .host }}
+  CLICKHOUSE_HOST: {{ .host | quote }}
+  CLICKHOUSE_PORT: {{ .port | quote }}
+  CLICKHOUSE_SECURE: {{ .secure | quote }}
+  CLICKHOUSE_USER: {{ .user | quote }}
+  CLICKHOUSE_DATABASE: {{ .database | quote }}
+  {{- with .passwordSecretRef }}
+  {{- if .name }}
+  # Name/key only — the run Job references the SAME Secret.
+  CLICKHOUSE_PASSWORD_SECRET_NAME: {{ .name | quote }}
+  CLICKHOUSE_PASSWORD_SECRET_KEY: {{ .key | quote }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
+
+  POLARIS_REST_URI: {{ .Values.polaris.restUri | quote }}
+
+  # Run isolation
+  RUNNER_MODE: {{ .Values.runner.mode | quote }}
+  RUNNER_IMAGE: {{ include "dbtrunner.runnerImage" . | quote }}
+  RUNNER_NAMESPACE: {{ .Values.runner.namespace | quote }}
+  RUNNER_JOB_TIMEOUT_SECONDS: {{ .Values.runner.jobTimeoutSeconds | quote }}
+  RUNNER_JOB_TTL_SECONDS: {{ .Values.runner.jobTtlSeconds | quote }}
+  RUNNER_JOB_CPU_REQUEST: {{ .Values.runner.resources.requests.cpu | quote }}
+  RUNNER_JOB_CPU_LIMIT: {{ .Values.runner.resources.limits.cpu | quote }}
+  RUNNER_JOB_MEMORY_REQUEST: {{ .Values.runner.resources.requests.memory | quote }}
+  RUNNER_JOB_MEMORY_LIMIT: {{ .Values.runner.resources.limits.memory | quote }}
+  RUNNER_JOB_SERVICE_ACCOUNT: {{ include "dbtrunner.jobServiceAccountName" . | quote }}
+  {{- if and .Values.networkPolicy.job.git.proxy.url (eq .Values.runner.mode "k8s_job") }}
+  JOB_GIT_PROXY_URL: {{ .Values.networkPolicy.job.git.proxy.url | quote }}
+  {{- end }}
+  RUNNER_JOB_RUN_AS_USER: {{ .Values.runner.runAsUser | quote }}
+  RUNNER_JOB_RUN_AS_GROUP: {{ .Values.runner.runAsGroup | quote }}
+  RUNNER_JOB_POD_LABELS: {{ dict "app.kubernetes.io/instance" (include "dbtrunner.fullname" .) | toJson | quote }}
+  {{- if .Values.jobs.workspace.enabled }}
+  WORKSPACE_URL: {{ required "jobs.workspace.url is required when jobs.workspace.enabled" .Values.jobs.workspace.url | quote }}
+  {{- end }}
+  {{- with .Values.jobs.python.pipIndexUrl }}
+  PIP_INDEX_URL: {{ . | quote }}
+  {{- end }}
+  RUN_LEASE_SECONDS: {{ .Values.runner.leaseSeconds | quote }}
+  RUN_DISPATCH_CONCURRENCY: {{ .Values.runner.dispatchConcurrency | quote }}
+
+  # Durable run artifacts
+  ARTIFACT_STORE_BACKEND: {{ .Values.artifactStore.backend | quote }}
+  {{- if eq .Values.artifactStore.backend "s3" }}
+  ARTIFACT_S3_BUCKET: {{ required "artifactStore.s3.bucket is required when artifactStore.backend=s3" .Values.artifactStore.s3.bucket | quote }}
+  ARTIFACT_S3_PREFIX: {{ .Values.artifactStore.s3.prefix | quote }}
+  {{- with .Values.artifactStore.s3.endpointUrl }}
+  ARTIFACT_S3_ENDPOINT_URL: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.artifactStore.s3.region }}
+  ARTIFACT_S3_REGION: {{ . | quote }}
+  AWS_DEFAULT_REGION: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.artifactStore.s3.credentialsSecretRef }}
+  {{- if .name }}
+  ARTIFACT_S3_CREDENTIALS_SECRET_NAME: {{ .name | quote }}
+  ARTIFACT_S3_ACCESS_KEY_ID_KEY: {{ .accessKeyIdKey | quote }}
+  ARTIFACT_S3_SECRET_ACCESS_KEY_KEY: {{ .secretAccessKeyKey | quote }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
+
+  # Integrations (RUN-DBT-008): URLs are required when enabled; a disabled
+  # sink gets nothing enqueued.
+  {{- if .Values.integrations.openlineage.enabled }}
+  OPENLINEAGE_URL: {{ required "integrations.openlineage.url is required when integrations.openlineage.enabled" .Values.integrations.openlineage.url | quote }}
+  {{- end }}
+  OPENLINEAGE_NAMESPACE: {{ required "integrations.openlineage.namespace is required" .Values.integrations.openlineage.namespace | quote }}
+  {{- if .Values.integrations.datasets.enabled }}
+  DATASETS_URL: {{ required "integrations.datasets.url is required when integrations.datasets.enabled" .Values.integrations.datasets.url | quote }}
+  {{- else }}
+  DATASETS_URL: ""
+  {{- end }}
+  {{- if .Values.integrations.dataQuality.enabled }}
+  DQ_SERVICE_URL: {{ required "integrations.dataQuality.serviceUrl is required when integrations.dataQuality.enabled" .Values.integrations.dataQuality.serviceUrl | quote }}
+  {{- end }}
+  SCHEDULER_JWT_ALLOWED_ISSUERS: {{ .Values.schedulerJwt.allowedIssuers | toJson | quote }}
+  DELEGATION_JWT_ALLOWED_ISSUERS: {{ .Values.delegation.allowedIssuers | toJson | quote }}
+  DELEGATION_JWT_MAX_LIFETIME_SECONDS: {{ .Values.delegation.maxLifetimeSeconds | quote }}
+  DQ_DELEGATION_ALLOWED_SCOPES: {{ .Values.delegation.dq.allowedScopes | toJson | quote }}
+  SERVICE_JWT_ALLOWED_ISSUERS: {{ .Values.serviceJwt.allowedIssuers | toJson | quote }}
+  SERVICE_JWT_ALLOWED_SUBJECTS: {{ .Values.serviceJwt.allowedSubjects | toJson | quote }}
+  SERVICE_JWT_MAX_LIFETIME_SECONDS: {{ .Values.serviceJwt.maxLifetimeSeconds | quote }}
+  METADATA_OUTBOX_MAX_ATTEMPTS: {{ .Values.metadataOutbox.maxAttempts | quote }}
+  METADATA_OUTBOX_BACKLOG_WARN: {{ .Values.metadataOutbox.backlogWarn | quote }}
+
+  # Scheduler (DG-001): the runner's own cron scheduler unless an external orchestrator is named.
+  {{- if and (not .Values.scheduler.enabled) (not .Values.scheduler.externalOrchestrator) }}
+  {{- fail "scheduler.enabled=false needs scheduler.externalOrchestrator (the system that replaces the built-in cron scheduler and has its triggers deployed); otherwise scheduled dbt projects would never run" }}
+  {{- end }}
+  SCHEDULER_ENABLED: {{ .Values.scheduler.enabled | quote }}
+  SCHEDULER_POLL_INTERVAL_SECONDS: {{ .Values.scheduler.pollIntervalSeconds | quote }}
+
+  # Telemetry
+  TELEMETRY_ENABLED: {{ .Values.telemetry.enabled | quote }}
+  TELEMETRY_ENDPOINT: {{ .Values.telemetry.endpoint | quote }}
+
+  LOG_LEVEL: "INFO"

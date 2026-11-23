@@ -1,0 +1,105 @@
+{{/*
+Autoscaling for the Flink TaskManager fleet.
+
+TWO mechanisms are combined:
+
+1. Flink Reactive Mode (configured in flinkConfiguration above):
+   When running jobs need more parallelism than available TM slots, the Flink
+   Kubernetes Operator creates new TaskManager pods automatically. When jobs
+   finish or are stopped, excess TaskManagers are reclaimed.
+
+   Example: Job A requires parallelism=4, Job B requires parallelism=2.
+   With slotsPerTask=4 (per values.yaml), we need ceil((4+2)/4) = 2 TMs.
+   If we add Job C with parallelism=8, we need ceil(14/4) = 4 TMs.
+   Reactive mode adds the 2 new TMs automatically.
+
+2. KEDA ScaledObject (below):
+   Proactively scales BEFORE Flink hits slot exhaustion, by monitoring Kafka
+   consumer group lag. If lag is rising, new TaskManagers are added before
+   the existing TMs fall behind, preventing backpressure from building up.
+
+   Formula: target TMs = ceil(total_kafka_lag / lagThreshold)
+   Example: 200,000 lag, lagThreshold=50,000 → 4 TMs needed.
+*/}}
+{{- if .Values.autoscaling.enabled }}
+{{- if .Values.autoscaling.keda.enabled }}
+---
+# KEDA ScaledObject — scales TaskManager Deployment based on Kafka consumer lag.
+# KEDA must be installed cluster-wide (keda.sh/v1alpha1 CRD must exist).
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ .Values.cluster.name }}-taskmanager-scaler
+  namespace: {{ .Release.Namespace }}
+  labels:
+    inaiera.com/org-id: {{ .Values.tenant.orgId }}
+    inaiera.com/component: flink-autoscaler
+spec:
+  # Target: the TaskManager StatefulSet managed by the Flink Kubernetes Operator.
+  # The operator creates StatefulSets named {cluster.name}-taskmanager.
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: {{ .Values.cluster.name }}-taskmanager
+  pollingInterval: {{ .Values.autoscaling.keda.pollingInterval }}
+  cooldownPeriod: {{ .Values.autoscaling.keda.cooldownPeriod }}
+  minReplicaCount: {{ .Values.autoscaling.minTaskManagers }}
+  maxReplicaCount: {{ .Values.autoscaling.maxTaskManagers }}
+  triggers:
+    - type: kafka
+      metadata:
+        # Consumer group to monitor. This is the group.id used in Flink SQL
+        # CREATE TABLE ... WITH ('properties.group.id' = '...')
+        # The FlinkSQL Runner injects job-specific group IDs, but we monitor
+        # the shared prefix for all inaiera jobs.
+        consumerGroup: {{ .Values.autoscaling.keda.kafkaTrigger.consumerGroup | quote }}
+        bootstrapServers: {{ .Values.autoscaling.keda.kafkaTrigger.bootstrapServers | quote }}
+        lagThreshold: {{ .Values.autoscaling.keda.kafkaTrigger.lagThreshold | quote }}
+        # Monitor all topics this consumer group is subscribed to
+        topic: ""
+        offsetResetPolicy: latest
+      authenticationRef:
+        name: {{ .Values.cluster.name }}-keda-kafka-auth
+---
+# KEDA TriggerAuthentication — references the same Kafka secret as Dataconnect
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: {{ .Values.cluster.name }}-keda-kafka-auth
+  namespace: {{ .Release.Namespace }}
+spec:
+  secretTargetRef:
+    - parameter: username
+      name: {{ .Values.kafka.saslCredentialsSecretRef.name }}
+      key: {{ .Values.kafka.saslCredentialsSecretRef.usernameKey }}
+    - parameter: password
+      name: {{ .Values.kafka.saslCredentialsSecretRef.name }}
+      key: {{ .Values.kafka.saslCredentialsSecretRef.passwordKey }}
+{{- end }}
+{{- if .Values.autoscaling.jobAutoscaler.enabled }}
+---
+# Flink Job Autoscaler configuration.
+# The Flink Kubernetes Operator has a built-in autoscaler (since operator v1.5)
+# that adjusts per-operator parallelism based on actual throughput.
+# This ConfigMap sets the autoscaler policy for this cluster.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.cluster.name }}-autoscaler-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    inaiera.com/org-id: {{ .Values.tenant.orgId }}
+data:
+  # These keys are recognized by the Flink Kubernetes Operator's autoscaler
+  # and injected into the FlinkDeployment spec.
+  autoscaler.enabled: "true"
+  autoscaler.stabilization.interval: {{ .Values.autoscaling.jobAutoscaler.stabilizationWindowSeconds | quote }}
+  autoscaler.target.utilization: {{ .Values.autoscaling.jobAutoscaler.scaleUpThreshold | quote }}
+  autoscaler.scale-down.utilization-threshold: {{ .Values.autoscaling.jobAutoscaler.scaleDownThreshold | quote }}
+  # Parallelism bounds
+  autoscaler.min-parallelism: "1"
+  autoscaler.max-parallelism: {{ mul .Values.autoscaling.maxTaskManagers .Values.taskManager.slotsPerTask | quote }}
+  # Emit metrics to Prometheus for observability
+  autoscaler.metrics.enabled: "true"
+{{- end }}
+{{- end }}

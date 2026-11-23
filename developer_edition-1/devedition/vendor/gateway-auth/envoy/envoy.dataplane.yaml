@@ -1,0 +1,236 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# InaiEra data-plane Envoy — the complete north-south trust boundary (Gate 1).
+#
+# This is a RENDERABLE config, not a Helm fragment. `_gateway-auth.tpl.yaml`
+# next to it stays the per-route Helm include; this file is what a data plane
+# actually runs, and the two must not drift. Render it with envsubst and mount
+# the result:
+#
+#   envsubst < envoy.dataplane.yaml > /etc/envoy/envoy.yaml
+#
+# Variables: CP_HOST, KEYCLOAK_REALM, ENVOY_INTERNAL_SECRET
+#
+# Envoy receives connections ONLY from the local tunnel agent. It has no
+# listener reachable from outside the cluster, and the admin interface is
+# bound to loopback.
+#
+# ── Route convention (see docs/GATEWAY-AUTH-AND-ENVOY.md §3) ─────────────────
+#   /<app>/       -> that app's static MFE bundle   (prefix_rewrite "/")
+#   /<app>-api/   -> that app's backend API         (prefix_rewrite "/")
+# Both rewrite to "/", so each app's own path structure is preserved below the
+# prefix. Adding an app means adding one pair of routes and one pair of
+# clusters — nothing else in this file changes.
+# ─────────────────────────────────────────────────────────────────────────────
+
+static_resources:
+  listeners:
+    - name: main_listener
+      address: { socket_address: { address: 0.0.0.0, port_value: 10000 } }
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: ingress_http
+                # Dataset uploads and training triggers are long. Keep in step
+                # with the broker's RELAY_TIMEOUT_MS and the ingress read timeout,
+                # or a large upload dies at the shortest of the three.
+                stream_idle_timeout: 300s
+                request_timeout: 300s
+                route_config:
+                  name: local_route
+                  virtual_hosts:
+                    - name: data_plane_services
+                      domains: ["*"]
+                      # Gate 1's proof-of-passage, stamped on EVERY route.
+                      # OVERWRITE_IF_EXISTS_OR_ADD is not optional: without it a
+                      # caller's forged header rides alongside the real one
+                      # instead of being replaced.
+                      request_headers_to_add:
+                        - header:
+                            key: "x-inaiera-gateway-secret"
+                            value: "${ENVOY_INTERNAL_SECRET}"
+                          append_action: OVERWRITE_IF_EXISTS_OR_ADD
+                      routes:
+                        # Envoy's own liveness. No JWT (see the jwt rules below).
+                        - match: { path: "/healthz" }
+                          direct_response: { status: 200, body: { inline_string: "ok" } }
+
+                        # ── App: UCS / Catalog ───────────────────────────────
+                        # One app, two components: the federated MFE bundle and
+                        # the FastAPI backend. "catalog" and "ucs" are the same
+                        # application — not two apps.
+                        - match: { prefix: "/catalog-api/" }
+                          route: { cluster: ucs_catalog, prefix_rewrite: "/", timeout: 120s }
+                        - match: { prefix: "/catalog/" }
+                          route: { cluster: ucs_web, prefix_rewrite: "/", timeout: 15s }
+                        # LEGACY ALIAS — the Control Portal currently passes
+                        # apiBase=/control_plane/api/dataplane/ucs. Retire once the
+                        # host is rebuilt against /catalog-api/. See docs §3.3.
+                        - match: { prefix: "/ucs/" }
+                          route: { cluster: ucs_catalog, prefix_rewrite: "/", timeout: 120s }
+
+                        # ── App: DataConnect ─────────────────────────────────
+                        - match: { prefix: "/dataconnect-api/" }
+                          route: { cluster: dataconnect_backend, prefix_rewrite: "/", timeout: 120s }
+                        - match: { prefix: "/dataconnect/" }
+                          route: { cluster: dataconnect_mfe, prefix_rewrite: "/", timeout: 15s }
+                        # LEGACY ALIAS — the backend serves this prefix natively,
+                        # so no rewrite. Retire once the MFE is rebuilt. See docs §3.3.
+                        - match: { prefix: "/api/v1/dataconnect" }
+                          route: { cluster: dataconnect_backend, timeout: 120s }
+
+                        # ── App: ML Studio ───────────────────────────────
+                        # ML Studio adopted the shared gateway-auth library on
+                        # 2026-10-07, so it now verifies the gateway secret and
+                        # takes the caller's role from the verified ticket. Its
+                        # API route is therefore enabled, like the other two.
+                        #
+                        # 1800s because dataset uploads run to hundreds of MB
+                        # and training triggers are slow. Raising it here alone
+                        # is not enough — the broker and the ingress cap it too.
+                        - match: { prefix: "/mlstudio-api/" }
+                          route: { cluster: mlstudio_backend, prefix_rewrite: "/", timeout: 1800s }
+                        - match: { prefix: "/mlstudio/" }
+                          route: { cluster: mlstudio_web, prefix_rewrite: "/", timeout: 15s }
+
+                        # No catch-all, deliberately. An unmatched path must 404
+                        # rather than silently reach whichever service happens to
+                        # be first in the list.
+                http_filters:
+                  # ── 1. STRIP ───────────────────────────────────────────────
+                  # MUST precede jwt_authn. Anything the caller sent under these
+                  # names is attacker-controlled; delete it before the verified
+                  # values are written.
+                  #
+                  # It cannot be done with route-level request_headers_to_remove:
+                  # the router filter applies those AFTER the filter chain, so it
+                  # would delete the headers jwt_authn just set from verified
+                  # claims — removing the identity and protecting nothing.
+                  - name: envoy.filters.http.header_mutation
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.header_mutation.v3.HeaderMutation
+                      mutations:
+                        request_mutations:
+                          - remove: "x-user-name"
+                          - remove: "x-user-id"
+                          - remove: "x-user-permissions"
+                          - remove: "x-user-groups"
+                          - remove: "x-user-roles"
+                          - remove: "x-tenant-id"
+                          - remove: "x-inaiera-gateway-secret"
+                          # Legacy single-role header: no app may read it (contract 5.5).
+                          - remove: "x-user-role"
+
+                  # ── 2. VERIFY + SET identity from verified claims ──────────
+                  - name: envoy.filters.http.jwt_authn
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
+                      providers:
+                        keycloak_provider:
+                          issuer: "https://${CP_HOST}/auth/realms/${KEYCLOAK_REALM}"
+                          # remote_jwks, not local_jwks: embedded keys break
+                          # silently on every Keycloak key rotation and nothing
+                          # in the data plane says why. The tunnel already reaches
+                          # the control plane outbound, so this costs nothing new.
+                          remote_jwks:
+                            http_uri:
+                              uri: "https://${CP_HOST}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs"
+                              cluster: keycloak_jwks
+                              timeout: 5s
+                            cache_duration: 300s
+                          forward: true
+                          from_headers:
+                            - name: "X-Data-Plane-Ticket"
+                          # The platform-wide contract. Every app reads exactly
+                          # these names through gateway-auth — do NOT vary per app.
+                          # Envoy renders a MULTI-VALUED claim (roles, groups) as
+                          # base64(JSON array); gateway-auth's split_multi/splitMulti
+                          # decodes that, a raw JSON array, and a plain comma list.
+                          claim_to_headers:
+                            - { header_name: "x-user-name",   claim_name: "preferred_username" }
+                            - { header_name: "x-user-groups", claim_name: "groups" }
+                            - { header_name: "x-tenant-id",   claim_name: "tenant" }
+                            - { header_name: "x-user-roles",  claim_name: "realm_access.roles" }   # audit only
+                            - { header_name: "x-user-permissions", claim_name: "permissions" }    # authorisation
+                            - { header_name: "x-user-id",     claim_name: "sub" }
+                      rules:
+                        - match: { prefix: "/healthz" }
+                        - match: { prefix: "/" }
+                          requires: { provider_name: "keycloak_provider" }
+
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+  clusters:
+    # Outbound to the control-plane Keycloak for JWKS. TLS, with SNI.
+    - name: keycloak_jwks
+      connect_timeout: 5s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: keycloak_jwks
+        endpoints:
+          - lb_endpoints:
+              - endpoint: { address: { socket_address: { address: "${CP_HOST}", port_value: 443 } } }
+      transport_socket:
+        name: envoy.transport_sockets.tls
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+          sni: "${CP_HOST}"
+
+    # ── One cluster pair per app ─────────────────────────────────────────────
+    - name: ucs_catalog
+      connect_timeout: 5s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: ucs_catalog
+        endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: ucs-catalog, port_value: 8000 } } } }] }]
+
+    - name: ucs_web
+      connect_timeout: 5s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: ucs_web
+        endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: ucs-web, port_value: 80 } } } }] }]
+
+    - name: dataconnect_backend
+      connect_timeout: 5s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: dataconnect_backend
+        endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: dataconnect-backend, port_value: 8000 } } } }] }]
+
+    - name: dataconnect_mfe
+      connect_timeout: 5s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: dataconnect_mfe
+        endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: dataconnect-mfe, port_value: 5001 } } } }] }]
+
+    - name: mlstudio_backend
+      connect_timeout: 5s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: mlstudio_backend
+        endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: mlstudio-backend, port_value: 4000 } } } }] }]
+
+    - name: mlstudio_web
+      connect_timeout: 5s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: mlstudio_web
+        endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: mlstudio-web, port_value: 80 } } } }] }]
+
+# Loopback only. The admin interface has NO authentication and exposes the full
+# config (including the gateway secret) plus /quitquitquit. On 0.0.0.0 any pod
+# in the cluster could reach it.
+admin:
+  address: { socket_address: { address: 127.0.0.1, port_value: 9901 } }

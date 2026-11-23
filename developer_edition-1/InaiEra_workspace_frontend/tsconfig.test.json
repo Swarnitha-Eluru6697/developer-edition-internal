@@ -1,0 +1,12 @@
+{
+  // Type-checks tests/ (vitest specs) — WS-FE-014. src/ is included too
+  // because a composite project must list every file its program pulls in,
+  // and every test imports from src/.
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "composite": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
+    "types": ["node"]
+  },
+  "include": ["src", "tests"]
+}

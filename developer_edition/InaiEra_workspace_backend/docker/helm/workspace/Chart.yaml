@@ -1,0 +1,22 @@
+apiVersion: v2
+name: workspace
+description: |
+  InAiEra Workspace — per-org developer authoring surface. Deployed into each
+  customer data plane on its own subdomain (orgid.app.workspace.inaiera.com).
+
+  This chart is consumed by the parent inaiera-data-plane chart that the
+  Admin Portal's provisioning process applies when a new org is created. It
+  can also be applied stand-alone for testing.
+
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+keywords:
+  - inaiera
+  - workspace
+  - dataplane
+
+maintainers:
+  - name: InAiEra Platform Team
+    email: platform@inaiera.com

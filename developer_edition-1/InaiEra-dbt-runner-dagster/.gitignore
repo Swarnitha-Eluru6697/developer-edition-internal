@@ -1,0 +1,7 @@
+# Local environment files copied from the .env.local / .env.prod templates
+.env
+
+.DS_Store
+__pycache__/
+*.pyc
+*.egg-info/

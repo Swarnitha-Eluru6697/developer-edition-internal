@@ -1,0 +1,707 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   InaiEra DataConnect — federated remote styles.
+
+   EVERY selector is scoped under `.dc-root`, and the design tokens live on
+   `.dc-root` (not `:root`). This is deliberate: when the host federates this
+   remote, its CSS is injected into the host document. Generic class names
+   (.card, .tr, .badge, .btn-p …) would otherwise collide with the Control
+   Portal's own styles. Scoping keeps DataConnect visually self-contained.
+
+   Palette (aligned with the main app): orange #f97316 accent on white/gray.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.dc-root{
+  --color-background-primary:#ffffff;
+  --color-background-secondary:#f9fafb;
+  --color-background-tertiary:#f3f4f6;
+  --color-border-primary:#e5e7eb;
+  --color-border-secondary:#d1d5db;
+  --color-border-tertiary:#f3f4f6;
+  --color-text-primary:#1f2937;
+  /* FE-BUG-21: darkened from the original gray-500/gray-400 pair
+     (#6b7280 / #9ca3af) — axe-core's color-contrast (WCAG 1.4.3) check
+     found both fell under 4.5:1 against this app's lighter backgrounds
+     (secondary/tertiary panels), not just white. These values keep the
+     same two-step "secondary vs. muted" hierarchy while clearing 4.5:1
+     against every background token above, including tertiary. */
+  --color-text-secondary:#4b5563;
+  --color-text-muted:#57606b;
+  /* FE-BUG-21: the original brand orange (#f97316) only reaches ~2.8:1
+     against white — enough for decorative fills/borders (non-text UI
+     components need 3:1) but not for text or white-on-orange buttons
+     and avatars, which need 4.5:1. Promoted the old "-dark" shade to be
+     the base accent so every existing var(--color-primary) text/button
+     usage clears AA without a token-by-token rewrite; -hover/-dark
+     shifted a step darker each to keep the same relative ramp. */
+  --color-primary:#c2410c;
+  --color-on-primary:#fff;
+  --color-primary-hover:#9a3412;
+  --color-primary-light:#fff7ed;
+  --color-primary-dark:#7c2d12;
+  --color-success:#22c55e;
+  --color-success-light:#f0fdf4;
+  --color-success-text:#166534;
+  --color-error:#ef4444;
+  --color-error-light:#fef2f2;
+  --color-error-text:#991b1b;
+  --color-warning:#f59e0b;
+  --color-warning-light:#fffbeb;
+  --color-warning-text:#92400e;
+  --color-info:#0ea5e9;
+  --color-info-light:#f0f9ff;
+  --color-info-text:#075985;
+  --font-sans:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+
+  font-family:var(--font-sans);
+  font-size:13px;
+  color:var(--color-text-primary);
+  background:var(--color-background-secondary);
+  height:100%;
+}
+.dc-root *{box-sizing:border-box;margin:0;padding:0}
+/* FE-BUG-22: the host page's own global rules (body{line-height:3}, div{letter-spacing:…}) must not
+   reshape this app. Inherited text metrics are pinned at the root and every descendant is told to
+   inherit them, which beats a host's bare element selectors (specificity 0,1,0 vs 0,0,1); the app's
+   own rules are all scoped deeper (.dc-root .x) so they still win over this. */
+.dc-root{line-height:normal;letter-spacing:normal;word-spacing:normal}
+.dc-root *{line-height:inherit;letter-spacing:inherit;word-spacing:inherit}
+
+/* ══════ APP SHELL ══════════════════════════════════════════════════════════ */
+/* min-height:100% (not 100vh) so it fills the host's content area exactly when
+   federated; standalone, #root/body are set to full height so it still fills
+   the viewport. .cont scrolls internally, so the host page never double-scrolls. */
+/* The app fills the viewport/host and never scrolls as a whole: the sidebar stays put and only
+   .cont / the page's own regions scroll. overflow:hidden clips stray overflow (the host document
+   used to scroll a few px, which pulled the sidebar away); overscroll-behavior:contain stops a
+   wheel at the end of an inner scroller from chaining out to the document. */
+.dc-root{overflow:hidden}
+/* A hard scroll past the end of a list must not bounce the whole browser page (macOS shows a blank strip while it springs back). The app never
+   scrolls as a whole, so the document itself must not rubber-band either. :has() keeps this to pages where DataConnect is mounted — a host
+   that loads it as a remote keeps its own behaviour on its other pages. */
+html:has(.dc-root),html:has(.dc-root) body{overscroll-behavior:none}
+.dc-root .cont,.dc-root .page-scroll,.dc-root .sb{overscroll-behavior:none}
+/* NOT on .tbody: a table body is an overflow:auto box even when its rows all fit, and a non-scrolling box with overscroll-behavior:none
+   swallows the wheel instead of passing it to the page — which made pages with a plain table (Lineage, Quality…) stick when
+   scrolled with the cursor over the table. Table bodies chain to their page like any other content. */
+/* A trackpad swipe must not drag the app around. `none` (not `contain`) switches off the elastic bounce as well as the
+   scroll chaining, in both directions. `overflow-y:auto` also makes the x axis auto, so the sidebar and the table body
+   (which never have anything to scroll sideways) are clipped on x. */
+.dc-root .sb,.dc-root .tbody{overflow-x:hidden}
+.dc-root .sb{overflow-y:auto}
+.dc-root .app{display:grid;grid-template-columns:220px minmax(0,1fr);height:100%;min-height:100%}
+.dc-root .app.embedded{grid-template-columns:minmax(0,1fr)}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────────── */
+/* min-height:0 — same grid-item auto-min-size fix as .main, so the sidebar
+   stays capped at the grid row's height (never taller than the viewport)
+   regardless of how tall the main content grows. */
+.dc-root .sb{background:var(--color-background-primary);border-right:1px solid var(--color-border-primary);display:flex;flex-direction:column;min-height:0}
+.dc-root .sb-logo{display:flex;align-items:center;gap:10px;padding:16px 14px;border-bottom:1px solid var(--color-border-primary)}
+.dc-root .sb-mark{width:32px;height:32px;border-radius:8px;background:var(--color-primary);display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--color-on-primary);flex-shrink:0}
+.dc-root .sb-name{font-size:14px;font-weight:600;color:var(--color-text-primary)}
+.dc-root .sb-sub{font-size:10px;color:var(--color-text-muted)}
+.dc-root .sb-grp{padding:14px 12px 4px;font-size:10px;font-weight:600;color:var(--color-text-muted);letter-spacing:.08em;text-transform:uppercase}
+.dc-root .sb-nav{display:flex;flex-direction:column;gap:2px;padding:0 8px}
+.dc-root .sn{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:9px;color:var(--color-text-secondary);font-size:13px;font-weight:500;cursor:pointer;transition:background .15s,color .15s}
+.dc-root button.sn{width:100%;border:0;background:none;font-family:inherit;text-align:left}
+.dc-root .sn:focus-visible,.dc-root .hrow[role="button"]:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.dc-root .sn:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+/* The Catalog's active item: tinted fill, bolder text and a 2px orange rail inset on the left, which follows the rounded corners (the "curvy" edge). */
+.dc-root .sn.active{background:var(--color-primary-light);color:var(--color-primary);font-weight:600;box-shadow:inset 2px 0 0 #f97316}
+.dc-root .sn svg{flex-shrink:0;width:16px;height:16px}
+.dc-root .sn.active svg{color:var(--color-primary)}
+
+/* ── Main area ───────────────────────────────────────────────────────────── */
+/* min-height:0 alongside min-width:0: .main is a CSS Grid item (child of
+   .app's grid), and a grid item's default min-height:auto lets it grow to
+   fit its content instead of staying capped at the grid row's height — a
+   long .cont (e.g. Audit/History with many rows) then grows .main, .app,
+   and the whole document taller than the viewport, so the browser scrolls
+   the entire page (sidebar included) instead of just .cont scrolling
+   internally as intended (see the APP SHELL comment above). */
+.dc-root .main{display:flex;flex-direction:column;background:var(--color-background-secondary);min-width:0;min-height:0}
+.dc-root .topbar{position:relative;z-index:20;display:flex;align-items:center;gap:16px;padding:0 20px;height:60px;background:var(--color-background-primary);border-bottom:1px solid var(--color-border-primary);flex-shrink:0}
+.dc-root .tb-r{display:flex;gap:12px;align-items:center;margin-left:auto;min-width:0}
+/* The portal's role strip: one line, never wraps the bar; on a narrow screen it scrolls sideways (scrollbar hidden). */
+.dc-root .tb-roles{display:flex;align-items:center;min-width:0;max-width:100%;overflow-x:auto;overflow-y:hidden;white-space:nowrap;flex-wrap:nowrap;scrollbar-width:none;-ms-overflow-style:none}
+.dc-root .tb-roles::-webkit-scrollbar{display:none;width:0;height:0}
+/* Embedded (no sidebar): the logo opens the top bar instead. */
+.dc-root .tb-logo{flex-shrink:0;margin-left:-20px}
+.dc-root .tb-logo .sb-logo{border-bottom:0;padding:0 14px}
+/* Global search (components/HeaderSearch.tsx) — Workspace's header search: 38px, gray fill, 1px border, radius 9, "/" hint, grouped results. */
+.dc-root .hs{position:relative;flex:0 1 520px;min-width:0}
+.dc-root .hs-box{height:38px;display:flex;align-items:center;gap:9px;background:var(--color-background-secondary);border:1px solid var(--color-border-primary);border-radius:9px;padding:0 12px;color:#6b7280}
+.dc-root .hs-box:focus-within{border-color:var(--color-primary);background:var(--color-background-primary)}
+.dc-root .hs-input{flex:1;min-width:0;border:0;background:none;outline:none;font-size:13.5px;color:var(--color-text-primary)}
+.dc-root .hs-input::placeholder{color:#6b7280}
+.dc-root .hs-kbd{font-family:var(--font-mono,ui-monospace,monospace);font-size:11px;background:#fff;border:1px solid var(--color-border-primary);border-radius:5px;padding:1px 6px;color:#6b7280}
+.dc-root .hs-pop{position:absolute;top:44px;left:0;right:0;background:#fff;border:1px solid var(--color-border-primary);border-radius:10px;box-shadow:0 12px 40px rgba(16,32,58,.18);z-index:60;max-height:min(70vh,520px);overflow-y:auto;padding:4px 0;scrollbar-width:none;-ms-overflow-style:none}
+.dc-root .hs-pop::-webkit-scrollbar{display:none;width:0;height:0}
+.dc-root .hs-grp{font-size:10.5px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.12em;padding:8px 14px 4px}
+.dc-root .hs-opt{display:flex;align-items:center;gap:9px;padding:7px 14px;cursor:pointer;font-size:13px;color:var(--color-text-primary)}
+.dc-root .hs-opt.on{background:var(--color-primary-light)}
+.dc-root .hs-ico{display:grid;flex:none;color:#f97316}
+.dc-root .hs-ico svg{width:15px;height:15px}
+.dc-root .hs-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dc-root .hs-detail{margin-left:auto;font-size:11.5px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50%}
+.dc-root .hs-none{padding:10px 14px;font-size:12.5px;color:#6b7280}
+@media (max-width:900px){.dc-root .hs-kbd{display:none}}
+.dc-root .tb-av{width:32px;height:32px;border-radius:50%;background:var(--color-primary);display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--color-on-primary)}
+
+
+/* ── Content ─────────────────────────────────────────────────────────────── */
+.dc-root .cont{flex:1;padding:20px;overflow:auto}
+/* Opt-in for a page whose own table can grow very long (e.g. Audit/History):
+   the page header (.ph) and the table's column header row (.thead) stay
+   fixed in place, and only .tbody scrolls internally, instead of .cont
+   scrolling the whole page including the title and column headers past
+   view. .page-fill fills .cont's box exactly (rather than growing past it,
+   which is what .cont's own overflow:auto would otherwise scroll) so .cont
+   itself never needs to activate its scrollbar for this page — .tbody's own
+   overflow-y:auto is the only scroll region. Plain .tbl (no "scroll" class)
+   elsewhere is entirely unaffected. */
+.dc-root .page-fill{display:flex;flex-direction:column;height:100%;min-height:0}
+.dc-root .page-fill .ph{flex-shrink:0}
+.dc-root .card.card-fill{display:flex;flex-direction:column;flex:1;min-height:0;margin-bottom:0}
+.dc-root .card-fill>.ch{flex-shrink:0}
+.dc-root .card.card-fit{display:flex;flex-direction:column;flex:0 1 auto;min-height:0;margin-bottom:0}   /* as tall as its rows; scrolls inside when the window is shorter */
+.dc-root .card-fit>.ch{flex-shrink:0}
+.dc-root .tbl-fill{display:flex;flex-direction:column;flex:0 1 auto;min-height:0}   /* as tall as its rows; only scrolls when the window is shorter than that */
+.dc-root .tbl-fill .thead{flex-shrink:0}
+.dc-root .tbl-fill .tbody{flex:1 1 auto;min-height:0;overflow-y:auto;align-content:start}
+.dc-root .page-fill>.stats,.dc-root .page-fill>.alert{flex-shrink:0}
+.dc-root .page-scroll{flex:1;min-height:0;overflow-y:auto}
+/* A table that can grow without bound (one row per pipeline) gets its own scroll
+   region, capped at about five rows (the half row hints that it scrolls): the column header stays put, the rows
+   scroll, and the sections after it remain reachable by scrolling the page. */
+.dc-root .tbl.tbl-capped{display:flex;flex-direction:column}
+.dc-root .tbl.tbl-capped .thead{flex-shrink:0}
+.dc-root .tbl.tbl-capped .tbody{max-height:calc(5.5 * 52px);overflow-y:auto;align-content:start}
+.dc-root .tbl.scroll{display:flex;flex-direction:column;flex:1;min-height:0}
+.dc-root .tbl.scroll .thead{flex-shrink:0}
+.dc-root .tbl.scroll .tbody{flex:1;min-height:0;overflow-y:auto;align-content:start}
+/* Schemas: every pending drift change is one compact row in a single banner, scrolling inside after about three rows, and
+   the table under it keeps room for a few rows however many changes are pending (it used to be squeezed to 0 px). */
+.dc-root .drift-list{max-height:calc(3.5 * 44px);overflow-y:auto;margin-top:6px}
+.dc-root .drift-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding:4px 0;border-top:1px solid var(--color-border-primary)}
+.dc-root .drift-row:first-child{border-top:0}
+.dc-root .drift-row .btn-p{flex-shrink:0}
+.dc-root .page-fill>.tbl.scroll{min-height:240px}
+.dc-root .ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px}
+.dc-root .ptitle{font-size:18px;font-weight:600;color:var(--color-text-primary)}
+.dc-root .psub{font-size:12px;color:var(--color-text-secondary);margin-top:3px}
+.dc-root .ph-r{display:flex;gap:8px;align-items:center;flex-shrink:0}
+
+/* ── Stat cards ──────────────────────────────────────────────────────────── */
+.dc-root .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.dc-root .sc{background:var(--color-background-primary);border:1px solid var(--color-border-primary);border-radius:12px;padding:14px 16px;border-left:3px solid var(--color-text-muted)}
+.dc-root .sc.bl{border-left-color:var(--color-info)}
+.dc-root .sc.gn{border-left-color:var(--color-success)}
+.dc-root .sc.rd{border-left-color:var(--color-error)}
+.dc-root .sc.am{border-left-color:var(--color-warning)}
+.dc-root .sc.bp{border-left-color:#a855f7;background:var(--color-background-primary);color:inherit}   /* .bp is also the purple badge; a stat card only takes its side colour */
+.dc-root .sc-l{font-size:10px;color:var(--color-text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.dc-root .sc-v{font-size:22px;font-weight:600;color:var(--color-text-primary)}
+.dc-root .sc-s{font-size:10px;color:var(--color-text-muted);margin-top:3px}
+
+/* ── Cards ───────────────────────────────────────────────────────────────── */
+.dc-root .card{background:var(--color-background-primary);border:1px solid var(--color-border-primary);border-radius:12px;margin-bottom:14px;overflow:hidden}
+.dc-root .ch{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--color-border-tertiary)}
+.dc-root .ct{font-size:14px;font-weight:600;color:var(--color-text-primary)}
+.dc-root .cs{font-size:11px;color:var(--color-text-secondary);margin-top:2px}
+.dc-root .cb{padding:16px 18px}
+/* A card body whose rows can grow without bound (Quality's Recent results: one row per pipeline) shows about five and a half rows — the half
+   row hints that it scrolls — and scrolls inside, its card header staying put. 51px is one row (.hrow) and 32px the body's own padding. */
+.dc-root .cb.cb-capped{max-height:calc(5.5 * 51px + 32px);overflow-y:auto;align-content:start}
+
+/* ── Tables ──────────────────────────────────────────────────────────────── */
+.dc-root .tbl{border:1px solid var(--color-border-primary);border-radius:12px;overflow:hidden;margin-bottom:14px;background:var(--color-background-primary)}
+/* The header carries the same 3px transparent left edge a row has (.tr, the colour bar of a highlighted row): without it every row's cells sat 3px right of
+   their headings and the columns drifted a little further apart with every fr column. */
+.dc-root .thead{background:var(--color-background-secondary);border-bottom:1px solid var(--color-border-primary);border-left:3px solid transparent;display:grid;grid-template-columns:var(--cols)}
+.dc-root .th{font-size:11px;font-weight:600;color:var(--color-primary);padding:10px 14px;display:flex;align-items:center;gap:4px;min-width:0}
+.dc-root .tbody{display:grid}
+.dc-root .tr{display:grid;grid-template-columns:var(--cols);border-top:1px solid var(--color-border-tertiary);border-left:3px solid transparent}
+.dc-root .tr:first-child{border-top:none}
+/* A table body that shows exactly four rows and scrolls for the rest (the Lineage tables); the scrollbar itself is hidden by the .tbody rule further down.
+   Every row is the same fixed height so "four rows" is exact whatever the cells hold. */
+.dc-root .tbody.rows-4{--row-h:50px;max-height:calc(var(--row-h) * 4);overflow-y:auto;align-content:start}
+.dc-root .tbody.rows-4>.tr{min-height:var(--row-h);box-sizing:border-box}
+.dc-root .tr:hover{background:var(--color-primary-light)}
+.dc-root .tr.hl{border-left-color:var(--color-warning)}
+.dc-root .tr.hl2{border-left-color:var(--color-info)}
+.dc-root .tr.hl3{border-left-color:var(--color-success)}
+.dc-root .td{font-size:12px;padding:11px 14px;display:flex;align-items:center;min-width:0}
+.dc-root .tdm{font-size:11px;color:var(--color-text-secondary);padding:11px 14px;display:flex;align-items:center;min-width:0}
+.dc-root .tdmn{font-size:10px;color:var(--color-text-secondary);padding:11px 14px;display:flex;align-items:center;min-width:0;font-family:var(--font-mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* A pill leading a cell has 9px of padding before its text; pulling it back by that much puts the pill's edge — not its text — flush with the heading above. */
+.dc-root .td>.badge:first-child,.dc-root .tdm>.badge:first-child{margin-left:-9px}
+/* min-width:0 on every cell: a 1fr column is "at least as wide as its widest content" unless its items say otherwise, so a long cell value made that column
+   wider in the rows than in the heading row (two separate grids) and the values drifted off their headings. */
+.dc-root .acts{display:flex;align-items:center;justify-content:center;gap:4px;padding:11px 14px;min-width:0}
+.dc-root .th.th-actions{justify-content:center}
+/* A long value stays inside its own column. A host such as "psql-inaiera-dp-dev.postgres.database.azure.com:5432" or an email address has no space or hyphen to
+   break at, so it used to run on into the next column; `overflow-wrap:anywhere` lets it break wherever it must (and lowers its minimum width, so the column
+   is not stretched). Cells that are cut with an ellipsis (.tdmn) keep doing that instead. */
+.dc-root .td,.dc-root .tdm{overflow-wrap:anywhere}
+/* Every column but the first (the name) is centred, heading and values alike, so a value sits in the middle of its column directly under the middle of its
+   heading (a long Resource ID is centred under "Resource ID"). The first column stays flush left, and the Actions column was already centred. A value that is a
+   little wider than its column hangs out evenly on both sides (inside the side padding); `safe center` on .tdmn, the mono cell that is cut with an ellipsis,
+   starts a value wider than its column at the left edge instead of cutting it off on both sides. */
+.dc-root .thead>.th:not(:first-child),
+.dc-root .tr>.td:not(:first-child),.dc-root .tr>.tdm:not(:first-child){justify-content:center;text-align:center}
+.dc-root .tr>.tdmn:not(:first-child){justify-content:safe center;text-align:center}
+/* 8px instead of 14px on the sides of a centred column, in the heading and the cells alike: a date such as "Oct 20, 2026, 3:30 PM" then fits the column at a
+   window width of 1280px instead of spilling over its edges (which, with `safe center`, would leave it left of the middle of its heading). */
+.dc-root .thead>.th:not(:first-child),.dc-root .tr>.td:not(:first-child),.dc-root .tr>.tdm:not(:first-child),.dc-root .tr>.tdmn:not(:first-child){padding-left:8px;padding-right:8px}
+/* The -9px pull above lined a pill's edge up with a LEFT-aligned heading; in a centred column the pill is simply centred. */
+.dc-root .tr>.td:not(:first-child)>.badge:first-child,.dc-root .tr>.tdm:not(:first-child)>.badge:first-child{margin-left:0}
+.dc-root .row-link{border:0;background:none;padding:0;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.dc-root .row-link:hover b{color:var(--color-primary)}
+.dc-root .row-link:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px;border-radius:4px}
+/* Row/card action — the platform's icon-action, the same rules as Workspace's .icon-action: a white 30px button with a 1px #e5e7eb border and a
+   gray glyph; darker on hover; the delete button (.danger) turns red on hover. Its icon takes the colour from here (currentColor). */
+.dc-root .ai{width:30px;height:30px;border-radius:8px;display:inline-grid;place-items:center;cursor:pointer;transition:background .12s,color .12s,border-color .12s;background:var(--color-background-primary);border:1px solid var(--color-border-primary);padding:0;font:inherit;color:#6b7280;flex:none}
+.dc-root .ai:hover:not(:disabled){background:#f9fafb;color:#1f2937;border-color:var(--color-border-secondary)}
+.dc-root .ai.danger:hover:not(:disabled){background:#fef2f2;color:#b91c1c;border-color:#fecaca}
+.dc-root .ai:disabled{opacity:.45;cursor:not-allowed}
+/* A row's "More actions" menu (components/RowMenu.tsx): a small white card, one line per action — icon, then its name — stacked. */
+.dc-root .rm-menu{z-index:2147483001;display:flex;flex-direction:column;gap:1px;padding:5px;background:#fff;border:1px solid var(--color-border-primary);border-radius:10px;box-shadow:0 12px 32px rgba(16,32,58,.18)}
+.dc-root .rm-item{display:flex;align-items:center;gap:10px;width:100%;height:34px;padding:0 10px;border:0;border-radius:7px;background:none;color:#1f2937;font:inherit;font-size:13px;font-weight:500;text-align:left;cursor:pointer}
+.dc-root .rm-item:hover:not(.off),.dc-root .rm-item:focus-visible{background:#f3f4f6;outline:none}
+.dc-root .rm-item .rm-ico{display:grid;place-items:center;width:18px;flex:none;color:#6b7280}
+.dc-root .rm-item.danger{color:#b91c1c}
+.dc-root .rm-item.danger .rm-ico{color:#b91c1c}
+.dc-root .rm-item.danger:hover:not(.off),.dc-root .rm-item.danger:focus-visible{background:#fef2f2}
+.dc-root .rm-item.off{opacity:.45;cursor:not-allowed}
+
+/* ── Badges ──────────────────────────────────────────────────────────────── */
+.dc-root .badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap}
+.dc-root .bg{background:var(--color-success-light);color:var(--color-success-text)}
+.dc-root .br{background:var(--color-error-light);color:var(--color-error-text)}
+.dc-root .ba{background:var(--color-warning-light);color:var(--color-warning-text)}
+.dc-root .bb{background:var(--color-info-light);color:var(--color-info-text)}
+.dc-root .bgr{background:var(--color-background-tertiary);color:var(--color-text-secondary)}
+.dc-root .bp{background:#faf5ff;color:#6b21a8}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.dc-root .btn-p{height:34px;padding:0 16px;border-radius:8px;background:var(--color-primary);border:none;color:var(--color-on-primary);font-size:13px;font-weight:500;cursor:pointer;transition:background .15s}
+.dc-root .btn-p:hover{background:var(--color-primary-hover)}
+.dc-root .btn-s{height:34px;padding:0 14px;border-radius:8px;background:var(--color-background-primary);border:1px solid var(--color-border-primary);color:var(--color-text-primary);font-size:13px;font-weight:500;cursor:pointer;transition:border-color .15s}
+.dc-root .btn-s:hover{border-color:var(--color-primary)}
+.dc-root .btn-g{height:28px;padding:0 11px;border-radius:6px;background:transparent;border:1px solid var(--color-border-primary);color:var(--color-text-secondary);font-size:11px;cursor:pointer}
+.dc-root .btn-g:hover{border-color:var(--color-primary);color:var(--color-primary)}
+.dc-root .btn-ok{height:28px;padding:0 12px;border-radius:6px;background:transparent;border:1px solid #bbf7d0;color:var(--color-success-text);font-size:11px;cursor:pointer}
+.dc-root .btn-ok:hover{background:var(--color-success-light)}
+.dc-root .btn-no{height:28px;padding:0 12px;border-radius:6px;background:transparent;border:1px solid #fecaca;color:var(--color-error-text);font-size:11px;cursor:pointer}
+.dc-root .btn-no:hover{background:var(--color-error-light)}
+.dc-root button:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── Search ──────────────────────────────────────────────────────────────── */
+.dc-root .srch{display:flex;align-items:center;gap:9px;border:1px solid var(--color-border-primary);border-radius:9px;padding:0 12px;height:38px;background:var(--color-background-secondary);color:#6b7280}
+.dc-root .srch svg{flex:none}
+.dc-root .srch input{border:none;outline:none;font-size:13.5px;background:transparent;color:var(--color-text-primary);width:200px;min-width:0}
+.dc-root .srch:focus-within{border-color:var(--color-primary);background:var(--color-background-primary)}
+
+/* ── Dots ────────────────────────────────────────────────────────────────── */
+.dc-root .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dc-root .dg{background:var(--color-success)}
+.dc-root .dr{background:var(--color-error)}
+.dc-root .da{background:var(--color-warning)}
+.dc-root .db{background:var(--color-info)}
+.dc-root .dgr{background:var(--color-text-muted)}
+
+/* ── Key/value + header rows ─────────────────────────────────────────────── */
+.dc-root .kv{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-top:1px solid var(--color-border-tertiary);font-size:12px;gap:10px}
+.dc-root .kv:first-child{border-top:none;padding-top:0}
+.dc-root .kvk{color:var(--color-text-secondary);flex-shrink:0}
+.dc-root .kvv{color:var(--color-text-primary);font-weight:500;text-align:right;word-break:break-word}
+.dc-root .hrow{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-top:1px solid var(--color-border-tertiary);font-size:12px}
+.dc-root .hrow:first-child{border-top:none;padding-top:0}
+
+/* ── Tags ────────────────────────────────────────────────────────────────── */
+.dc-root .tag{display:inline-flex;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:500}
+.dc-root .ts{background:var(--color-info-light);color:var(--color-info-text)}
+.dc-root .ti{background:var(--color-success-light);color:var(--color-success-text)}
+.dc-root .tt{background:#faf5ff;color:#6b21a8}
+.dc-root .tb2{background:var(--color-warning-light);color:var(--color-warning-text)}
+.dc-root .tn{background:var(--color-background-tertiary);color:var(--color-text-secondary)}
+
+/* ── Alerts ──────────────────────────────────────────────────────────────── */
+.dc-root .alert{border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.dc-root .alert-w{background:var(--color-warning-light);border:1px solid #fde68a;border-left:3px solid var(--color-warning)}
+.dc-root .alert-e{background:var(--color-error-light);border:1px solid #fecaca;border-left:3px solid var(--color-error)}
+.dc-root .at{font-size:12px;font-weight:600;margin-bottom:5px}
+.dc-root .ab{font-size:11px;color:var(--color-text-secondary);line-height:1.6}
+
+/* FE-BUG-24: "Ready to deploy" checklist (DeployReadinessDialog). Pass/fail
+   is conveyed by the ✓/✗ glyph and the "Not ready:" text prefix, not only
+   by the icon's color — see FE-BUG-21's color-independent-status work. */
+.dc-root .rdy-list{list-style:none;margin:0 0 14px;padding:0}
+.dc-root .rdy-row{display:flex;align-items:flex-start;gap:9px;padding:7px 0;border-top:1px solid var(--color-border-tertiary);font-size:12px}
+.dc-root .rdy-row:first-child{border-top:none}
+.dc-root .rdy-icon{flex-shrink:0;width:17px;height:17px;line-height:17px;text-align:center;font-size:11px;font-weight:700;border-radius:50%;margin-top:1px}
+.dc-root .rdy-icon.ok{background:var(--color-success-light);color:var(--color-success-text)}
+.dc-root .rdy-icon.fail{background:var(--color-error-light);color:var(--color-error-text)}
+.dc-root .rdy-label{flex:1}
+.dc-root .rdy-reason{font-size:11px;color:var(--color-error-text);margin-top:2px}
+
+/* ── Form fields ─────────────────────────────────────────────────────────── */
+.dc-root .fg{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.dc-root .fg3{grid-template-columns:1fr 1fr 1fr}
+.dc-root .fld label{font-size:10px;font-weight:600;color:var(--color-text-muted);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em}
+.dc-root .fld input,.dc-root .fld select,.dc-root .fld textarea{width:100%;border:1px solid var(--color-border-secondary);border-radius:8px;padding:0 10px;font-size:13px;background:var(--color-background-primary);color:var(--color-text-primary);height:34px;font-family:inherit;transition:border-color .15s}
+.dc-root .fld textarea{height:90px;padding:8px 10px;resize:vertical;font-family:var(--font-mono)}
+.dc-root .fld input:focus,.dc-root .fld select:focus,.dc-root .fld textarea:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 3px rgba(249,115,22,.1)}
+/* FE-BUG-21: pairs with aria-invalid on the input itself. */
+.dc-root .fld input[aria-invalid="true"],.dc-root .fld select[aria-invalid="true"],.dc-root .fld textarea[aria-invalid="true"]{border-color:var(--color-error-text)}
+.dc-root .field-error{color:var(--color-error-text);font-size:11px;margin-top:4px}
+.dc-root .fsec{font-size:13px;font-weight:600;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--color-border-tertiary);color:var(--color-text-primary)}
+
+/* ── Connection tiles grid ───────────────────────────────────────────────── */
+.dc-root .conn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:16px;padding:6px 0}
+.dc-root .ctile{display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;position:relative;background:none;border:none;padding:0;font:inherit;text-align:center}
+.dc-root .ctile:hover .ccirc{border-color:var(--color-primary);background:var(--color-primary-light)}
+.dc-root .ccirc{width:76px;height:76px;border-radius:50%;background:var(--color-background-secondary);border:2px solid var(--color-border-primary);display:grid;place-items:center;transition:border-color .15s,background .15s}
+.dc-root .clbl{font-size:11px;text-align:center;line-height:1.3;color:var(--color-text-secondary)}
+.dc-root .ccnt{position:absolute;top:0;right:10px;min-width:18px;height:18px;border-radius:9px;background:var(--color-primary);color:var(--color-on-primary);font-size:10px;font-weight:600;display:grid;place-items:center;padding:0 5px}
+
+/* ── SMT / transform steps ───────────────────────────────────────────────── */
+.dc-root .smt{display:grid;grid-template-columns:24px 1fr 1.2fr 40px;align-items:center;padding:10px 14px;border:1px solid var(--color-border-primary);border-radius:8px;margin-bottom:8px;gap:10px}
+.dc-root .smt-n{width:24px;height:24px;border-radius:50%;background:var(--color-primary-light);color:var(--color-primary);font-size:10px;font-weight:600;display:grid;place-items:center}
+.dc-root .smt-name{font-size:12px;font-weight:600}
+.dc-root .smt-type{font-size:10px;color:var(--color-text-secondary)}
+.dc-root .smt-cfg{font-size:10px;font-family:var(--font-mono);color:var(--color-primary);background:var(--color-primary-light);padding:3px 7px;border-radius:4px;justify-self:start}
+
+/* ── Code blocks ─────────────────────────────────────────────────────────── */
+.dc-root .codeblk{background:#1f2937;border-radius:10px;padding:14px;font-family:var(--font-mono);font-size:11px;line-height:1.8;color:#d1d5db;overflow:auto;max-height:360px;white-space:pre-wrap;word-break:break-all}
+
+/* ── Progress bar ────────────────────────────────────────────────────────── */
+.dc-root .prog-bar{height:5px;background:var(--color-background-tertiary);border-radius:3px;overflow:hidden;margin-top:4px}
+.dc-root .pb-fill{height:100%;border-radius:3px}
+
+/* ══════ DRAWER (right-anchored) ════════════════════════════════════════════ */
+/* The drawer and its dim backdrop appear and disappear in place — no slide, no fade (a panel that moves across the screen on every open read as the page jumping). */
+.dc-root .ov{position:fixed;inset:0;background:rgba(0,0,0,0);display:flex;align-items:stretch;justify-content:flex-end;z-index:2147483000;overflow:hidden}
+.dc-root .ov.on{background:rgba(0,0,0,.4)}
+.dc-root .modal{background:var(--color-background-primary);width:100%;max-width:520px;height:100%;display:flex;flex-direction:column;overflow:hidden;box-shadow:-8px 0 40px rgba(0,0,0,.22)}
+.dc-root .modal.wide{max-width:760px}
+/* FE-BUG-13: "Unsaved changes" confirmation, layered over the still-open
+   drawer rather than replacing it — position:fixed so it overlays the whole
+   viewport regardless of the drawer's own transform/right-anchoring. */
+.dc-root .unsaved-guard{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35);z-index:1}
+.dc-root .unsaved-guard-box{background:var(--color-background-primary);border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.3);padding:20px;width:320px}
+.dc-root .unsaved-guard-title{font-size:14px;font-weight:600;color:var(--color-text-primary);margin-bottom:8px}
+.dc-root .unsaved-guard-body{font-size:13px;color:var(--color-text-secondary);margin-bottom:16px}
+.dc-root .unsaved-guard-actions{display:flex;justify-content:flex-end;gap:8px}
+.dc-root .mh{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--color-border-primary)}
+.dc-root .mt{font-size:15px;font-weight:600;color:var(--color-text-primary)}
+.dc-root .mx{cursor:pointer;color:var(--color-text-muted);font-size:20px;line-height:1;transition:color .12s;background:none;border:none;padding:0;font-family:inherit}
+.dc-root .mx:hover{color:var(--color-error)}
+.dc-root .mb{flex:1 1 auto;padding:18px 20px;overflow:auto}
+.dc-root .ff{flex:0 0 auto;display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--color-border-primary);background:var(--color-background-secondary)}
+
+/* ══════ TOASTS ═════════════════════════════════════════════════════════════ */
+.dc-root .toasts{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:10px;z-index:2147483001}
+.dc-root .toast{background:#1f2937;color:#fff;padding:12px 16px;border-radius:10px;font-size:12px;max-width:380px;box-shadow:0 10px 30px rgba(0,0,0,.25);border-left:3px solid var(--color-primary)}
+.dc-root .toast.ok{border-left-color:var(--color-success)}
+.dc-root .toast.err{border-left-color:var(--color-error)}
+
+/* ══════ TEMPLATE CARDS ═════════════════════════════════════════════════════ */
+.dc-root .tpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.dc-root .tplcard{background:var(--color-background-primary);border:1px solid var(--color-border-primary);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;transition:border-color .15s,box-shadow .15s;cursor:pointer;font:inherit;text-align:left}
+.dc-root .tplcard:hover{border-color:var(--color-primary);box-shadow:0 4px 16px rgba(249,115,22,.08)}
+.dc-root .tpl-top{display:flex;align-items:center;justify-content:space-between}
+.dc-root .tpl-logo{width:44px;height:44px;border-radius:50%;background:#f97316;color:#fff;border:2px solid #f97316;display:grid;place-items:center;flex-shrink:0;transition:border-color .15s,background .15s}   /* the Connections page's round icon, smaller */
+.dc-root .tpl-logo-lg{width:52px;height:52px}
+.dc-root .tpl-mark{display:block;flex:none;background:currentColor}   /* a product mark drawn as a mask: the tile's text colour, like the other icons */
+.dc-root .tplcard:hover .tpl-logo{border-color:#ea580c;background:#ea580c}
+.dc-root .tpl-name{font-size:13px;font-weight:600;margin-top:2px;color:var(--color-text-primary)}
+.dc-root .tpl-cat{font-size:11px;color:var(--color-text-secondary)}
+.dc-root .tpl-desc{font-size:11px;color:var(--color-text-secondary);line-height:1.5;min-height:34px}
+.dc-root .tpl-class{font-size:10px;font-family:var(--font-mono);color:var(--color-primary-dark);background:var(--color-primary-light);padding:3px 7px;border-radius:4px;word-break:break-all;line-height:1.4}
+.dc-root .tpl-foot{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+
+/* ── Circular row action buttons ─────────────────────────────────────────── */
+.dc-root .iconadd{width:34px;height:34px;border-radius:8px;background:var(--color-primary);display:grid;place-items:center;cursor:pointer;color:var(--color-on-primary);font-size:22px;font-weight:300;flex-shrink:0;transition:background .15s;border:none;padding:0;font-family:inherit}
+.dc-root .iconadd:hover{background:var(--color-primary-hover)}
+.dc-root .th.sortable{cursor:pointer;background:none;border:none;padding:10px 14px;font:inherit;color:inherit;text-align:left}
+.dc-root .th.sortable:hover{color:var(--color-primary-hover)}
+.dc-root .pager{display:flex;align-items:center;justify-content:center;gap:14px;padding:14px;border-top:1px solid var(--color-border-tertiary);font-size:12px;color:var(--color-text-secondary)}
+.dc-root .pgbtn{width:28px;height:28px;border:1px solid var(--color-border-secondary);border-radius:6px;background:var(--color-background-primary);cursor:pointer;font-size:14px;transition:border-color .12s}
+.dc-root .pgbtn:hover{border-color:var(--color-primary)}
+.dc-root .pgbtn:disabled{opacity:.4;cursor:not-allowed}
+.dc-root .empty{text-align:center;padding:28px 0;font-size:12px;color:var(--color-text-muted)}
+.dc-root .spin{display:inline-block;width:16px;height:16px;border:2px solid var(--color-border-secondary);border-top-color:var(--color-primary);border-radius:50%;animation:dc-sp .7s linear infinite;vertical-align:middle}
+@keyframes dc-sp{to{transform:rotate(360deg)}}
+
+/* ── Lineage graph ───────────────────────────────────────────────────────── */
+.dc-root .lgraph{display:flex;align-items:center;gap:0;overflow-x:auto;overflow-y:hidden;padding:12px 0}
+.dc-root .lnode{min-width:100px;border-radius:10px;padding:12px;text-align:center;flex-shrink:0;background:#eee;color:#1f2937}
+.dc-root .lnode.ln-source,.dc-root .lnode.ln-connector{background:#fff7ed}
+.dc-root .lnode.ln-kafka_topic{background:#e1f5ee}
+.dc-root .lnode.ln-processor{background:#fffbeb}
+.dc-root .lnode.ln-sink{background:#f1efe8}
+.dc-root .larrow{color:var(--color-border-secondary);flex-shrink:0;padding:0 6px;font-size:18px}
+.dc-root .ln-t{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.dc-root .ln-n{font-size:9px;margin-top:3px;word-break:break-word;color:var(--color-text-secondary)}
+/* FE-BUG-20: one column per BFS level, so an expand can add more than one
+   sibling node at the same level without breaking the single-row layout
+   the old strictly-linear-chain assumption relied on. */
+.dc-root .lcol{display:flex;flex-direction:column;gap:8px;flex-shrink:0}
+.dc-root .ln-x{display:flex;justify-content:center;gap:4px;margin-top:6px}
+.dc-root .lexp{border:none;background:rgba(0,0,0,.06);border-radius:4px;font-size:9px;padding:2px 5px;cursor:pointer;color:var(--color-text-secondary)}
+.dc-root .lexp:hover{background:rgba(0,0,0,.12)}
+.dc-root .lexp:disabled{opacity:.4;cursor:default}
+
+/* ── Checkbox / misc inline helpers ──────────────────────────────────────── */
+.dc-root .row-flex{display:flex;align-items:center}
+.dc-root a{color:var(--color-primary)}
+
+/* ── Connector metrics (Monitoring → per-connector Prometheus metrics; components/ConnectorMetricsPanel.tsx) ── */
+.dc-root .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.dc-root .alert-i{background:var(--color-info-light);border:1px solid #bae6fd;border-left:3px solid var(--color-info)}
+.dc-root .cm-select{height:32px;min-width:220px;max-width:340px;border:1px solid var(--color-border-secondary);border-radius:8px;padding:0 10px;font-size:12px;background:var(--color-background-primary);color:var(--color-text-primary);font-family:inherit}
+.dc-root .cm-select:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 3px rgba(249,115,22,.1)}
+.dc-root .cm-meta{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12px;min-width:0}
+.dc-root .cm-name{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.dc-root .conn-link{background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.dc-root .conn-link:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px;border-radius:2px}
+
+/* ══ Dashboard / Monitoring / Pipelines redesign (connector health, per-connector metrics, demo controls) ═══════════ */
+.dc-root .btn-sm{height:28px;padding:0 10px;font-size:12px;white-space:nowrap}
+.dc-root .btn-g{background:none;border:none;color:var(--color-primary);padding:0 6px;height:28px;font-size:12px;cursor:pointer;font-weight:500}
+.dc-root .btn-p:disabled{opacity:.55;cursor:default}
+.dc-root .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.dc-root .num{font-variant-numeric:tabular-nums}
+.dc-root .ph-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dc-root .ab code,.dc-root .cs code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10.5px;background:var(--color-background-tertiary);padding:1px 5px;border-radius:4px}
+.dc-root .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin-bottom:14px}
+@media (max-width:900px){.dc-root .two{grid-template-columns:minmax(0,1fr)}}
+
+/* Live chip + Pause / Resume + Refresh */
+@keyframes dc-pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.5)}70%{box-shadow:0 0 0 6px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+
+/* Monitoring: connector rail + metrics */
+.dc-root .mon{display:grid;grid-template-columns:270px minmax(0,1fr);grid-template-rows:minmax(0,1fr);gap:14px;align-items:stretch}
+/* Monitoring is two independent panes: the page itself never scrolls, the connector list scrolls its own rows and the
+   metrics card scrolls itself — so the wheel over one never moves the other. */
+.dc-root .page-scroll.mon-page{overflow:hidden;display:flex;flex-direction:column}
+.dc-root .mon-page>.mon{flex:1 1 auto;min-height:0}
+.dc-root .mon>.card{min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none}
+/* The metrics card has no bottom margin here: with it the page was a few pixels taller than a normal window and showed its own scrollbar. */
+.dc-root .mon>.card{margin-bottom:0}
+/* The connector list is a fixed-height panel (as tall as the metrics next to it): the search and filter stay put, only the rows scroll. */
+.dc-root .rail{margin-bottom:0;overflow:hidden;display:flex;flex-direction:column;min-height:0;height:100%}
+.dc-root .rail-h{flex-shrink:0}
+.dc-root .rail-h{padding:12px;border-bottom:1px solid var(--color-border-tertiary);display:flex;flex-direction:column;gap:8px}
+.dc-root .rail-search{height:32px;border:1px solid var(--color-border-secondary);border-radius:8px;padding:0 10px;font-size:12px;background:var(--color-background-primary);color:var(--color-text-primary);font-family:inherit;width:100%}
+.dc-root .rail-list{display:flex;flex-direction:column;padding:6px;gap:2px;flex:1 1 auto;min-height:0;overflow-y:auto}
+.dc-root .ri{display:flex;flex-direction:column;gap:4px;border:0;background:none;text-align:left;padding:9px 10px;border-radius:8px;cursor:pointer;color:inherit;width:100%;font:inherit}
+.dc-root .ri:hover{background:var(--color-background-secondary)}
+.dc-root .ri.on{background:var(--color-primary-light);box-shadow:inset 3px 0 0 var(--color-primary)}
+.dc-root .ri:focus-visible{outline:2px solid var(--color-primary);outline-offset:-2px}
+.dc-root .ri-top{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.dc-root .ri-name{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.dc-root .ri .badge{font-size:9.5px;padding:2px 7px}
+.dc-root .ri-sub{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--color-text-muted)}
+.dc-root .narrow-only{display:none}
+@media (max-width:1100px){
+  .dc-root .mon{grid-template-columns:minmax(0,1fr)}
+  .dc-root .rail{display:none}
+  .dc-root .narrow-only{display:block}
+}
+
+/* Connector metrics panel: tiles (wide / expanded) and charts */
+.dc-root .cm-card{border-color:var(--color-border-secondary)}
+/* The metrics inside a side panel (Pipelines → View metrics): no card around them, the range tabs on the right, and a tile grid sized for the panel, not the page. */
+.dc-root .cm-drawer-h{display:flex;justify-content:flex-end;margin-bottom:12px}
+.dc-root .cm-drawer .mt-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.dc-root .cm-drawer .cm-meta{flex-wrap:wrap;row-gap:2px}   /* the connector name gets a line to itself rather than being cut to a few letters */
+.dc-root .cm-drawer .cm-name{flex:1 1 100%;order:3}
+@media (max-width:560px){.dc-root .cm-drawer .mt-grid{grid-template-columns:minmax(0,1fr)}}
+.dc-root .mt-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+@media (max-width:1100px){.dc-root .mt-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.dc-root .mt-grid{grid-template-columns:minmax(0,1fr)}}
+.dc-root .mt-tile{position:relative;border:1px solid var(--color-border-primary);border-radius:10px;padding:10px 12px 8px;background:var(--color-background-primary);min-width:0;cursor:zoom-in;transition:border-color .15s;text-align:left;color:inherit;font:inherit;display:block;width:100%}
+.dc-root .mt-tile:hover{border-color:var(--color-border-secondary)}
+.dc-root .mt-tile:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.dc-root .mt-tile.wide{grid-column:span 2}
+.dc-root .mt-tile.wide .mt-spark svg{height:80px}
+.dc-root .mt-tile.big{grid-column:1/-1;cursor:zoom-out;border-color:var(--color-info)}
+.dc-root .mt-tile.bad .mt-v{color:var(--color-error-text)}
+.dc-root .mt-tile.warn .mt-v{color:var(--color-warning-text)}
+.dc-root .mt-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}
+.dc-root .mt-l{display:flex;align-items:baseline;flex:1 1 auto;min-width:0;font-size:11px;color:var(--color-text-secondary);font-weight:500}
+/* The label is only ever shortened by the value beside it; the hovered time sits on its own line under the value, so
+   hovering never squeezes the label or the value. */
+.dc-root .mt-lt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dc-root .mt-v{flex:0 0 auto;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dc-root .mt-tile.big .mt-v{font-size:22px}
+.dc-root .mt-when{position:absolute;right:12px;top:32px;z-index:1;padding:0 4px;border-radius:4px;background:var(--color-background-primary);font-size:10px;line-height:14px;color:var(--color-text-muted);font-weight:400;white-space:nowrap;font-variant-numeric:tabular-nums;pointer-events:none}
+.dc-root .mt-desc{font-size:11px;color:var(--color-text-muted);margin:-2px 0 8px}
+.dc-root .mt-spark{position:relative}
+.dc-root .mt-spark svg{display:block;width:100%;height:64px;overflow:visible;cursor:crosshair}
+.dc-root .mt-tile.big .mt-spark svg{height:200px}
+.dc-root .mt-hold{fill:none;stroke:var(--color-info);stroke-width:1.5;stroke-opacity:.55;stroke-dasharray:4 4;stroke-linecap:butt}
+.dc-root .mt-line{fill:none;stroke:var(--color-info);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.dc-root .mt-area{fill:var(--color-info);opacity:.1}
+.dc-root .mt-base{stroke:var(--color-border-primary);stroke-width:1}
+.dc-root .mt-gridl{stroke:var(--color-border-tertiary);stroke-width:1}
+.dc-root .mt-cross{stroke:var(--color-text-muted);stroke-width:1;stroke-dasharray:3 3}
+.dc-root .mt-ylab{position:absolute;right:0;font-size:9.5px;color:var(--color-text-muted);transform:translateY(-50%);background:var(--color-background-primary);padding-left:4px;font-variant-numeric:tabular-nums;pointer-events:none}
+.dc-root .mt-end{position:absolute;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;border-radius:50%;background:var(--color-info);box-shadow:0 0 0 2px var(--color-background-primary);pointer-events:none}
+.dc-root .mt-dot{position:absolute;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:var(--color-info);box-shadow:0 0 0 2px var(--color-background-primary);pointer-events:none}
+.dc-root .mt-tip{position:absolute;top:-8px;transform:translate(-50%,-100%);background:var(--color-text-primary);color:#fff;border-radius:6px;padding:4px 8px;font-size:11px;display:flex;flex-direction:column;align-items:center;pointer-events:none;white-space:nowrap;z-index:3}
+.dc-root .mt-tile.big .mt-tip{top:6px;transform:translate(-50%,0)}
+.dc-root .mt-tip span{opacity:.75;font-size:10px}
+.dc-root .mt-x{display:flex;justify-content:space-between;font-size:10px;color:var(--color-text-muted);margin-top:3px;font-variant-numeric:tabular-nums}
+.dc-root .mt-empty{height:64px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--color-text-muted);border:1px dashed var(--color-border-primary);border-radius:6px;text-align:center;padding:0 8px}
+.dc-root .mt-tile.big .mt-empty{height:200px}
+.dc-root .cm-sect{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--color-text-muted);margin:4px 0 8px}
+.dc-root .cm-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+.dc-root .json{background:#1f2937;color:#d1d5db;border-radius:10px;padding:14px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;line-height:1.7;overflow:auto;max-height:340px;white-space:pre;margin-top:10px}
+.dc-root .json .k{color:#fdba74}.dc-root .json .s{color:#86efac}.dc-root .json .n{color:#7dd3fc}
+
+/* Demo controls drawer */
+
+
+/* Demo controls → Mockup buttons */
+.dc-root .badge.up{text-transform:uppercase}   /* state names in capitals, as Kafka Connect and the design write them */
+.dc-root .icon-btn{width:34px;height:34px;padding:0;display:grid;place-items:center}
+.dc-root .spin-icon{animation:dc-sp .8s linear infinite}
+@media (prefers-reduced-motion:reduce){.dc-root .spin-icon{animation:none}}
+
+/* Scroll areas scroll with the wheel / trackpad / keyboard but show no scrollbar. (Code blocks and the lineage graph keep theirs:
+   they scroll sideways and a visible bar is the only hint there is more to see.) */
+.dc-root .sb,.dc-root .cont,.dc-root .page-scroll,.dc-root .tbody,.dc-root .mb,.dc-root .rail-list,.dc-root .mon>.card,.dc-root .conn-status-list,.dc-root .drift-list,.dc-root .cb-capped{
+  scrollbar-width:none;            /* Firefox */
+  -ms-overflow-style:none;         /* old Edge */
+}
+.dc-root .sb::-webkit-scrollbar,.dc-root .cont::-webkit-scrollbar,.dc-root .page-scroll::-webkit-scrollbar,.dc-root .tbody::-webkit-scrollbar,
+.dc-root .mb::-webkit-scrollbar,.dc-root .rail-list::-webkit-scrollbar,.dc-root .mon>.card::-webkit-scrollbar,.dc-root .conn-status-list::-webkit-scrollbar,
+.dc-root .drift-list::-webkit-scrollbar,.dc-root .cb-capped::-webkit-scrollbar{display:none;width:0;height:0}
+
+/* Dropdowns (components/SearchSelect.tsx + search-select.css, the platform's shared copy). Its list is portalled to <body>, outside
+   .dc-root, so it needs what .dc-root gives everything inside: the font, border-box sizing, and a layer above DataConnect's drawers. */
+body > .ss-menu{z-index:2147483002;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+body > .ss-menu *{box-sizing:border-box}
+body > .ss-menu .ss-list{scrollbar-width:none;-ms-overflow-style:none}   /* it still scrolls; only the bar is not drawn */
+body > .ss-menu .ss-list::-webkit-scrollbar{display:none}
+.dc-root .ss-trigger{min-height:34px}
+
+/* Tabs — the Catalog/Workspace pattern: plain text on a hairline, the open tab in dark text with a 2px primary underline. */
+.dc-root .dc-tabs{display:flex;gap:2px;border-bottom:1px solid var(--color-border-primary)}
+.dc-root .dc-tabs button{position:relative;height:34px;padding:0 12px;border:0;background:none;color:#6b7280;font:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:color .12s}
+.dc-root .dc-tabs button::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2px;border-radius:2px;background:transparent}
+.dc-root .dc-tabs button:hover{color:#1f2937}
+.dc-root .dc-tabs button[aria-selected="true"]{color:#111827;font-weight:600}
+.dc-root .dc-tabs button[aria-selected="true"]::after{background:var(--color-primary)}
+.dc-root .dc-tabs button:focus-visible{outline:2px solid var(--color-primary);outline-offset:-2px;border-radius:6px}
+.dc-root .rail-f button{flex:1;padding:0 6px}
+
+/* Quick tooltip (components/FastTooltip.tsx): the dark chip, centred under the element, above it when there is no room below. */
+.dc-root .fast-tip{position:fixed;transform:translateX(-50%);width:max-content;max-width:min(300px,90vw);overflow-wrap:anywhere;padding:5px 9px;border-radius:7px;background:#1f2937;color:#fff;font-size:12px;line-height:1.35;font-weight:500;pointer-events:none;z-index:2147483002;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+.dc-root .fast-tip.above{transform:translate(-50%,-100%)}
+
+/* A filter set from the top-bar search (Pipelines): a removable chip, since the page has no search box of its own. */
+.dc-root .chip-x{display:inline-flex;align-items:center;gap:8px;height:30px;max-width:280px;padding:0 10px;border:1px solid #fdba74;border-radius:8px;background:#fff7ed;color:var(--color-primary);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.dc-root .chip-x span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dc-root .chip-x:hover{background:#ffedd5}
+
+/* A card header with a title and a one-line description on the left, controls on the right. */
+.dc-root .qh{align-items:flex-start;gap:14px;flex-wrap:wrap}
+.dc-root .qh-t{font-size:16px;font-weight:600}
+.dc-root .qh .cs{margin-top:2px}
+.dc-root .qh-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dc-root .qrange{min-width:130px}
+.dc-root .tbl.flat{border:0;border-radius:0 0 12px 12px;box-shadow:none;margin:0;border-top:1px solid var(--color-border-primary);overflow:hidden}
+.dc-root .card.qcard{overflow:visible}   /* the filter panel hangs below the card header, over the table */
+.dc-root .qfilter{position:relative}
+.dc-root .ai.on{background:#fff7ed;color:var(--color-primary);border-color:#fdba74}
+.dc-root .qfilter-pop{position:absolute;right:0;top:38px;z-index:40;min-width:210px;padding:8px;background:#fff;border:1px solid var(--color-border-primary);border-radius:10px;box-shadow:0 12px 32px rgba(16,32,58,.18)}
+.dc-root .qfilter-h{padding:4px 6px 6px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6b7280}
+.dc-root .qfilter-opt{display:flex;align-items:center;gap:8px;padding:6px;border-radius:6px;font-size:13px;cursor:pointer}
+.dc-root .qfilter-opt:hover{background:#f3f4f6}
+.dc-root .qfilter-opt input{width:auto;height:auto}
+/* Quality results: the two failure groups side by side, each in its own bordered panel. */
+/* Results → Validation fills the rest of the page (the page itself does not scroll, as on Pipelines), and each of the two panels scrolls its own list inside,
+   with no scrollbar drawn: the wheel over one never moves the other. */
+.dc-root .page-scroll.page-fixed{overflow-x:hidden;overflow-y:auto;overscroll-behavior:none;display:flex;flex-direction:column}   /* the page only scrolls when the window is too short for the cards' minimum height below */
+.dc-root .page-fixed .q-results-fill>.card-fill{min-height:280px}
+.dc-root .q-results-fill{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+.dc-root .card-fill>.cb.cb-fill{flex:1 1 auto;min-height:0}
+.dc-root .qpanels{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));grid-auto-rows:minmax(0,1fr);gap:14px;height:100%}
+.dc-root .qpanel{display:flex;flex-direction:column;min-height:0;border:1px solid var(--color-border-primary);border-radius:10px;padding:12px 14px}
+.dc-root .qpanel>.fsec,.dc-root .qpanel>.ab{flex-shrink:0}
+.dc-root .qpanel-body{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:none;overflow-wrap:anywhere;scrollbar-width:none;-ms-overflow-style:none}
+.dc-root .qpanel-body::-webkit-scrollbar{display:none;width:0;height:0}
+
+/* Pipelines and Quality use the Monitoring page's underline tabs (.dc-tabs). The Pipelines ones also carry their count. */
+.dc-root .ptabs{flex-wrap:wrap;gap:0}
+.dc-root .ptabs button{display:inline-flex;align-items:center;gap:6px;padding:0 14px}
+/* The Quality sections (left) and, under Results, its views (right) share ONE row and ONE underline: the row carries the line and the gap below, and the two
+   tab groups inside it carry neither. */
+.dc-root .qtabrow{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px;flex-shrink:0;border-bottom:1px solid var(--color-border-primary)}
+.dc-root .qtabrow>.qtabs{margin-bottom:0;border-bottom:0}
+.dc-root .qtabs{margin-bottom:14px;flex-shrink:0}
+.dc-root .qtabs button{padding:0 18px}
+.dc-root .qtabs.qsub button{padding:0 12px}
+/* A list that fills the page down to the bottom and scrolls inside itself, no scrollbar, no bounce, never sideways (Quality → History) */
+.dc-root .cb.cb-fill.cb-list{overflow-x:hidden;overflow-y:auto;overscroll-behavior:none;align-content:start;scrollbar-width:none;-ms-overflow-style:none}
+.dc-root .cb.cb-fill.cb-list::-webkit-scrollbar{display:none;width:0;height:0}
+/* Text that is cut at the edge of its cell with an ellipsis (the full text is in its title, shown on hover) */
+.dc-root .cell-cut{display:block;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dc-root .ri-state{display:inline-flex;align-items:center;gap:4px;flex-shrink:0}   /* the state pill, with the "errors" flag before it when the connector is failing records */
+
+/* ══ Alerts (pages/Alerts.tsx, components/alerts/*) — the Workspace's Alerts page in DataConnect's own look ═════════════════════════════ */
+.dc-root .sn-count{margin-left:auto;min-width:18px;height:18px;padding:0 6px;border-radius:9px;background:var(--color-error);color:#fff;font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.dc-root .al-tabs{margin-bottom:14px}
+.dc-root .al-panel{display:flex;flex-direction:column;gap:0;min-width:0}
+.dc-root .al-intro{margin:0 0 12px}
+.dc-root .al-dates{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;font-size:12.5px;color:var(--color-text-secondary)}
+.dc-root .al-dates label{display:flex;align-items:center;gap:6px}
+.dc-root .al-dates input{height:30px;border:1px solid var(--color-border-secondary);border-radius:6px;padding:0 8px;font:inherit;font-size:12.5px;background:var(--color-background-primary);color:var(--color-text-primary)}
+.dc-root .al-cards{display:flex;flex-direction:column;gap:10px}
+.dc-root .al-card,.dc-root .al-channel{display:block;width:100%;text-align:left;background:var(--color-background-primary);border:1px solid var(--color-border-primary);border-radius:12px;padding:13px 16px;font:inherit;color:inherit;box-shadow:0 1px 2px rgba(16,32,58,.04)}
+.dc-root .al-card{cursor:pointer}
+.dc-root .al-card:hover{border-color:#FDBA74}
+.dc-root .al-card:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.dc-root .al-card-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dc-root .al-card-top b{font-size:13px}
+.dc-root .al-when{margin-left:auto;font-size:11.5px;color:var(--color-text-muted)}
+.dc-root .al-card-sum{display:block;font-size:13px;margin-top:8px;line-height:1.5;overflow-wrap:anywhere}
+.dc-root .al-card-last{display:block;font-size:11.5px;color:var(--color-text-muted);margin-top:6px}
+.dc-root .al-card-last b{color:var(--color-text-secondary)}
+.dc-root .al-channel p{margin:8px 0 0}
+.dc-root .al-channel-acts{margin-left:auto;display:inline-flex;align-items:center;gap:8px}
+.dc-root .al-test{display:inline-flex;align-items:center;gap:6px}
+.dc-root .al-test svg{width:14px;height:14px}
+.dc-root .al-off{opacity:.6}
+.dc-root .al-empty{display:flex;flex-direction:column;gap:4px;align-items:center;padding:36px 16px}
+.dc-root .al-pager{display:flex;align-items:center;justify-content:space-between;margin-top:14px;font-size:12px;color:var(--color-text-muted)}
+.dc-root .al-pager span:last-child{display:inline-flex;gap:8px}
+.dc-root .al-undelivered{margin-bottom:12px}
+.dc-root .al-link{background:none;border:0;padding:0;font:inherit;font-weight:700;color:var(--color-primary-text,#C2410C);cursor:pointer}
+.dc-root .al-switch{width:34px;height:20px;border-radius:999px;border:0;padding:2px;flex-shrink:0;cursor:pointer;background:#D1D5DB;display:flex;align-items:center;justify-content:flex-start;transition:background .12s}
+.dc-root .al-switch.on{background:var(--color-primary);justify-content:flex-end}
+.dc-root .al-switch:disabled{opacity:.5;cursor:not-allowed}
+.dc-root .al-switch span{width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.dc-root .al-detail h2{font-size:15px;margin:0 0 8px;overflow-wrap:anywhere}
+.dc-root .al-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.dc-root .al-summary{font-size:13px;line-height:1.55;margin:0;overflow-wrap:anywhere}
+.dc-root .al-warn{font-size:12px;color:var(--color-warning-text,#B45309);margin:8px 0 0}
+.dc-root .al-history{list-style:none;margin:0;padding:0}
+.dc-root .al-history li{display:flex;gap:10px;padding:5px 0;font-size:12.5px}
+.dc-root .al-dot{width:8px;height:8px;border-radius:50%;background:var(--color-primary);margin-top:5px;flex-shrink:0}
+.dc-root .al-note{display:block;color:var(--color-text-secondary);overflow-wrap:anywhere}
+.dc-root .al-form .fld{margin-bottom:14px}
+.dc-root .al-form .fg .fld{margin-bottom:0}
+.dc-root .al-form .fld input:disabled{background:var(--color-background-secondary,#F9FAFB);color:var(--color-text-muted);cursor:not-allowed}
+.dc-root .al-kinds{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dc-root .al-kinds button{height:34px;border-radius:8px;font:inherit;font-size:12.5px;cursor:pointer;background:var(--color-background-primary);color:var(--color-text-primary);border:1px solid var(--color-border-primary);font-weight:500}
+.dc-root .al-kinds button.on{background:#FFF7ED;color:#C2410C;border-color:var(--color-primary);font-weight:600}
+.dc-root .al-enabled{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--color-border-primary);border-radius:8px;background:var(--color-background-secondary,#F9FAFB);margin-top:4px}
+.dc-root .al-enabled>div{flex:1}
+.dc-root .al-enabled-t{font-size:12.5px;font-weight:600}

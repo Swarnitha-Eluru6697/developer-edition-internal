@@ -1,0 +1,130 @@
+[project]
+name = "inai-era-dataconnect-backend"
+version = "0.2.0"
+description = "InaiEra DataConnect — Kafka-backed data ingestion platform"
+readme = "README.md"
+requires-python = ">=3.11,<4.0"
+dependencies = [
+  # Web framework
+  "fastapi>=0.111.0",
+  "uvicorn[standard]>=0.29.0",
+
+  # Data validation
+  "pydantic>=2.7.0",
+  "pydantic-settings>=2.3.0",
+
+  # Database
+  "sqlalchemy>=2.0.30",
+  "greenlet>=3.0.0",     # bridges Alembic's sync migration runner onto the asyncpg engine — see alembic/env.py
+  "alembic>=1.13.0",
+  "asyncpg>=0.29.0",
+
+  # Live connectivity/auth drivers (used by connection test-connection)
+  "aiomysql>=0.2.0",        # MySQL / RDS MySQL (async)
+  "python-tds>=1.15.0",     # SQL Server / MSSQL (pure-python)
+  "oracledb>=2.0.0",        # Oracle (thin mode, no Instant Client needed)
+  "pymongo>=4.18.2",        # MongoDB (>=4.18.2: fixes CVE-2026-96747/96748/96749, found by pip-audit)
+  "elasticsearch>=8.0.0",   # Elasticsearch (client present; probe uses httpx)
+  "kafka-python>=2.0.2",    # read topic offsets / consumer-group lag for runtime flow metrics
+
+  # Credential encryption at rest (app/services/secret_crypto.py)
+  "cryptography>=42.0.0",
+
+  # HTTP client (Kafka Connect REST)
+  "httpx>=0.27.0",
+
+  # Structured logging
+  "structlog>=24.2.0",
+
+  # Metrics (low-cardinality only — see app/core/metrics.py). A base
+  # dependency, not just the `prod` extra: the /metrics endpoint and the
+  # cardinality-restricted record_operation() helper are meant to work the
+  # same way in every environment, not appear only in production.
+  "prometheus-client>=0.20.0",
+
+  # Secrets (optional Vault integration)
+
+  # Shared north-south trust boundary (Gate 1). Pinned git dependency, not
+  # vendored: the tag records exactly which version this image runs, and only
+  # the package is installed. app/core/gateway.py imports it. The repo is
+  # private -- the Dockerfile supplies a read token as a BuildKit secret.
+  "inaiera-gateway-auth @ git+https://github.com/AadhyaAnalyticsInc/InaiEra_dataplane_GatewayAuth.git@v1.1.0-rc.1#subdirectory=python",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.2.0",
+  "pytest-asyncio>=0.23.0",
+  "pytest-cov>=5.0.0",
+  "httpx>=0.27.0",          # async test client
+  "hypothesis>=6.100.0",    # property-based tests (tests/test_topic_grammar_properties.py)
+  "ruff>=0.4.0",
+  "mypy>=1.10.0",
+  # "types-httpx",
+]
+
+# Supply-chain tooling (docs/SUPPLY_CHAIN.md): `make audit` (known-vulnerable dependencies) and `make sbom` (CycloneDX bill of materials).
+security = [
+  "pip-audit>=2.7.0",
+  "cyclonedx-bom>=4.4.0",
+]
+
+prod = [
+  "prometheus-fastapi-instrumentator>=6.1.0",
+  "opentelemetry-sdk>=1.25.0",
+  "opentelemetry-instrumentation-fastapi>=0.46b0",
+  "opentelemetry-exporter-otlp>=1.25.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B", "C4", "PT"]
+ignore = ["E501"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's own DI pattern: `Depends(...)` is only evaluated once per request,
+# not once at import time — B008 doesn't know that and only skips it for
+# parameters typed as an immutable builtin (str, int, ...), so a
+# non-builtin-typed dependency like `producer: KafkaProducer = Depends(...)`
+# gets flagged as if it were a real mutable-default bug.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.params.Depends",
+    # require(...) is a dependency *factory*: it just builds and returns the
+    # closure FastAPI will call per-request (see app/core/permissions.py) —
+    # same "only evaluated once, at import time, to produce a dependency"
+    # shape as Depends(...) itself, not a genuine mutable default.
+    "app.core.permissions.require",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# flake8-pytest-style's PT rules assume any `def test_*` is a pytest test
+# function; these are FastAPI route handlers whose names happen to start
+# with `test_` (test_connection, test_connection_payload, test_connection_live
+# — "test this connection", not a unit test) and are never collected by
+# pytest, so the "use @pytest.mark.usefixtures instead of a bare parameter"
+# (PT019) and "don't give a test function's parameter a default" (PT028)
+# advice doesn't apply — a route handler's parameters are FastAPI
+# dependency injection, not pytest fixtures.
+"app/api/routes/connections.py" = ["PT019", "PT028"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+# The repo root (this file's directory) is on sys.path for every run, so `import app` works from a fresh clone, from any working
+# directory, and whether pytest is started as `pytest` or `python -m pytest` — without needing `pip install -e .` or PYTHONPATH.
+# (The test dependencies still come from `pip install -e ".[dev]"`; `make test` does that first.)
+pythonpath = ["."]
+addopts = "--cov=app --cov-report=term-missing"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]

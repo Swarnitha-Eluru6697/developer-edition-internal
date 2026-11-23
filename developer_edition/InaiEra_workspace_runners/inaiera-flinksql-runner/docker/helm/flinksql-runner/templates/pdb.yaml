@@ -1,0 +1,13 @@
+{{- if .Values.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "inaiera-flinksql-runner.fullname" . }}
+  labels:
+    {{- include "inaiera-flinksql-runner.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "inaiera-flinksql-runner.selectorLabels" . | nindent 6 }}
+{{- end }}

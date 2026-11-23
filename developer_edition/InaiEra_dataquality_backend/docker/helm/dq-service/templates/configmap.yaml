@@ -1,0 +1,44 @@
+{{- $ucs := .Values.integrations.ucs }}
+{{- $dbt := .Values.integrations.dbtRunner }}
+{{- $flink := .Values.integrations.flinkRunner }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "dq.fullname" . }}-config
+  labels:
+    {{- include "dq.labels" . | nindent 4 }}
+data:
+  ENVIRONMENT: {{ .Values.environment | quote }}
+  ORG_ID: {{ .Values.tenant.orgId | quote }}
+  LOG_LEVEL: "INFO"
+  DATABASE_URL: {{ printf "postgresql+asyncpg://%s@%s:%v/%s" .Values.database.user .Values.database.host .Values.database.port .Values.database.name | quote }}
+  REDIS_URL: {{ .Values.redis.url | quote }}
+  RUN_MIGRATIONS_ON_START: {{ (not .Values.migrations.job) | quote }}
+  PYTHONDONTWRITEBYTECODE: "1"
+  HOME: "/tmp"
+  UCS_ENABLED: {{ $ucs.enabled | quote }}
+  {{- if $ucs.enabled }}
+  UCS_URL: {{ $ucs.url | quote }}
+  UCS_AUDIENCE: {{ $ucs.audience | quote }}
+  UCS_BIND_ACTION: {{ $ucs.bindAction | quote }}
+  UCS_CONTRACT_V2_ENABLED: {{ $ucs.contractV2Enabled | quote }}
+  {{- end }}
+  DBTRUNNER_ENABLED: {{ $dbt.enabled | quote }}
+  {{- if $dbt.enabled }}
+  DBTRUNNER_URL: {{ $dbt.url | quote }}
+  DBTRUNNER_AUDIENCE: {{ $dbt.audience | quote }}
+  DBTRUNNER_ENGINE_VERSION: {{ $dbt.engineVersion | quote }}
+  {{- end }}
+  FLINKSQL_ENABLED: {{ $flink.enabled | quote }}
+  {{- if $flink.enabled }}
+  FLINKSQL_RUNNER_URL: {{ $flink.url | quote }}
+  FLINKSQL_AUDIENCE: {{ $flink.audience | quote }}
+  {{- end }}
+  QUALITY_CONTRACT_VERSION: {{ .Values.qualityContract.version | quote }}
+  QUALITY_RESULTS_TOPIC: {{ .Values.qualityContract.resultsTopic | quote }}
+  QUALITY_GATE_TOPIC: {{ .Values.qualityContract.gateTopic | quote }}
+  QUALITY_QUARANTINE_TOPIC: {{ .Values.qualityContract.quarantineTopic | quote }}
+  CONTROL_PLANE_JWKS_URL: {{ .Values.controlPlane.jwksUrl | quote }}
+  CONTROL_PLANE_ISSUER: {{ .Values.controlPlane.issuer | quote }}
+  CONTROL_PLANE_AUDIENCE: {{ .Values.controlPlane.audience | quote }}
+  SEED_SYSTEM_RULES: {{ .Values.seedSystemRules | quote }}

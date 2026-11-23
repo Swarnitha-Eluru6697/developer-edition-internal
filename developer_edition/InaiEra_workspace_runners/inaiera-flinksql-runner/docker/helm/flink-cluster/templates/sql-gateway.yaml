@@ -1,0 +1,159 @@
+{{/*
+Flink SQL Gateway — standalone REST service that accepts multi-statement
+SQL sessions from the FlinkSQL Runner API.
+
+The SQL Gateway is NOT part of the FlinkDeployment CRD. It is a separate
+process that connects to the JobManager REST endpoint of the session cluster.
+It receives CREATE TABLE + INSERT INTO statements and submits them as jobs.
+
+Architecture:
+  FlinkSQL Runner API → SQL Gateway :8083 → JobManager :8081 → TaskManagers
+*/}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.cluster.name }}-sql-gateway
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: flink-sql-gateway
+    inaiera.com/org-id: {{ .Values.tenant.orgId }}
+    inaiera.com/component: flink-sql-gateway
+spec:
+  replicas: {{ .Values.sqlGateway.replicas }}
+  selector:
+    matchLabels:
+      app: flink-sql-gateway
+      inaiera.com/org-id: {{ .Values.tenant.orgId }}
+  template:
+    metadata:
+      labels:
+        app: flink-sql-gateway
+        inaiera.com/org-id: {{ .Values.tenant.orgId }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9249"
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: sql-gateway
+          image: "{{ .Values.sqlGateway.image.repository }}:{{ .Values.sqlGateway.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - "/opt/flink/bin/sql-gateway.sh"
+            - "start-foreground"
+          ports:
+            - name: rest
+              containerPort: 8083
+              protocol: TCP
+            - name: metrics
+              containerPort: 9249
+              protocol: TCP
+          env:
+            # Point the SQL Gateway at the JobManager REST service
+            - name: FLINK_JOBMANAGER_RPC_ADDRESS
+              value: "{{ .Values.sqlGateway.flinkJobManagerAddress }}"
+            # Kafka credentials (same secret as Dataconnect and TaskManagers)
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: {{ .Values.kafka.bootstrapServers | quote }}
+            - name: KAFKA_SECURITY_PROTOCOL
+              value: {{ .Values.kafka.securityProtocol | quote }}
+            - name: KAFKA_SASL_MECHANISM
+              value: {{ .Values.kafka.saslMechanism | quote }}
+            - name: KAFKA_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.kafka.saslCredentialsSecretRef.name }}
+                  key: {{ .Values.kafka.saslCredentialsSecretRef.usernameKey }}
+            - name: KAFKA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.kafka.saslCredentialsSecretRef.name }}
+                  key: {{ .Values.kafka.saslCredentialsSecretRef.passwordKey }}
+            - name: SCHEMA_REGISTRY_URL
+              value: {{ .Values.kafka.schemaRegistry.url | quote }}
+            # Polaris catalog
+            - name: POLARIS_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.polaris.credentialsSecretRef.name }}
+                  key: {{ .Values.polaris.credentialsSecretRef.clientIdKey }}
+            - name: POLARIS_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.polaris.credentialsSecretRef.name }}
+                  key: {{ .Values.polaris.credentialsSecretRef.clientSecretKey }}
+            - name: POLARIS_REST_URI
+              value: {{ .Values.polaris.restUri | quote }}
+            - name: ICEBERG_WAREHOUSE
+              value: {{ .Values.polaris.icebergWarehouse | quote }}
+          volumeMounts:
+            - name: flink-config
+              mountPath: /opt/flink/conf
+          resources:
+            {{- toYaml .Values.sqlGateway.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /v3/info
+              port: 8083
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /v3/info
+              port: 8083
+            initialDelaySeconds: 15
+            periodSeconds: 10
+      volumes:
+        - name: flink-config
+          configMap:
+            name: {{ .Values.cluster.name }}-sql-gateway-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.cluster.name }}-sql-gateway-config
+  namespace: {{ .Release.Namespace }}
+data:
+  flink-conf.yaml: |
+    rest.port: 8081
+    rest.address: {{ .Values.sqlGateway.flinkJobManagerAddress | splitList ":" | first }}
+
+    sql-gateway.endpoint.rest.address: 0.0.0.0
+    sql-gateway.endpoint.rest.port: 8083
+    sql-gateway.session.idle-timeout: 10min
+    sql-gateway.session.check-interval: 1min
+    sql-gateway.session.max-num: 100
+
+    # Kafka default properties (overridden per-job via SQL WITH clause)
+    pipeline.classpaths: /opt/flink/lib/flink-connector-kafka-*.jar:/opt/flink/lib/iceberg-flink-runtime-*.jar
+
+    # Iceberg catalog (inaiera = shared Polaris REST catalog)
+    table.catalog.inaiera.type: iceberg
+    table.catalog.inaiera.catalog-impl: org.apache.iceberg.rest.RESTCatalog
+    table.catalog.inaiera.uri: {{ .Values.polaris.restUri }}
+    table.catalog.inaiera.warehouse: {{ .Values.polaris.icebergWarehouse }}
+
+    metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+    metrics.reporter.prom.port: 9249
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.cluster.name }}-sql-gateway
+  namespace: {{ .Release.Namespace }}
+  labels:
+    inaiera.com/component: flink-sql-gateway
+spec:
+  type: {{ .Values.sqlGateway.service.type }}
+  selector:
+    app: flink-sql-gateway
+    inaiera.com/org-id: {{ .Values.tenant.orgId }}
+  ports:
+    - name: rest
+      port: {{ .Values.sqlGateway.service.port }}
+      targetPort: 8083
+      protocol: TCP

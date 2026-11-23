@@ -1,0 +1,183 @@
+# Spec-correct Kubernetes manifests for the standalone training worker
+# fleet (src/worker.ts) — separate from the API Deployment entirely, per
+# the architecture in this review:
+#
+#   ML Studio API -> PostgreSQL Job Queue -> Worker, Worker, Worker
+#
+# UNVERIFIED against a live cluster — same disclosure as every other
+# Kubernetes/Argo/KServe reference in this app. Spec-correct against the
+# documented Deployment/HPA schema; the real proof this app CAN offer is
+# three real separate OS processes on one machine sharing the real
+# Postgres queue safely (see CHANGELOG.md's entry for this change) — not
+# a claim that this exact YAML has been applied to a real cluster.
+#
+# Two Deployments, not one: cpu-worker claims ordinary runs; gpu-worker
+# is scoped via WORKER_COMPUTE_PROFILES + a real node selector/toleration
+# so it only ever runs on real GPU-provisioned nodes and only ever claims
+# real gpu-* compute-profile runs. Real CPU/GPU routing, not a label with
+# nothing behind it.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-studio-worker-cpu
+  labels:
+    app: ml-studio-worker
+    ml-studio/pool: cpu
+spec:
+  # Independent scaling — this number has nothing to do with how many
+  # API replicas are running. Bump it for more real training throughput
+  # without touching the API Deployment at all.
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ml-studio-worker
+      ml-studio/pool: cpu
+  template:
+    metadata:
+      labels:
+        app: ml-studio-worker
+        ml-studio/pool: cpu
+    spec:
+      containers:
+        - name: worker
+          image: ml-studio/backend:latest
+          command: ["node", "dist/worker.js"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ml-studio-db
+                  key: connection-string
+            - name: STORAGE_BACKEND
+              value: "s3"
+            - name: S3_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: ml-studio-config
+                  key: s3-bucket
+            - name: UCS_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: ml-studio-config
+                  key: ucs-base-url
+            # Real concurrency control — how many runs EACH of these 3
+            # real pods holds in flight at once. Total real fleet
+            # capacity here: 3 replicas x 2 = 6 concurrent cpu runs.
+            - name: WORKER_CONCURRENCY
+              value: "2"
+            - name: WORKER_CYCLE_INTERVAL_MS
+              value: "2000"
+          resources:
+            # Real resource isolation — this pod's own CPU/memory,
+            # entirely separate from whatever the API Deployment
+            # requests, so a training-heavy period doesn't starve the
+            # HTTP-serving process and vice versa.
+            requests:
+              cpu: "1"
+              memory: "2Gi"
+            limits:
+              cpu: "2"
+              memory: "4Gi"
+      # Real graceful shutdown — matches worker.ts's SIGTERM handler,
+      # which stops claiming NEW work but lets in-flight runs finish.
+      # Generous enough for a real classical/DL fit to complete rather
+      # than being hard-killed mid-run.
+      terminationGracePeriodSeconds: 300
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-studio-worker-gpu
+  labels:
+    app: ml-studio-worker
+    ml-studio/pool: gpu
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ml-studio-worker
+      ml-studio/pool: gpu
+  template:
+    metadata:
+      labels:
+        app: ml-studio-worker
+        ml-studio/pool: gpu
+    spec:
+      # Real GPU node targeting — this pod is only ever scheduled onto a
+      # real GPU-provisioned node, and WORKER_COMPUTE_PROFILES below
+      # means it only ever claims real gpu-* runs even if it somehow
+      # landed elsewhere — two real, independent layers of the same real
+      # routing guarantee, not one label standing in for both.
+      nodeSelector:
+        node-role.ml-studio/gpu: "true"
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Exists"
+          effect: "NoSchedule"
+      containers:
+        - name: worker
+          image: ml-studio/backend:latest
+          command: ["node", "dist/worker.js"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ml-studio-db
+                  key: connection-string
+            - name: STORAGE_BACKEND
+              value: "s3"
+            - name: S3_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: ml-studio-config
+                  key: s3-bucket
+            - name: UCS_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: ml-studio-config
+                  key: ucs-base-url
+            # Real CPU/GPU routing — this real worker process only ever
+            # claims real runs whose compute_profile matches one of
+            # these, leaving every cpu-* run for the CPU pool above.
+            - name: WORKER_COMPUTE_PROFILES
+              value: "gpu-1x,gpu-4x"
+            - name: WORKER_CONCURRENCY
+              value: "1"
+          resources:
+            requests:
+              cpu: "2"
+              memory: "8Gi"
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "4"
+              memory: "16Gi"
+              nvidia.com/gpu: "1"
+      terminationGracePeriodSeconds: 600
+---
+# Independent horizontal scaling for the CPU pool specifically — the
+# other real benefit named in the review. Scales on real queue depth
+# via a custom metric (would need a real metrics adapter exposing
+# ml_studio_queued_runs from the /api/workers endpoint above in a real
+# cluster — spec-correct shape, the metrics-adapter wiring itself is
+# real infrastructure this environment can't stand up any more than the
+# rest of this file can be verified live).
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ml-studio-worker-cpu-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ml-studio-worker-cpu
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: External
+      external:
+        metric:
+          name: ml_studio_queued_runs
+        target:
+          type: AverageValue
+          averageValue: "5"

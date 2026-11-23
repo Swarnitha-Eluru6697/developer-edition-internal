@@ -1,0 +1,38 @@
+numpy>=1.24
+pandas>=2.0
+# Excel uploads: openpyxl reads .xlsx, xlrd reads legacy .xls
+openpyxl>=3.1
+xlrd>=2.0
+scikit-learn>=1.3
+joblib>=1.3
+torch>=2.2
+xgboost>=2.0
+lightgbm>=4.0
+catboost>=1.2
+umap-learn>=0.5
+statsmodels>=0.14
+prophet>=1.1
+pmdarima>=2.0
+transformers>=4.45
+peft>=0.13
+accelerate>=1.0
+
+# QLoRA runtime
+bitsandbytes>=0.44
+
+# v2.37.0 dataset/runtime extensions
+Pillow>=10.4
+pyarrow>=16.0
+pyiceberg[sql-postgres]>=0.8
+pytorch-forecasting>=1.2
+lightning>=2.4
+
+# scripts/download_base_model_weights.py and scripts/start-local.sh
+huggingface_hub>=0.24
+boto3>=1.34
+psycopg2-binary>=2.9
+# Speech models: audio I/O for Whisper fine-tuning / transcription, and the Kokoro TTS runtime
+soundfile>=0.12
+kokoro>=0.9
+# LLM fine-tuning on documents: PDF text extraction
+pypdf>=4

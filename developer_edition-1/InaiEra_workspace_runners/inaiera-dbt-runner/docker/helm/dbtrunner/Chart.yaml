@@ -1,0 +1,26 @@
+apiVersion: v2
+name: dbtrunner
+description: |
+  InAiEra dbt Runner — registers, validates, schedules, and runs dbt
+  projects against the customer's lakehouse (Trino+Polaris or
+  pg_lake+Polaris). Internal-only data plane service — no per-org
+  subdomain; callers are Workspace, external CI systems, and (later) the
+  Agents/Workflow IDE surface, all via the same platform JWT.
+
+  This chart is consumed by the parent inaiera-data-plane chart that the
+  Admin Portal's provisioning process applies when a new org is created.
+  It can also be applied stand-alone for testing.
+
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+keywords:
+  - inaiera
+  - dbt
+  - dataplane
+  - etl
+
+maintainers:
+  - name: InAiEra Platform Team
+    email: platform@inaiera.com

@@ -1,0 +1,23 @@
+{
+  "app": "agent",
+  "version": 1,
+  "permissions": [
+    { "id": "agent:access:view", "label": "Open Agents", "description": "May open the Agents application at all. The portal shows the Agents menu entry only to holders." },
+    { "id": "agent:overview:view", "label": "View overview", "description": "Overview page: platform stats, agent list and recent activity." },
+    { "id": "agent:studio:edit", "label": "Build agents", "description": "Studio and Builder: create, edit, duplicate, import, delete agents; nodes, edges, env vars, skills, files, evals, snippets, private templates, Git export/commit." },
+    { "id": "agent:templates:view", "label": "View templates", "description": "Browse the template gallery and its versions." },
+    { "id": "agent:templates:manage-platform", "label": "Manage organization templates", "description": "Save, publish, delete Organization-managed (platform) templates." },
+    { "id": "agent:rag:manage", "label": "Manage RAG", "description": "Knowledge bases: create, configure, ingest, documents, chunks, metadata, retrieval tests, API keys, provisioning." },
+    { "id": "agent:integrations:manage", "label": "Manage integrations", "description": "Model providers and API keys, tools, MCP servers, data-source credentials, storage destinations, Git connections." },
+    { "id": "agent:runs:view", "label": "View runs", "description": "Runs page and run details." },
+    { "id": "agent:traces:view", "label": "View traces", "description": "Traces page, trace details and spans." },
+    { "id": "agent:monitoring:view", "label": "View monitoring", "description": "Monitoring page, eval health, Prometheus metrics." },
+    { "id": "agent:guardrails:manage", "label": "Guardrails", "description": "Guardrails page." },
+    { "id": "agent:alerts:manage", "label": "Manage alerts", "description": "Alerts: view, acknowledge, resolve; alert rules and destinations." },
+    { "id": "agent:webapps:use", "label": "Use web apps", "description": "Web Apps page: open and run published agent apps (run, stream, human-in-the-loop, saved results, chat history, file inputs)." },
+    { "id": "agent:settings:edit", "label": "Edit settings", "description": "Settings page: runtime configuration." },
+    { "id": "agent:agents:run", "label": "Run agents", "description": "Run and test any agent (Try It, batch run), and invoke agents through MCP and webhook triggers." },
+    { "id": "agent:agents:publish", "label": "Publish agents", "description": "Publish/unpublish, publish surfaces and MCP, UCS catalog sync, grants and per-agent access roles." },
+    { "id": "agent:maintenance:run", "label": "Run maintenance", "description": "Operator maintenance under /internal (upload sweep, storage migration, HITL and KB reconcile, job status, readiness diagnostics)." }
+  ]
+}

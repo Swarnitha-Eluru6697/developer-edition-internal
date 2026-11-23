@@ -1,0 +1,10 @@
+[project]
+name = "inaiera-gateway-auth"
+version = "1.1.0"
+description = "Standardized north-south trust boundary for InAiEra data-plane services behind Envoy"
+requires-python = ">=3.10"
+dependencies = ["fastapi>=0.100.0"]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

@@ -1,0 +1,33 @@
+# Alert rules for DataConnect's own metrics (the backend's /metrics — see the `dataconnect` scrape job in prometheus.yml).
+groups:
+  - name: dataconnect-operations
+    rules:
+      # GAP-04: an operation's ACTION succeeded but its RESULT did not satisfy its contract, so it was stored as
+      # status=succeeded, result_status=invalid, error_code=OPERATION_RESULT_INVALID. The action took effect; the defect is in the
+      # work callable's result. Look up the operations with result_status='invalid' (or the `operation.result_invalid` log lines).
+      - alert: DataConnectOperationResultInvalid
+        expr: sum by (operation) (increase(dataconnect_operation_result_invalid_total[15m])) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.operation }} succeeded but returned an invalid result"
+          description: >-
+            An operation of type {{ $labels.operation }} completed its action but its result failed the contract check, so it
+            was recorded with result_status=invalid (error_code OPERATION_RESULT_INVALID). The resource's state is fine; the
+            operation's result is missing.
+
+  - name: dataconnect-quality-worker
+    rules:
+      # GAP-03: a quality worker is stuck on a record it can neither handle nor write to the dead-letter topic. It will not commit past
+      # it (no data is lost), so its partitions stop advancing until the dead-letter topic is available again.
+      - alert: DataConnectQualityWorkerBlocked
+        expr: dataconnect_quality_blocked_partitions > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "A DataConnect quality worker has been stuck for 5 minutes"
+          description: >-
+            {{ $value }} partition(s) cannot advance because their quality worker cannot dead-letter a record. Check the
+            Kafka broker and the worker dead-letter topic. Pipelines go DEGRADED after
+            DATACONNECT_QUALITY_STREAM_DEGRADED_AFTER_SECONDS.

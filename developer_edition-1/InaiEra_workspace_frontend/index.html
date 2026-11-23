@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>InAiEra Workspace</title>
+    <!-- Tabler icons (ti-*) are bundled: App.tsx imports @tabler/icons-webfont -->
+    <!-- Same typeface as the other InAiEra apps -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+    />
+    <style>
+      /* Same design tokens as InAiEra Agents / Unified Catalog / ML Studio:
+         white/gray surfaces, gray text, orange as the one accent. */
+      :root {
+        --disp: "Space Grotesk", system-ui, sans-serif;
+        --body: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      html,
+      body,
+      #root {
+        margin: 0;
+        height: 100%;
+        background: #F9FAFB;
+      }
+      /* The app is one fixed-size shell with its own scrolling panes: the window never scrolls (src/app/lockHiddenScroll.ts keeps a
+         drag to the edge from moving it anyway). The full-page error screens scroll themselves. */
+      html,
+      body {
+        overflow: hidden;
+      }
+      /* No component sets a base font, so without this everything fell back
+         to the browser default serif. Form controls don't inherit by default. */
+      body {
+        font-family: var(--body);
+        color: #1F2937;
+        font-size: 14px;
+        -webkit-font-smoothing: antialiased;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font-family: inherit;
+      }
+      ::selection { background: #FFFBEB; }
+      :focus-visible { outline: 2px solid #F97316; outline-offset: 2px; border-radius: 4px; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

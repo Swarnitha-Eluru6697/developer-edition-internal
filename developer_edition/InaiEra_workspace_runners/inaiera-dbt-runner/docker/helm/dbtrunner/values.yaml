@@ -1,0 +1,440 @@
+# Default values for the dbt Runner chart.
+#
+# Overridden per customer org by Infra & Product Release Mgmt at
+# provisioning time, same as every other data plane product.
+
+# -----------------------------------------------------------------------------
+# Identity
+# -----------------------------------------------------------------------------
+tenant:
+  orgId: "REPLACE_ME"
+  cloud: "aws"                    # aws | azure | gcp
+  region: "us-east-1"
+
+# Must be one of dev | staging | prod (the app rejects anything else, e.g.
+# "production"). staging/prod refuse RUNNER_MODE=subprocess, plaintext
+# engine credentials in Job specs, and non-durable run artifacts.
+environment: "prod"
+
+# -----------------------------------------------------------------------------
+# Image
+# -----------------------------------------------------------------------------
+image:
+  repository: registry.inaiera.com/products/dbt-runner
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: inaiera-registry
+
+# -----------------------------------------------------------------------------
+# Scaling / availability
+# -----------------------------------------------------------------------------
+replicas: 2
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Spread replicas across zones and nodes. labelSelector is filled in by the
+# template (the release's selector labels).
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+# -----------------------------------------------------------------------------
+# Networking — internal-only ClusterIP, no per-org ingress.
+# -----------------------------------------------------------------------------
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+networkPolicy:
+  enabled: true
+  api:
+    # Who may call the API pod (port 8080). Default: any pod in a namespace
+    # labelled as part of the data plane. Tighten per deployment.
+    ingressFrom:
+      - namespaceSelector:
+          matchLabels:
+            inaiera.com/data-plane: "true"
+    # Egress for the API pod beyond DNS: metadata DB, k8s API, JWKS,
+    # artifact store, UCS / Datasets, and the Git host (the API reads a project's refs with `git ls-remote` when a
+    # run is submitted — DBT-006; it never fetches code). Default: these TCP ports anywhere. 443 covers https
+    # remotes; add 22 for ssh remotes.
+    egressPorts: [443, 5432, 6443, 8000, 8083, 9000]
+    extraEgress: []
+  job:
+    # Run Job pods execute CUSTOMER dbt code, so egress is deny-by-default and every destination is named (DBT-010). Each of
+    # git / warehouse / artifactStore takes `to:` — NetworkPolicy peers (an ipBlock for an exact address, or a
+    # namespaceSelector+podSelector for an in-cluster endpoint) — and `ports`. Nothing is open to "the internet" by default, and
+    # the pod network, Services, RFC1918, CGNAT, loopback and link-local/metadata ranges are reachable only through a peer you
+    # wrote yourself. The chart refuses to render (k8s_job mode, policy enabled) until git, the warehouse and the artifact
+    # store each have a destination.
+    #
+    # git: prefer an egress proxy that does FQDN allow-listing (NetworkPolicy itself cannot match hostnames). With `proxy`
+    # set, Job pods may reach ONLY the proxy for git, and HTTPS_PROXY is set in the Job so git/dbt deps go through it.
+    git:
+      ports: [443]
+      to: []              # e.g. [{ipBlock: {cidr: 140.82.112.0/20}}] — the git host's published ranges; or use `proxy`
+      proxy:
+        url: ""           # e.g. http://git-egress.platform.svc:3128 — becomes JOB_GIT_PROXY_URL / HTTPS_PROXY in Job pods
+        to: []            # peers of the proxy, e.g. [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: platform}}, podSelector: {matchLabels: {app: git-egress}}}]
+        port: 3128
+    warehouse:
+      # Trino (443/8080), pg_lake (5432) and/or ClickHouse (8443 TLS / 8123 plain HTTP): name the exact service(s).
+      ports: [443, 8080, 5432, 8443, 8123]
+      to: []              # e.g. [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: dp-shared}}, podSelector: {matchLabels: {app: trino}}}]
+    artifactStore:
+      ports: [443, 9000]
+      to: []              # the S3 / MinIO endpoint (ipBlock for the private endpoint / VPC endpoint, or the MinIO pod)
+    # Ranges the `allowPublicInternet` rule excludes (the only wide ipBlock the chart can render for Job pods).
+    denyCidrs:
+      - 10.0.0.0/8
+      - 172.16.0.0/12
+      - 192.168.0.0/16
+      - 100.64.0.0/10
+      - 127.0.0.0/8
+      - 169.254.0.0/16
+    # UNSAFE escape hatch for throw-away dev clusters: restores "any public address on the git/artifact ports" (still minus
+    # `denyCidrs`). Refused when environment != dev.
+    allowPublicInternet: false
+    # Workspace (jobs.workspace.enabled): a SQL job on a connection calls it from the Job pod. Name the Workspace pod/service.
+    workspace:
+      ports: [8080]
+      to: []              # e.g. [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: workspace}}, podSelector: {matchLabels: {app.kubernetes.io/name: workspace}}}]
+    # Package index (jobs.python.pipIndexUrl): where `pip install` of a Python job's requirements.txt may go.
+    packageIndex:
+      ports: [443]
+      to: []              # e.g. [{ipBlock: {cidr: 10.20.0.15/32}}] — the internal mirror; empty = Python jobs with requirements.txt cannot install
+    # UCS is reached by the API pod's outbox, not by Job pods; add rules here only if your Job pods must reach it.
+    ucs: []
+    extraEgress: []
+
+# -----------------------------------------------------------------------------
+# Control plane handoff — same JWKS the rest of the platform uses
+# -----------------------------------------------------------------------------
+controlPlane:
+  jwksUrl: "https://www.app.inaiera.com/.well-known/jwks.json"
+  issuer: "https://www.app.inaiera.com"
+  # THIS service's own audience (X-001). Never "workspace.inaiera": a token minted for Workspace
+  # must mean nothing here. External CI gets a service-principal token with aud=dbtrunner + a scope.
+  audience: "dbtrunner"
+  corsOrigins:
+    - "https://www.app.inaiera.com"
+
+# -----------------------------------------------------------------------------
+# Git credentials for private repositories (DBT-009). A repository URL never carries a token (`https://user:token@host/x` is rejected
+# at registration); a project names a credential with `credential_ref` and the operator provisions it here, from a Secret:
+#   gitCredentials:
+#     acme_github: { name: acme-github-token, key: token }     # -> GIT_CREDENTIAL_ACME_GITHUB; project credential_ref: "acme_github"
+# The token reaches git only as an Authorization header scoped to the repository's host (never a URL, argument or log line).
+# -----------------------------------------------------------------------------
+gitCredentials: {}
+
+# -----------------------------------------------------------------------------
+# Legacy internal service token — accepted ONLY by POST /api/v1/validate
+# (Workspace's codegen loop). Never a signing key; rejected on scoped routes.
+# -----------------------------------------------------------------------------
+internalServiceToken:
+  secretRef:
+    name: "dbtrunner-internal-token"
+    key: "token"
+
+# -----------------------------------------------------------------------------
+# Delegated Workspace tokens (X-001). Workspace calls this service with a short-lived JWT (HS256,
+# aud=dbtrunner, ONE scope, sub=the end user, act=workspace) signed with this key instead of forwarding
+# the user's own credential. Its own key: it must differ from serviceJwt and internalServiceToken.
+# Must hold the same value as Workspace's DBTRUNNER_DELEGATION_JWT_SECRET.
+# -----------------------------------------------------------------------------
+delegation:
+  secretRef:
+    name: "dbtrunner-delegation-jwt"
+    key: "secret"
+  allowedIssuers: ["workspace"]
+  maxLifetimeSeconds: 300
+  # X-001: the Data Quality service also acts on a user's behalf (it looks a project up when a rule is bound to it), with
+  # a key of ITS OWN (DQ's DBTRUNNER_DELEGATION_JWT_SECRET). DQ is accepted as an issuer only while enabled, and only for
+  # the scopes below: it cannot start runs or register/edit projects. A Secret of its own: it must differ from every other
+  # secret of this chart.
+  dq:
+    enabled: true
+    secretRef:
+      name: "dbtrunner-dq-delegation-jwt"
+      key: "secret"
+    allowedScopes: ["dbt.projects.read"]
+
+# -----------------------------------------------------------------------------
+# SQL and Python jobs (besides dbt). Both are opt-in extras of the same run path.
+#   workspace: SQL jobs registered on a Workspace connection never hold the connection's credentials; the Job pod sends its
+#     statements to the Workspace with a token that authorises that ONE run. Needs the Workspace URL and a signing Secret of its
+#     own (it must differ from every other secret of this chart and equal Workspace's RUNNER_JOB_JWT_SECRET).
+#   python.pipIndexUrl: the package index `pip install -r requirements.txt` uses; set a mirror/proxy when the cluster has no
+#     direct egress. Job pods may reach it only through networkPolicy.job.packageIndex.
+# -----------------------------------------------------------------------------
+jobs:
+  workspace:
+    enabled: false
+    url: ""               # e.g. http://workspace.workspace.svc:8080
+    secretRef:
+      name: "dbtrunner-workspace-job-jwt"
+      key: "secret"
+  python:
+    pipIndexUrl: ""       # e.g. https://pypi.internal.example/simple
+
+# -----------------------------------------------------------------------------
+# Scheduler identity (DBT-003). The Dagster orchestrator calls the /internal routes (project
+# enumeration, run trigger, run read) with a short-lived JWT it signs with this key (iss/sub "dagster",
+# aud dbtrunner, ONE scope: dbt.projects.read | dbt.runs.read | dbt.runs.trigger | dbt.runs.cancel), instead of the static
+# internalServiceToken, which now only opens POST /api/v1/validate. Its own key: it must be a different
+# Secret from internalServiceToken, serviceJwt and delegation. Must hold the same value as Dagster's
+# SCHEDULER_JWT_SECRET. Disable only if no Dagster talks to this runner: the /internal routes then refuse everything.
+# -----------------------------------------------------------------------------
+schedulerJwt:
+  enabled: true
+  secretRef:
+    name: "dbtrunner-scheduler-jwt"
+    key: "secret"
+  allowedIssuers: ["dagster"]
+
+# -----------------------------------------------------------------------------
+# Scoped service JWTs presented TO this service (RUN-DBT-005). Separate key
+# from internalServiceToken. Required when integrations.dataQuality.enabled.
+# -----------------------------------------------------------------------------
+serviceJwt:
+  secretRef:
+    name: "dbtrunner-service-jwt"
+    key: "secret"
+  allowedIssuers: ["dataquality"]
+  allowedSubjects: ["dataquality"]
+  maxLifetimeSeconds: 300
+
+# -----------------------------------------------------------------------------
+# Postgres (metadata DB). The app builds the URL from these fields and the
+# password Secret (properly escaped) — no $(VAR) expansion in a ConfigMap.
+# ssl is asyncpg's `ssl` mode: disable | prefer | require | verify-ca | verify-full
+# -----------------------------------------------------------------------------
+database:
+  host: "postgres.dp-shared.svc.cluster.local"
+  port: 5432
+  name: "dbtrunner"
+  user: "dbtrunner"
+  passwordSecretRef:
+    name: "dbtrunner-db-credentials"
+    key: "password"
+  ssl: "require"
+
+# -----------------------------------------------------------------------------
+# Engines this data plane can run dbt against.
+# -----------------------------------------------------------------------------
+engines:
+  trino:
+    host: "trino.dp-shared.svc.cluster.local"
+    port: 443
+    catalog: "iceberg"
+    httpScheme: "https"
+    # Warehouse JWT dbt-trino authenticates with; injected into the API pod
+    # and (by reference) into every run Job. Required outside dev for trino runs.
+    jwtSecretRef:
+      name: "dbtrunner-trino-jwt"
+      key: "token"
+  pgLake:
+    dsnSecretRef:
+      name: "dbtrunner-pglake-dsn"
+      key: "dsn"
+  # ClickHouse (engine "clickhouse" for dbt, SQL and Python jobs). Off until `host` is set. `port` is the HTTP(S) interface
+  # (8123 plain, 8443 TLS); `database` is where models and a SQL job's statements land by default. The password is read from the
+  # Secret named here, by the API pod and (by reference) by every run Job; it is required outside dev for clickhouse runs.
+  clickhouse:
+    host: ""
+    port: 8443
+    secure: true
+    user: "inaiera"
+    database: "default"
+    passwordSecretRef:
+      name: "dbtrunner-clickhouse-password"
+      key: "password"
+
+# -----------------------------------------------------------------------------
+# Apache Polaris (Iceberg REST catalog)
+# -----------------------------------------------------------------------------
+polaris:
+  restUri: "http://polaris.dp-shared.svc.cluster.local:8181/api/catalog"
+  credentialsSecretRef:
+    name: "dbtrunner-polaris-credentials"
+    clientIdKey: "client-id"
+    clientSecretKey: "client-secret"
+
+# -----------------------------------------------------------------------------
+# Run isolation — staging/prod must use k8s_job. See app/executors/isolation.py.
+# -----------------------------------------------------------------------------
+runner:
+  mode: "k8s_job"
+  # Empty = the API image itself (it contains the Job entrypoint). Set to a
+  # build of the Dockerfile's `job` target for a separate Job image.
+  image: ""
+  namespace: "inaiera"
+  jobTimeoutSeconds: 3600
+  jobTtlSeconds: 3600
+  runAsUser: 10001
+  runAsGroup: 10001
+  leaseSeconds: 60
+  dispatchConcurrency: 10
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  # Dedicated least-privilege ServiceAccount for run Job pods (no RBAC, no
+  # token mounted). Annotate for IRSA/workload identity to reach S3.
+  jobServiceAccount:
+    create: true
+    name: ""
+    annotations: {}
+  rbac:
+    # The API pod needs NO get on Secrets (per-run Secrets are created with
+    # an ownerReference to their Job and GC'd with it). If some deployment
+    # genuinely needs to read specific Secrets, list them here; a `get` rule
+    # restricted to exactly these resourceNames is rendered.
+    secretGetResourceNames: []
+
+# -----------------------------------------------------------------------------
+# Durable run artifacts (results, manifest.json, run_results.json).
+# k8s_job mode outside dev requires backend s3.
+# -----------------------------------------------------------------------------
+artifactStore:
+  backend: "s3"
+  s3:
+    bucket: "inaiera-dbtrunner-artifacts"
+    prefix: "dbtrunner"
+    endpointUrl: ""
+    region: ""
+    # Optional static credentials (otherwise IRSA / workload identity).
+    credentialsSecretRef:
+      name: ""
+      accessKeyIdKey: "access-key-id"
+      secretAccessKeyKey: "secret-access-key"
+
+# -----------------------------------------------------------------------------
+# Cross-product integrations. Each enabled integration's URL is `required`.
+# -----------------------------------------------------------------------------
+integrations:
+  openlineage:
+    enabled: false
+    url: ""                          # e.g. http://catalog.dataplane.svc:8000/api/v1/lineage
+    namespace: "inaiera.dbt"
+    ucsTokenSecretRef:               # signs the ucs.lineage.write token
+      name: "dbtrunner-ucs-token"
+      key: "token"
+  datasets:
+    enabled: false
+    url: ""                          # e.g. http://datasets.dp-shared.svc.cluster.local:8083
+    tokenSecretRef:                  # signs the datasets.register.write token
+      name: "dbtrunner-datasets-token"
+      key: "token"
+  dataQuality:
+    enabled: false
+    serviceUrl: ""                   # e.g. http://dataquality.dp-shared.svc.cluster.local:8000
+
+metadataOutbox:
+  maxAttempts: 20
+  backlogWarn: 500
+
+# -----------------------------------------------------------------------------
+# Scheduler
+# -----------------------------------------------------------------------------
+scheduler:
+  pollIntervalSeconds: 30
+  # Who turns a project's cron into runs (DG-001).
+  #   enabled: true   (default) the runner's own scheduler (RUN-DBT-004): leader-elected, one run
+  #                   per occurrence (UNIQUE(project_id, scheduled_fire_time)). This is the
+  #                   production owner today: the Dagster chart deploys one generic code location
+  #                   whose job has NO sensors, so it never schedules anything.
+  #   enabled: false  only when an external orchestrator really replaces it, e.g. Dagster with
+  #                   per-repo code locations AND its project_schedule_sensor deployed. Name it in
+  #                   externalOrchestrator; the chart refuses `enabled: false` without that, so a
+  #                   forgotten flag can't leave scheduled dbt jobs with no scheduler at all.
+  enabled: true
+  externalOrchestrator: ""
+
+# -----------------------------------------------------------------------------
+# Telemetry
+# -----------------------------------------------------------------------------
+telemetry:
+  enabled: true
+  endpoint: "https://telemetry-ingest.inaiera.com/v1/events"
+  clientCertSecretRef:
+    name: "telemetry-client-cert"
+
+# -----------------------------------------------------------------------------
+# Service account / pod security
+# -----------------------------------------------------------------------------
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
+  seccompProfile:
+    type: RuntimeDefault
+
+probes:
+  liveness:
+    httpGet:
+      path: /healthz
+      port: 8080
+    initialDelaySeconds: 10
+    periodSeconds: 15
+  readiness:
+    httpGet:
+      path: /readyz
+      port: 8080
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+migrations:
+  enabled: true
+  backoffLimit: 3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

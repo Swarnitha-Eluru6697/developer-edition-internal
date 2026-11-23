@@ -1,0 +1,131 @@
+{
+  "package_version": "1",
+  "manifest": {
+    "key": "analysis-agent",
+    "name": "Analysis Agent",
+    "version": "1.0.0",
+    "type": "Data",
+    "category": "Data",
+    "vertical": null,
+    "tags": [],
+    "desc": "SQL/pandas generation, chart generation, statistical summarization.",
+    "first_party": true
+  },
+  "flow": {
+    "nodes": [
+      {
+        "id": "t1",
+        "type": "trigger",
+        "x": 40,
+        "y": 140,
+        "sub": "user input",
+        "config": {}
+      },
+      {
+        "id": "t2",
+        "type": "gov",
+        "x": 200,
+        "y": 140,
+        "sub": "entitlement gate",
+        "config": {}
+      },
+      {
+        "id": "t3",
+        "type": "retrieval",
+        "x": 360,
+        "y": 140,
+        "sub": "sales data",
+        "config": {
+          "knowledge_bases": [],
+          "top_k": 8
+        }
+      },
+      {
+        "id": "t4",
+        "type": "llm",
+        "x": 520,
+        "y": 140,
+        "sub": "analyze",
+        "config": {
+          "mode": "agentic",
+          "model": "Claude Sonnet 5",
+          "step_limit": 12,
+          "guardrail_profile": "Standard (input + output)"
+        }
+      },
+      {
+        "id": "t5",
+        "type": "tool",
+        "x": 680,
+        "y": 140,
+        "sub": "query connector",
+        "config": {
+          "catalog_object": "pg_sales.public.orders"
+        }
+      },
+      {
+        "id": "t6",
+        "type": "respond",
+        "x": 840,
+        "y": 140,
+        "sub": "chart + summary",
+        "config": {
+          "format": "markdown",
+          "streaming": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "te1",
+        "source": "t1",
+        "target": "t2",
+        "source_handle": null
+      },
+      {
+        "id": "te2",
+        "source": "t2",
+        "target": "t3",
+        "source_handle": null
+      },
+      {
+        "id": "te3",
+        "source": "t3",
+        "target": "t4",
+        "source_handle": null
+      },
+      {
+        "id": "te4",
+        "source": "t4",
+        "target": "t5",
+        "source_handle": null
+      },
+      {
+        "id": "te5",
+        "source": "t5",
+        "target": "t6",
+        "source_handle": null
+      }
+    ]
+  },
+  "requirements": {
+    "node_types": [
+      "gov",
+      "llm",
+      "respond",
+      "retrieval",
+      "tool",
+      "trigger"
+    ],
+    "knowledge_bases": [],
+    "catalog_objects": [
+      "pg_sales.public.orders"
+    ],
+    "tools": [],
+    "models": [
+      "Claude Sonnet 5"
+    ],
+    "env_vars": [],
+    "review": []
+  }
+}

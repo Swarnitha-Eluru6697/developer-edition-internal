@@ -1,0 +1,10 @@
+{
+  "name": "dataconnect-mfe-runtime",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Minimal, deterministic dependency set for the built container: just what server.js (compiled from server.ts) needs to serve dist/ — see ../Dockerfile. Deliberately separate from ../package.json, which also carries build-only deps (React, Vite, TypeScript, ...) the runtime image never uses.",
+  "dependencies": {
+    "express": "4.22.3"
+  }
+}

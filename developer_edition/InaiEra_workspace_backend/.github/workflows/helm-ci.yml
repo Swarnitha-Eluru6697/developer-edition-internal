@@ -1,0 +1,39 @@
+name: Helm chart CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docker/helm/workspace/**"
+      - ".github/workflows/helm-ci.yml"
+  pull_request:
+    paths:
+      - "docker/helm/workspace/**"
+      - ".github/workflows/helm-ci.yml"
+
+jobs:
+  lint-and-contract-test:
+    name: helm lint + contract tests + kubeconform
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: "v3.15.0"
+
+      - name: helm lint (default values)
+        run: helm lint docker/helm/workspace --set tenant.orgId=acme
+
+      - name: helm template (default values render cleanly)
+        run: helm template ci-test docker/helm/workspace --set tenant.orgId=acme > /dev/null
+
+      - name: Cross-service integration contract tests
+        run: ./docker/helm/workspace/ci/test-values-contract.sh
+
+      # Rendered manifests are valid Kubernetes objects (strict: unknown
+      # fields fail, catching misplaced keys a lint can't see).
+      - name: kubeconform (strict)
+        run: |
+          helm template ci-test docker/helm/workspace --set tenant.orgId=acme > /tmp/rendered.yaml
+          docker run --rm -v /tmp:/w ghcr.io/yannh/kubeconform:v0.6.7 -strict -summary /w/rendered.yaml

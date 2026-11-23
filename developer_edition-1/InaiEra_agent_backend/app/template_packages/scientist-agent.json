@@ -1,0 +1,155 @@
+{
+  "package_version": "1",
+  "manifest": {
+    "key": "scientist-agent",
+    "name": "Scientist Agent",
+    "version": "1.0.0",
+    "type": "Data",
+    "category": "Data",
+    "vertical": null,
+    "tags": [],
+    "desc": "Feature engineering, model selection, experiment tracking.",
+    "first_party": true
+  },
+  "flow": {
+    "nodes": [
+      {
+        "id": "t1",
+        "type": "trigger",
+        "x": 40,
+        "y": 140,
+        "sub": "user input",
+        "config": {}
+      },
+      {
+        "id": "t2",
+        "type": "gov",
+        "x": 200,
+        "y": 140,
+        "sub": "entitlement gate",
+        "config": {}
+      },
+      {
+        "id": "t3",
+        "type": "retrieval",
+        "x": 360,
+        "y": 140,
+        "sub": "training dataset",
+        "config": {
+          "knowledge_bases": [],
+          "top_k": 12
+        }
+      },
+      {
+        "id": "t4",
+        "type": "llm",
+        "x": 520,
+        "y": 140,
+        "sub": "feature plan",
+        "config": {
+          "mode": "agentic",
+          "model": "Claude Sonnet 5",
+          "step_limit": 15,
+          "guardrail_profile": "Standard (input + output)"
+        }
+      },
+      {
+        "id": "t5",
+        "type": "code",
+        "x": 680,
+        "y": 140,
+        "sub": "run experiment",
+        "config": {
+          "code": "def main(features: str):\n    return {\"result\": \"trained\"}"
+        }
+      },
+      {
+        "id": "t6",
+        "type": "memory",
+        "x": 840,
+        "y": 140,
+        "sub": "track experiments",
+        "config": {
+          "key": "last_experiment",
+          "scope": "agent",
+          "mode": "read_write",
+          "write_value": "{{output}}"
+        }
+      },
+      {
+        "id": "t7",
+        "type": "respond",
+        "x": 1000,
+        "y": 140,
+        "sub": "results",
+        "config": {
+          "format": "markdown",
+          "streaming": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "te1",
+        "source": "t1",
+        "target": "t2",
+        "source_handle": null
+      },
+      {
+        "id": "te2",
+        "source": "t2",
+        "target": "t3",
+        "source_handle": null
+      },
+      {
+        "id": "te3",
+        "source": "t3",
+        "target": "t4",
+        "source_handle": null
+      },
+      {
+        "id": "te4",
+        "source": "t4",
+        "target": "t5",
+        "source_handle": null
+      },
+      {
+        "id": "te5",
+        "source": "t5",
+        "target": "t6",
+        "source_handle": null
+      },
+      {
+        "id": "te6",
+        "source": "t6",
+        "target": "t7",
+        "source_handle": null
+      }
+    ]
+  },
+  "requirements": {
+    "node_types": [
+      "code",
+      "gov",
+      "llm",
+      "memory",
+      "respond",
+      "retrieval",
+      "trigger"
+    ],
+    "knowledge_bases": [],
+    "catalog_objects": [],
+    "tools": [],
+    "models": [
+      "Claude Sonnet 5"
+    ],
+    "env_vars": [],
+    "review": [
+      {
+        "node": "t5",
+        "type": "code",
+        "why": "runs custom code"
+      }
+    ]
+  }
+}

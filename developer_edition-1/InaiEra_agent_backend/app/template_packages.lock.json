@@ -1,0 +1,33 @@
+{
+  "lock_version": 1,
+  "packages": {
+    "analysis-agent": {
+      "version": "1.0.0",
+      "sha256": "2eb29eb361fc09657f9ed425074926ad388b0f91889de789377a30af54ebf526"
+    },
+    "blank-canvas": {
+      "version": "1.0.2",
+      "sha256": "363906763a2adb3994772cf7ef6f29bf6f30ddf702f47dcb785a1490afd7eb5f"
+    },
+    "conversational-knowledge": {
+      "version": "1.0.1",
+      "sha256": "5eee104904015284f5616296b46a4cc81611fb7245756001151b905e892264ce"
+    },
+    "engineer-agent": {
+      "version": "1.0.0",
+      "sha256": "a65024f15878639efc5d51d76d154ab0feccf7c9e4ee1cd65da0a58f5dd1cf01"
+    },
+    "erd-designer-agent": {
+      "version": "1.0.0",
+      "sha256": "22421a9db178b852cc415c887cc6617515e565b1de23665ec862c6fce7896a16"
+    },
+    "scientist-agent": {
+      "version": "1.0.0",
+      "sha256": "a7ae236551e05e1f929657249ef6a27dbd7daa25cba3f291387ff466b63ca48c"
+    },
+    "task-automation": {
+      "version": "1.0.2",
+      "sha256": "a507b1f623f2d8a6375876284f9438f19b60a646098f8ae5451b6fd7f3d62d41"
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{{- /* DG-002: the Dagster UI/GraphQL has no authentication of its own. This Ingress only renders when
+       webserver.ingress.auth names an enforced auth layer (values.schema.json) and the webserver pod is
+       restricted to that layer's namespace by templates/networkpolicy.yaml. */ -}}
+{{- if .Values.webserver.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "dagster-dbt-runner.fullname" . }}-webserver
+  labels:
+    {{- include "dagster-dbt-runner.labels" . | nindent 4 }}
+    app.kubernetes.io/component: webserver
+  {{- with .Values.webserver.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.webserver.ingress.className }}
+  ingressClassName: {{ .Values.webserver.ingress.className }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.webserver.ingress.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "dagster-dbt-runner.fullname" . }}-webserver
+                port:
+                  name: http
+  {{- if .Values.webserver.ingress.tls }}
+  tls:
+    {{- toYaml .Values.webserver.ingress.tls | nindent 4 }}
+  {{- end }}
+{{- end }}

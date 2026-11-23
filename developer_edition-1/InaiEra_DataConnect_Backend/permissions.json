@@ -1,0 +1,141 @@
+{
+  "app": "dataconnect",
+  "version": 1,
+  "permissions": [
+    {
+      "id": "dataconnect:access:view",
+      "label": "Open DataConnect",
+      "description": "May open the DataConnect application at all (portal menu entry). Grants no data access by itself."
+    },
+    {
+      "id": "dataconnect:dashboard:view",
+      "label": "View the dashboard",
+      "description": "Open the DataConnect dashboard page."
+    },
+    {
+      "id": "dataconnect:monitoring:view",
+      "label": "View monitoring",
+      "description": "Live data-flow, Kafka Connect cluster/connector/task status, runtime metrics and failure breakdowns."
+    },
+    {
+      "id": "dataconnect:connections:view",
+      "label": "View connections",
+      "description": "List and read connection profiles (secrets masked) and the connection field schemas."
+    },
+    {
+      "id": "dataconnect:connections:edit",
+      "label": "Edit connections",
+      "description": "Create, update and delete connection profiles."
+    },
+    {
+      "id": "dataconnect:connections:test",
+      "label": "Test connections and discover sources",
+      "description": "Run live test-connection probes against a source and start/read source schema discovery runs."
+    },
+    {
+      "id": "dataconnect:pipelines:view",
+      "label": "View pipelines",
+      "description": "List and read pipelines, their status, operations and topic policies."
+    },
+    {
+      "id": "dataconnect:pipelines:edit",
+      "label": "Edit pipelines",
+      "description": "Create, update and delete pipelines and topic policies."
+    },
+    {
+      "id": "dataconnect:pipelines:deploy",
+      "label": "Deploy pipelines",
+      "description": "Deploy a pipeline, check its deploy readiness and view its generated Kafka Connect configuration."
+    },
+    {
+      "id": "dataconnect:pipelines:operate",
+      "label": "Operate pipelines",
+      "description": "Pause, resume and restart deployed pipelines."
+    },
+    {
+      "id": "dataconnect:schemas:view",
+      "label": "View schemas",
+      "description": "List and read schema versions, drift events and drift approvals."
+    },
+    {
+      "id": "dataconnect:schemas:edit",
+      "label": "Edit schemas",
+      "description": "Infer schemas, create schema versions, validate compatibility, detect drift and request drift approvals."
+    },
+    {
+      "id": "dataconnect:schemas:approve-drift",
+      "label": "Approve schema drift",
+      "description": "Approve or reject a pending schema drift approval."
+    },
+    {
+      "id": "dataconnect:quality:view",
+      "label": "View data quality",
+      "description": "List and read quality policies, results, stream statistics and execution jobs."
+    },
+    {
+      "id": "dataconnect:quality:edit",
+      "label": "Edit data quality",
+      "description": "Create, update, delete, validate, preview and execute quality policies."
+    },
+    {
+      "id": "dataconnect:lineage:view",
+      "label": "View lineage",
+      "description": "List lineage assets and read lineage graphs."
+    },
+    {
+      "id": "dataconnect:lineage:edit",
+      "label": "Record lineage",
+      "description": "Ingest lineage events (POST /lineage/events)."
+    },
+    {
+      "id": "dataconnect:transforms:view",
+      "label": "View transforms",
+      "description": "List and read transform (SMT) policies."
+    },
+    {
+      "id": "dataconnect:transforms:edit",
+      "label": "Edit transforms",
+      "description": "Create, update, delete, validate and preview transform policies."
+    },
+    {
+      "id": "dataconnect:templates:view",
+      "label": "View connector templates",
+      "description": "Browse the connector template catalog and template revisions."
+    },
+    {
+      "id": "dataconnect:templates:manage",
+      "label": "Manage connector templates",
+      "description": "Create, update and delete connector templates."
+    },
+    {
+      "id": "dataconnect:settings:view",
+      "label": "View settings",
+      "description": "Open the DataConnect Settings page (UI only; no server route)."
+    },
+    {
+      "id": "dataconnect:settings:edit",
+      "label": "Edit settings and support diagnostics",
+      "description": "Change DataConnect settings and download the redacted support diagnostics bundle."
+    },
+    {
+      "id": "dataconnect:audit:view",
+      "label": "View audit history",
+      "description": "Read the audit / history log."
+    },
+    {
+      "id": "dataconnect:alerts:view",
+      "label": "View alerts",
+      "description": "List and read alerts, their counts and history, the alert rules and the Slack / Teams channels (webhook URLs are never returned)."
+    },
+    {
+      "id": "dataconnect:alerts:respond",
+      "label": "Acknowledge and resolve alerts",
+      "description": "Acknowledge or resolve an alert from the Alerts page."
+    },
+    {
+      "id": "dataconnect:alerts:manage",
+      "label": "Manage alert rules and channels",
+      "description": "Create, update and delete alert rules and Slack / Teams channels, send a test message and run the rules now. A channel's webhook URL is a credential."
+    }
+  ]
+}

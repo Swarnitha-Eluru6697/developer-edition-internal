@@ -1,0 +1,89 @@
+{{- include "inaiera-flinksql-runner.validate" . }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "inaiera-flinksql-runner.fullname" . }}-config
+  labels:
+    {{- include "inaiera-flinksql-runner.labels" . | nindent 4 }}
+data:
+  # RUN-FLINK-016: never left to the app default ("dev" = fixture data).
+  ENVIRONMENT: {{ .Values.environment | quote }}
+  ORG_ID: {{ include "inaiera-flinksql-runner.orgId" . | quote }}
+  LOG_LEVEL: "INFO"
+  # Read-only root filesystem: never try to write .pyc files.
+  PYTHONDONTWRITEBYTECODE: "1"
+  FLINK_GATEWAY_URL: {{ .Values.flink.gatewayUrl | quote }}
+  FLINK_REST_URL: {{ .Values.flink.restUrl | quote }}
+  KAFKA_BOOTSTRAP_SERVERS: {{ .Values.kafka.bootstrapServers | quote }}
+  KAFKA_SECURITY_PROTOCOL: {{ .Values.kafka.securityProtocol | quote }}
+  KAFKA_SASL_MECHANISM: {{ .Values.kafka.saslMechanism | quote }}
+  {{- if .Values.kafka.tls.caSecretRef.name }}
+  KAFKA_SSL_CAFILE: "/etc/inaiera/tls/kafka/ca.crt"
+  KAFKA_REST_PROXY_CA_FILE: "/etc/inaiera/tls/kafka/ca.crt"
+  {{- end }}
+  {{- with .Values.kafka.restProxy.url }}
+  KAFKA_REST_PROXY_URL: {{ . | quote }}
+  {{- end }}
+  KAFKA_REST_PROXY_VERIFY_SSL: {{ .Values.kafka.restProxy.verifySsl | quote }}
+  KAFKA_TOPIC_ALLOWED_PATTERNS: {{ .Values.kafka.topicAllowedPatterns | toJson | quote }}
+  SCHEMA_REGISTRY_URL: {{ .Values.kafka.schemaRegistry.url | quote }}
+  SCHEMA_REGISTRY_AUTH_ENABLED: {{ .Values.kafka.schemaRegistry.authEnabled | quote }}
+  {{- if .Values.kafka.schemaRegistry.tls.caSecretRef.name }}
+  SCHEMA_REGISTRY_CA_FILE: "/etc/inaiera/tls/schema-registry/ca.crt"
+  {{- end }}
+  REDIS_URL: {{ .Values.redis.url | quote }}
+  POLARIS_REST_URI: {{ .Values.polaris.restUri | quote }}
+  {{- if .Values.pgLake.enabled }}
+  PG_LAKE_CATALOG_NAME: {{ .Values.pgLake.catalogName | quote }}
+  PG_LAKE_JDBC_BASE_URL: {{ .Values.pgLake.jdbcBaseUrl | quote }}
+  PG_LAKE_DATABASE: {{ .Values.pgLake.database | quote }}
+  {{- end }}
+  ICEBERG_WAREHOUSE: {{ .Values.polaris.icebergWarehouse | quote }}
+  CHECKPOINT_STORAGE_PATH: {{ .Values.checkpoint.storagePath | quote }}
+  CHECKPOINT_STORAGE_BACKEND: {{ .Values.checkpoint.storageBackend | quote }}
+  CONTROL_PLANE_JWKS_URL: {{ .Values.controlPlane.jwksUrl | quote }}
+  CONTROL_PLANE_ISSUER: {{ .Values.controlPlane.issuer | quote }}
+  CONTROL_PLANE_AUDIENCE: {{ .Values.controlPlane.audience | quote }}
+  DELEGATION_JWT_ALLOWED_ISSUERS: {{ .Values.delegation.allowedIssuers | toJson | quote }}
+  DELEGATION_JWT_MAX_LIFETIME_SECONDS: {{ .Values.delegation.maxLifetimeSeconds | quote }}
+  DQ_DELEGATION_ALLOWED_SCOPES: {{ .Values.delegation.dq.allowedScopes | toJson | quote }}
+  JWKS_CACHE_TTL_SECONDS: {{ .Values.controlPlane.jwksCacheTtlSeconds | quote }}
+  LEGACY_INTERNAL_TOKEN_ENABLED: {{ .Values.internalServiceToken.legacyStaticTokenEnabled | quote }}
+  METRICS_POLL_INTERVAL_SECONDS: {{ .Values.metrics.pollIntervalSeconds | quote }}
+  METRICS_RETENTION_DAYS: {{ .Values.metrics.retentionDays | quote }}
+  ALERT_KAFKA_LAG_THRESHOLD: {{ .Values.alerts.kafkaLagThreshold | quote }}
+  ALERT_KAFKA_LAG_WINDOW_MINUTES: {{ .Values.alerts.kafkaLagWindowMinutes | quote }}
+  ALERT_BACKPRESSURE_THRESHOLD: {{ .Values.alerts.backpressureThreshold | quote }}
+  ALERT_BACKPRESSURE_WINDOW_MINUTES: {{ .Values.alerts.backpressureWindowMinutes | quote }}
+  ALERT_CHECKPOINT_FAILURE_WINDOW_MINUTES: {{ .Values.alerts.checkpointFailureWindowMinutes | quote }}
+  ALERT_RESTART_THRESHOLD: {{ .Values.alerts.restartThreshold | quote }}
+  ALERT_RESTART_WINDOW_MINUTES: {{ .Values.alerts.restartWindowMinutes | quote }}
+  ALERT_WINDOW_MIN_COVERAGE: {{ .Values.alerts.windowMinCoverage | quote }}
+  DEPLOYMENT_RECONCILER_POLL_INTERVAL_SECONDS: {{ .Values.lifecycle.reconcilerPollIntervalSeconds | quote }}
+  DEPLOYMENT_DISPATCH_POLL_SECONDS: {{ .Values.lifecycle.dispatchPollSeconds | quote }}
+  DEPLOYMENT_DISPATCH_CONCURRENCY: {{ .Values.lifecycle.dispatchConcurrency | quote }}
+  DEPLOYMENT_LEASE_TTL_SECONDS: {{ .Values.lifecycle.deploymentLeaseTtlSeconds | quote }}
+  READINESS_CHECK_FLINK: {{ .Values.readiness.checkFlink | quote }}
+  READINESS_PROBE_TIMEOUT_SECONDS: {{ .Values.readiness.probeTimeoutSeconds | quote }}
+  {{- if .Values.ucs.enabled }}
+  # UCS_INTERNAL_TOKEN (the credential) is injected via secretKeyRef, never here.
+  UCS_URL: {{ .Values.ucs.url | quote }}
+  {{- end }}
+  QUALITY_CONSUMER_ENABLED: {{ .Values.quality.consumerEnabled | quote }}
+  QUALITY_CONTRACT_VERSION: {{ .Values.quality.contractVersion | quote }}
+  QUALITY_RESULTS_TOPIC: {{ .Values.quality.resultsTopic | quote }}
+  QUALITY_GATE_TOPIC: {{ .Values.quality.gateTopic | quote }}
+  QUALITY_QUARANTINE_TOPIC: {{ .Values.quality.quarantineTopic | quote }}
+  UCS_QUALITY_RUNS_ENABLED: {{ .Values.quality.ucsQualityRunsEnabled | quote }}
+  QUALITY_CHECK_STALE_AFTER_SECONDS: {{ .Values.quality.checkStaleAfterSeconds | quote }}
+  QUALITY_GATE_FAIL_STOP_ENABLED: {{ .Values.quality.gateFailStopEnabled | quote }}
+  QUALITY_CONSUMER_GROUP_ID: {{ .Values.quality.consumerGroupId | quote }}
+  QUALITY_CONSUMER_RETRY_BACKOFF_SECONDS: {{ .Values.quality.retryBackoffSeconds | quote }}
+  QUALITY_CONSUMER_MAX_BACKOFF_SECONDS: {{ .Values.quality.maxBackoffSeconds | quote }}
+  QUALITY_CONSUMER_STALE_AFTER_SECONDS: {{ .Values.quality.staleAfterSeconds | quote }}
+  QUALITY_CONSUMER_BATCH_SIZE: {{ .Values.quality.batchSize | quote }}
+  QUALITY_CONSUMER_FLUSH_INTERVAL_SECONDS: {{ .Values.quality.flushIntervalSeconds | quote }}
+  QUALITY_OUTBOX_LEASE_SECONDS: {{ .Values.quality.outboxLeaseSeconds | quote }}
+  QUALITY_OUTBOX_RETRY_BASE_SECONDS: {{ .Values.quality.outboxRetryBaseSeconds | quote }}
+  QUALITY_OUTBOX_RETRY_MAX_SECONDS: {{ .Values.quality.outboxRetryMaxSeconds | quote }}
+  QUALITY_OUTBOX_MAX_ATTEMPTS: {{ .Values.quality.outboxMaxAttempts | quote }}

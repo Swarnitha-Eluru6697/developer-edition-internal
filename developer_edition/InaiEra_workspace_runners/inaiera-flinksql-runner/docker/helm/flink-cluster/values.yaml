@@ -1,0 +1,297 @@
+# ===========================================================================
+# InAiEra Flink Cluster — Helm values
+#
+# This chart deploys the Apache Flink session cluster that powers the
+# FlinkSQL Runner service. All configuration here feeds into the
+# FlinkDeployment custom resource consumed by the Flink Kubernetes Operator.
+#
+# Key relationships:
+#   - Kafka cluster is the SAME one Dataconnect writes to
+#     (kafka.bootstrapServers must match dataconnect's kafka config)
+#   - Checkpoint storage uses the SAME object storage backend as Workspace
+#   - Iceberg catalog (Polaris) is SHARED with dbt Runner
+#   - FlinkSQL Runner API connects to this cluster's SQL Gateway and JobManager
+# ===========================================================================
+
+# -----------------------------------------------------------------------------
+# Tenant identity — set by parent data-plane chart
+# -----------------------------------------------------------------------------
+tenant:
+  orgId: "REPLACE_ME"
+  cloud: "aws"                 # aws | azure | gcp
+  region: "us-east-1"
+
+# -----------------------------------------------------------------------------
+# Flink version
+# -----------------------------------------------------------------------------
+image:
+  repository: inaiera-registry.azurecr.io/flink
+  # Custom image adds: flink-connector-kafka, iceberg-flink-runtime,
+  # flink-sql-avro-confluent-registry, postgresql JDBC driver
+  tag: "1.19.1-scala_2.12-java17-inaiera"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: inaiera-registry
+
+# -----------------------------------------------------------------------------
+# Flink Kubernetes Operator — manages the FlinkDeployment CRD lifecycle
+# Set operator.enabled=false if the operator is already installed cluster-wide
+# -----------------------------------------------------------------------------
+operator:
+  enabled: true          # deploy the operator as a subchart
+  watchNamespaces: []    # [] = watch all namespaces
+
+# -----------------------------------------------------------------------------
+# Session cluster sizing
+#
+# InAiEra uses a SESSION cluster (not Application mode) so multiple FlinkSQL
+# jobs share one cluster. This reduces startup overhead per job and allows
+# the Workspace UI to submit jobs interactively via the SQL Gateway.
+#
+# Reactive mode is enabled: TaskManager count auto-adjusts to the maximum
+# parallelism demanded by all running jobs combined. KEDA provides an
+# additional Kafka-lag signal to drive proactive scale-out.
+# -----------------------------------------------------------------------------
+cluster:
+  name: "inaiera-flink"
+  mode: "session"              # session | application (always session here)
+
+jobManager:
+  replicas: 2                  # 2 for HA (requires zookeeper or k8s leader election)
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "2Gi"
+    limits:
+      cpu: "2"
+      memory: "2Gi"
+  # High availability: leader election via Kubernetes configmaps
+  ha:
+    enabled: true
+    storageDir: "s3://${CHECKPOINT_BUCKET}/ha/jobmanager"
+
+taskManager:
+  # Initial count. Reactive mode adjusts this up/down automatically.
+  # KEDA also adjusts based on kafka lag (see autoscaling section).
+  replicas: 2
+  resources:
+    requests:
+      cpu: "1"
+      memory: "4Gi"
+    limits:
+      cpu: "4"
+      memory: "8Gi"
+  # Slots per TaskManager. Total parallelism = replicas × slotsPerTask.
+  # Each FlinkSQL job operator runs in one slot.
+  slotsPerTask: 4
+
+# -----------------------------------------------------------------------------
+# Flink configuration (flink-conf.yaml)
+# These become the flinkConfiguration block in the FlinkDeployment CRD.
+# -----------------------------------------------------------------------------
+flinkConfiguration:
+  # --- Reactive mode (auto TaskManager count) ---
+  scheduler-mode: reactive             # REACTIVE = TaskManagers scale with demand
+  jobmanager.adaptive-scheduler.min-parallelism-increase: "1"
+
+  # --- Checkpointing ---
+  execution.checkpointing.mode: EXACTLY_ONCE
+  execution.checkpointing.interval: "60s"
+  execution.checkpointing.timeout: "10min"
+  execution.checkpointing.min-pause-between-checkpoints: "5s"
+  execution.checkpointing.max-concurrent-checkpoints: "1"
+  # Incremental checkpointing with RocksDB reduces checkpoint size for large state
+  state.backend: rocksdb
+  state.backend.incremental: "true"
+  state.checkpoints.dir: "s3://${CHECKPOINT_BUCKET}/checkpoints"
+  state.savepoints.dir: "s3://${CHECKPOINT_BUCKET}/savepoints"
+
+  # --- Restart strategy (automatic recovery on failure) ---
+  restart-strategy: exponential-delay
+  restart-strategy.exponential-delay.initial-backoff: "1s"
+  restart-strategy.exponential-delay.max-backoff: "5min"
+  restart-strategy.exponential-delay.backoff-multiplier: "2.0"
+  restart-strategy.exponential-delay.max-attempts: "10"
+
+  # --- TaskManager memory layout ---
+  taskmanager.memory.process.size: 4096m
+  taskmanager.memory.managed.fraction: "0.4"   # RocksDB state
+  taskmanager.memory.network.fraction: "0.1"
+
+  # --- Web UI + REST API ---
+  rest.port: "8081"
+  web.submit.enable: "false"          # disable JAR submission; SQL only
+
+  # --- Iceberg catalog (shared with dbt Runner, uses same Polaris) ---
+  # Injected into every SQL Gateway session via the catalog config below
+  table.catalog.inaiera.type: iceberg
+  table.catalog.inaiera.catalog-impl: org.apache.iceberg.rest.RESTCatalog
+  table.catalog.inaiera.uri: "${POLARIS_REST_URI}"
+  table.catalog.inaiera.warehouse: "${ICEBERG_WAREHOUSE}"
+  table.catalog.inaiera.credential: "${POLARIS_CREDENTIALS}"
+
+  # --- Metrics (Prometheus) ---
+  metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+  metrics.reporter.prom.port: "9249"
+
+  # --- Kafka consumer defaults (override per-job via SQL WITH properties) ---
+  # These are defaults only; individual CREATE TABLE statements override them.
+  table.exec.source.idle-timeout: "30s"
+
+# -----------------------------------------------------------------------------
+# Flink SQL Gateway
+# Separate deployment (not part of the Flink cluster itself) that provides
+# the REST API for multi-statement SQL sessions.
+# The FlinkSQL Runner API (inaiera-flinksql-runner) connects to this.
+# -----------------------------------------------------------------------------
+sqlGateway:
+  enabled: true
+  replicas: 2
+  image:
+    repository: inaiera-registry.azurecr.io/flink
+    tag: "1.19.1-scala_2.12-java17-inaiera"
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2"
+      memory: "2Gi"
+  service:
+    type: ClusterIP
+    port: 8083
+  # SQL Gateway connects to the Flink session cluster JobManager REST
+  # (address is the Kubernetes Service for the JobManager)
+  flinkJobManagerAddress: "inaiera-flink-jobmanager.dp-shared.svc.cluster.local:8081"
+  configuration:
+    sql-gateway.session.idle-timeout: "10min"
+    sql-gateway.session.check-interval: "1min"
+    sql-gateway.endpoint.rest.address: "0.0.0.0"
+    sql-gateway.endpoint.rest.port: "8083"
+
+# -----------------------------------------------------------------------------
+# Kafka connectivity
+#
+# CRITICAL: This MUST match the Kafka cluster Dataconnect writes to.
+# The same Kafka cluster is used for both EL (Dataconnect) and
+# streaming transformation (FlinkSQL Runner).
+# Set kafka.bootstrapServers to the SAME value as Dataconnect's kafka config.
+# -----------------------------------------------------------------------------
+kafka:
+  # Must match Dataconnect's kafka.bootstrap.servers
+  bootstrapServers: "kafka.dp-shared.svc.cluster.local:9092"
+  securityProtocol: "SASL_SSL"
+  saslMechanism: "SCRAM-SHA-512"
+  # Secret created by Dataconnect provisioning — shared between Dataconnect,
+  # FlinkSQL Runner, and any other service reading from the same Kafka cluster
+  saslCredentialsSecretRef:
+    name: "kafka-client-credentials"    # SAME secret Dataconnect uses
+    usernameKey: "username"
+    passwordKey: "password"
+  # Schema Registry (Confluent or Apicurio) — for Avro topic support
+  schemaRegistry:
+    url: "http://schema-registry.dp-shared.svc.cluster.local:8081"
+    authEnabled: false
+    credentialsSecretRef:
+      name: "schema-registry-credentials"
+      usernameKey: "username"
+      passwordKey: "password"
+
+# -----------------------------------------------------------------------------
+# Object storage for checkpoints
+# Uses the SAME storage backend as Workspace (S3/Azure Blob/GCS)
+# Credentials via IRSA/Workload Identity — no static keys
+# -----------------------------------------------------------------------------
+checkpointStorage:
+  backend: "s3"         # s3 | azure_blob | gcs
+  bucket: "inaiera-${TENANT_ORG_ID}-flink-checkpoints"
+  region: "${TENANT_REGION}"
+  # For Azure: storageAccount, container
+  # For GCS: project, bucket
+
+# -----------------------------------------------------------------------------
+# Autoscaling
+#
+# TWO mechanisms work together:
+#
+# 1. Flink Reactive Mode (above): when jobs request more parallelism than
+#    available TaskManager slots, the Operator adds TaskManagers automatically.
+#    This handles compute-bound scaling.
+#
+# 2. KEDA ScaledObject: monitors Kafka consumer group lag and adds TaskManagers
+#    when lag exceeds the threshold. This handles the case where Flink is
+#    keeping up computationally but Kafka lag is growing (e.g. traffic burst).
+# -----------------------------------------------------------------------------
+autoscaling:
+  enabled: true
+  minTaskManagers: 2
+  maxTaskManagers: 20
+  # KEDA lag-based trigger
+  keda:
+    enabled: true
+    pollingInterval: 30          # seconds between lag checks
+    cooldownPeriod: 300          # seconds before scaling back in
+    kafkaTrigger:
+      consumerGroup: "flink-inaiera-consumer"
+      # Scale out when any topic lag exceeds this per TaskManager
+      lagThreshold: "50000"
+      # Kafka bootstrap servers for KEDA to monitor
+      # Same as kafka.bootstrapServers above
+      bootstrapServers: "kafka.dp-shared.svc.cluster.local:9092"
+  # Flink Job Autoscaler (Flink Kubernetes Operator built-in)
+  # Adjusts per-operator parallelism based on actual throughput metrics
+  jobAutoscaler:
+    enabled: true
+    stabilizationWindowSeconds: 300    # wait 5 min before scaling
+    scaleUpThreshold: 0.8              # scale up when CPU 80% busy
+    scaleDownThreshold: 0.2            # scale down when CPU only 20% busy
+
+# -----------------------------------------------------------------------------
+# Apache Polaris (Iceberg REST catalog)
+# Same instance used by dbt Runner — shared catalog, not a separate one
+# -----------------------------------------------------------------------------
+polaris:
+  restUri: "http://polaris.dp-shared.svc.cluster.local:8181/api/catalog"
+  credentialsSecretRef:
+    name: "polaris-credentials"        # same secret as dbt Runner
+    clientIdKey: "client-id"
+    clientSecretKey: "client-secret"
+  icebergWarehouse: "s3://inaiera-${TENANT_ORG_ID}-lakehouse/warehouse"
+
+# -----------------------------------------------------------------------------
+# Monitoring
+# -----------------------------------------------------------------------------
+monitoring:
+  prometheus:
+    enabled: true
+    port: 9249
+    scrapeInterval: "15s"
+  grafana:
+    enabled: false     # enable if Grafana is deployed in the cluster
+    dashboardConfigMap: "flink-dashboards"
+
+# -----------------------------------------------------------------------------
+# RBAC
+# -----------------------------------------------------------------------------
+serviceAccount:
+  create: true
+  name: "flink-service-account"
+  annotations:
+    # AWS: IRSA role for S3 checkpoint access
+    eks.amazonaws.com/role-arn: ""
+    # Azure: Workload Identity for Blob checkpoint access
+    azure.workload.identity/client-id: ""
+    # GCP: WIF for GCS checkpoint access
+    iam.gke.io/gcp-service-account: ""
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 9999
+  fsGroup: 9999
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
+  readOnlyRootFilesystem: false    # Flink needs to write tmp files

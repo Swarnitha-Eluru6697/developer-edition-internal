@@ -1,0 +1,49 @@
+# Render/lint fixture: every integration enabled with its required values.
+tenant:
+  orgId: "11111111-2222-3333-4444-555555555555"
+environment: staging
+integrations:
+  openlineage:
+    enabled: true
+    url: "http://catalog.dataplane.svc:8000/api/v1/lineage"
+    namespace: "inaiera.dbt"
+  datasets:
+    enabled: true
+    url: "http://datasets.dp-shared.svc.cluster.local:8083"
+  dataQuality:
+    enabled: true
+    serviceUrl: "http://dataquality.dp-shared.svc.cluster.local:8000"
+artifactStore:
+  s3:
+    bucket: "acme-dbt-artifacts"
+    region: "us-east-1"
+    credentialsSecretRef:
+      name: "dbtrunner-s3"
+runner:
+  image: "registry.inaiera.com/products/dbt-runner-job:0.1.0"
+  rbac:
+    secretGetResourceNames: ["dbtrunner-extra-config"]
+networkPolicy:
+  job:
+    git:
+      proxy:
+        url: "http://git-egress.platform.svc:3128"
+        to:
+          - namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: platform
+            podSelector:
+              matchLabels:
+                app: git-egress
+    warehouse:
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: dp-shared
+          podSelector:
+            matchLabels:
+              app: trino
+    artifactStore:
+      to:
+        - ipBlock:
+            cidr: 10.20.30.40/32

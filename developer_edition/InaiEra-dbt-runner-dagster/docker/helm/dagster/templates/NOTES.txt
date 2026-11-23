@@ -1,0 +1,7 @@
+Dagster is installed with ONE generic code location (job: dbt_scheduled_run) and NO sensors or schedules.
+
+It does not schedule dbt projects. Cron scheduling stays with the dbt Runner's built-in scheduler, so keep
+SCHEDULER_ENABLED=true there (runner chart: scheduler.enabled=true, the default). Turning it off before
+per-repo locations with project_schedule_sensor are deployed leaves scheduled projects with no scheduler.
+
+See DEPLOYMENT.md, "Who schedules dbt projects".

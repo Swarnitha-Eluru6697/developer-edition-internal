@@ -1,0 +1,69 @@
+# Prometheus JMX exporter rules for every Kafka Connect worker (all pools).
+#
+# Loaded by the javaagent baked into infra/kafka-connect.Dockerfile and served on :9404/metrics, where
+# infra/prometheus/prometheus.yml scrapes it. Every per-connector series carries `connector` and `task` labels — the
+# Monitoring page's per-connector view (app/services/connector_prometheus_metrics.py) selects on `connector`.
+#
+# The series names produced here are a contract with that module's METRICS / QUERIED_SERIES
+# (tests/test_connector_prometheus_metrics.py checks it). Rename one, rename the other.
+#
+# Kafka's JmxReporter quotes an MBean property value only if it contains , = : * ? " or a newline — DataConnect's
+# connector names never do, but the optional quotes are tolerated anyway.
+lowercaseOutputName: true
+lowercaseOutputLabelNames: true
+rules:
+  # ── Task / connector status (string attributes -> 1-valued gauge with a `status` label) ─────────────────────────
+  - pattern: 'kafka.connect<type=connector-task-metrics, connector="?([^",]+)"?, task="?([^",>]+)"?><>status: ([a-z-]+)'
+    name: kafka_connect_task_status
+    value: 1
+    type: GAUGE
+    labels:
+      connector: "$1"
+      task: "$2"
+      status: "$3"
+  - pattern: 'kafka.connect<type=connector-metrics, connector="?([^",>]+)"?><>status: ([a-z-]+)'
+    name: kafka_connect_connector_status
+    value: 1
+    type: GAUGE
+    labels:
+      connector: "$1"
+      status: "$2"
+
+  # ── Per-task numeric metrics ──────────────────────────────────────────────────────────────────────────────────
+  # connector-task-metrics -> kafka_connect_connector_task_<attr>  (running-ratio, offset-commit-avg-time-ms, ...)
+  # source-task-metrics    -> kafka_connect_source_task_<attr>     (source-record-poll-rate, poll-batch-avg-time-ms, ...)
+  # sink-task-metrics      -> kafka_connect_sink_task_<attr>       (sink-record-read-rate, put-batch-avg-time-ms, ...)
+  # task-error-metrics     -> kafka_connect_task_error_<attr>      (total-record-errors, deadletterqueue-produce-requests, ...)
+  - pattern: 'kafka.connect<type=(connector-task|source-task|sink-task)-metrics, connector="?([^",]+)"?, task="?([^",>]+)"?><>([a-z-]+): ([-0-9.Ee+]+|NaN)'
+    name: kafka_connect_$1_$4
+    type: GAUGE
+    labels:
+      connector: "$2"
+      task: "$3"
+  - pattern: 'kafka.connect<type=task-error-metrics, connector="?([^",]+)"?, task="?([^",>]+)"?><>([a-z-]+): ([-0-9.Ee+]+|NaN)'
+    name: kafka_connect_task_error_$3
+    type: GAUGE
+    labels:
+      connector: "$1"
+      task: "$2"
+
+  # ── Sink consumer lag: each sink task's consumer is client-id connector-consumer-<connector>-<task> ────────────
+  - pattern: 'kafka.consumer<type=consumer-fetch-manager-metrics, client-id=connector-consumer-(.+)-(\d+)><>records-lag-max: ([-0-9.Ee+]+|NaN)'
+    name: kafka_connect_sink_consumer_records_lag_max
+    type: GAUGE
+    labels:
+      connector: "$1"
+      task: "$2"
+
+  # ── Worker-level (per pool) ─────────────────────────────────────────────────────────────────────────────────
+  - pattern: 'kafka.connect<type=connect-worker-metrics, connector="?([^",>]+)"?><>([a-z-]+): ([-0-9.Ee+]+|NaN)'
+    name: kafka_connect_worker_connector_$2
+    type: GAUGE
+    labels:
+      connector: "$1"
+  - pattern: 'kafka.connect<type=connect-worker-metrics><>([a-z-]+): ([-0-9.Ee+]+|NaN)'
+    name: kafka_connect_worker_$1
+    type: GAUGE
+  - pattern: 'kafka.connect<type=connect-worker-rebalance-metrics><>([a-z-]+): ([-0-9.Ee+]+|NaN)'
+    name: kafka_connect_worker_rebalance_$1
+    type: GAUGE

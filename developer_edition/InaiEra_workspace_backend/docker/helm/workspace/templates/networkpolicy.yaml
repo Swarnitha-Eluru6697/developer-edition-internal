@@ -1,0 +1,79 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- /*
+WS-009: default-deny for every Workspace pod (API, worker, migrate Job),
+then explicit allows. See values.yaml `networkPolicy` for the rationale.
+*/}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "workspace.fullname" . }}
+  labels:
+    {{- include "workspace.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      inaiera.com/product: workspace
+      inaiera.com/org-id: {{ .Values.tenant.orgId | quote }}
+  policyTypes: ["Ingress", "Egress"]
+  ingress:
+    # Only the API pods serve HTTP, and only to the ingress controller / gateway namespace.
+    # (Even from there, the app refuses any request without the gateway secret — W-001.)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.networkPolicy.ingressControllerNamespace | quote }}
+      ports:
+        - port: 8080
+          protocol: TCP
+    {{- if .Values.sqlJobs.enabled }}
+    # SQL jobs on a connection: the dbt Runner's pods (API and run Jobs) call POST /api/v1/internal/jobs/sql. The app still refuses
+    # a request without a valid one-run token.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.sqlJobs.runnerNamespace | quote }}
+      ports:
+        - port: 8080
+          protocol: TCP
+    {{- end }}
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.networkPolicy.dnsNamespace | quote }}
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    {{- with .Values.networkPolicy.egressNamespaces }}
+    - to:
+        {{- range . }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ . | quote }}
+        {{- end }}
+    {{- end }}
+    {{- with .Values.networkPolicy.egressCIDRs }}
+    - to:
+        {{- range . }}
+        - ipBlock:
+            cidr: {{ . | quote }}
+        {{- end }}
+    {{- end }}
+    {{- if .Values.networkPolicy.allowPublicHttps }}
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+              - 127.0.0.0/8
+      ports:
+        - port: 443
+          protocol: TCP
+    {{- end }}
+{{- end }}

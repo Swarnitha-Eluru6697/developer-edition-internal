@@ -1,0 +1,19 @@
+# SUPERSEDED (DG-001) — DO NOT APPLY. The runner chart's configmap already sets SCHEDULER_ENABLED.
+#
+# Patch for docker/helm/dbtrunner/templates/configmap.yaml
+# Add SCHEDULER_ENABLED to the ConfigMap so it flows into the dbt Runner pod.
+#
+# --- a/docker/helm/dbtrunner/templates/configmap.yaml
+# +++ b/docker/helm/dbtrunner/templates/configmap.yaml
+# @@ -in the data: section, alongside SCHEDULER_POLL_INTERVAL_SECONDS @@
+
+# Add this line next to SCHEDULER_POLL_INTERVAL_SECONDS:
+#
+#   SCHEDULER_ENABLED: {{ .Values.scheduler.enabled | quote }}
+#
+# Example context (existing lines shown for position):
+#
+# data:
+#   SCHEDULER_POLL_INTERVAL_SECONDS: {{ .Values.scheduler.pollIntervalSeconds | quote }}
+#   SCHEDULER_ENABLED: {{ .Values.scheduler.enabled | quote }}     # <-- ADD
+#   RUNNER_MODE: {{ .Values.runner.mode | quote }}

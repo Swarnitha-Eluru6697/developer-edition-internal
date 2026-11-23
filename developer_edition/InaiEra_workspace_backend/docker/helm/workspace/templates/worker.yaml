@@ -1,0 +1,68 @@
+{{- /*
+Execution worker (WS-EXEC-005): runs SQL/notebook executions and the
+lifecycle reconciler outside the API pods (`python -m app.worker`). Any
+number of replicas is safe — each execution is claimed atomically.
+*/}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "workspace.fullname" . }}-worker
+  labels:
+    {{- include "workspace.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  selector:
+    matchLabels:
+      {{- include "workspace.workerSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "workspace.workerSelectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: worker
+        app.kubernetes.io/part-of: inaiera-data-plane
+        inaiera.com/product: workspace
+        inaiera.com/org-id: {{ .Values.tenant.orgId | quote }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      {{- include "workspace.podSpecSecurity" . | nindent 6 }}
+      containers:
+        - name: worker
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "-m", "app.worker"]
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "workspace.fullname" . }}-config
+          env:
+            - name: EXECUTION_WORKER_ENABLED
+              value: "true"
+            - name: EXECUTION_WORKER_CONCURRENCY
+              value: {{ .Values.worker.concurrency | quote }}
+            {{- include "workspace.secretEnv" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+          # The worker touches a heartbeat file while its loops are healthy.
+          livenessProbe:
+            exec:
+              command: ["python", "-m", "app.worker", "--check"]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command: ["python", "-m", "app.worker", "--check"]
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 10
+          volumeMounts:
+            {{- include "workspace.scratchVolumeMounts" . | nindent 12 }}
+      volumes:
+        {{- include "workspace.scratchVolumes" . | nindent 8 }}
+      # Long enough for in-flight runs to be told to stop; anything still
+      # running is recovered by another worker via its lapsed lease.
+      terminationGracePeriodSeconds: 60

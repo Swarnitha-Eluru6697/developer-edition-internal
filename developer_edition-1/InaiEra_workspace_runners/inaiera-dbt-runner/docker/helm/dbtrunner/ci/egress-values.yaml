@@ -1,0 +1,26 @@
+# Render/lint fixture for DBT-010: the named egress destinations a deployment must provide for Job pods (customer dbt code).
+# Real deployments replace these with their own git proxy / warehouse / artifact-store endpoints.
+networkPolicy:
+  job:
+    git:
+      proxy:
+        url: "http://git-egress.platform.svc:3128"
+        to:
+          - namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: platform
+            podSelector:
+              matchLabels:
+                app: git-egress
+    warehouse:
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: dp-shared
+          podSelector:
+            matchLabels:
+              app: trino
+    artifactStore:
+      to:
+        - ipBlock:
+            cidr: 10.20.30.40/32

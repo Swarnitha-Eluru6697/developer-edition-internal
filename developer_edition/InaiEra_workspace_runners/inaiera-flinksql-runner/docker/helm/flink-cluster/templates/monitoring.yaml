@@ -1,0 +1,21 @@
+{{- if .Values.monitoring.prometheus.enabled }}
+---
+# PodMonitor tells Prometheus Operator to scrape Flink TaskManagers and
+# SQL Gateway on port 9249 (Prometheus metrics reporter)
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ .Values.cluster.name }}-flink-metrics
+  namespace: {{ .Release.Namespace }}
+  labels:
+    inaiera.com/org-id: {{ .Values.tenant.orgId }}
+spec:
+  selector:
+    matchLabels:
+      inaiera.com/org-id: {{ .Values.tenant.orgId }}
+  podMetricsEndpoints:
+    - port: metrics
+      interval: {{ .Values.monitoring.prometheus.scrapeInterval }}
+      path: /
+      scheme: http
+{{- end }}

@@ -1,0 +1,337 @@
+# Values for the FlinkSQL Runner API service (FastAPI).
+# Deploy AFTER the flink-cluster chart is running.
+#
+# Values marked REQUIRED have no usable default: `helm template/install`
+# fails with a clear message until they are set.
+
+# RUN-FLINK-016: drives the app's ENVIRONMENT. Anything but "dev" turns off
+# fabricated Kafka catalog/preview data, makes preview fail closed without
+# UCS, refuses a placeholder org id, and disables the legacy static token.
+environment: "prod"   # dev | staging | prod
+
+tenant:
+  orgId: ""           # REQUIRED — this data plane's org id (never "REPLACE_ME")
+  cloud: "aws"
+  region: "us-east-1"
+
+image:
+  repository: registry.inaiera.com/products/flinksql-runner
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: inaiera-registry
+
+# The image bundles Flink for local single-container use; in Kubernetes the
+# runner talks to the flink-cluster chart, so only the API is started.
+command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+
+# Used when autoscaling.enabled is false.
+replicas: 2
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: null
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+topologySpread:
+  enabled: true
+  maxSkew: 1
+  # Spread across nodes (and zones when the cluster labels them).
+  topologyKeys: ["kubernetes.io/hostname", "topology.kubernetes.io/zone"]
+  whenUnsatisfiable: ScheduleAnyway
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: false
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 9999      # the image's `flink` user
+  runAsGroup: 9999
+  fsGroup: 9999
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 9999
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+  seccompProfile:
+    type: RuntimeDefault
+
+# Writable scratch for the read-only root filesystem.
+tmpVolume:
+  sizeLimit: 256Mi
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+# Alembic migrations run once per install/upgrade as a Helm hook Job,
+# before the new pods start (not in every pod's entrypoint).
+migrations:
+  enabled: true
+  backoffLimit: 3
+  activeDeadlineSeconds: 600
+
+# Flink cluster endpoints (must match flink-cluster chart output)
+flink:
+  gatewayUrl: "http://inaiera-flink-sql-gateway.dp-shared.svc.cluster.local:8083"   # REQUIRED
+  restUrl: "http://inaiera-flink-jobmanager-rest.dp-shared.svc.cluster.local:8081"  # REQUIRED
+
+# Kafka — same cluster and secret as Dataconnect
+kafka:
+  bootstrapServers: "kafka.dp-shared.svc.cluster.local:9092"   # REQUIRED
+  securityProtocol: "SASL_SSL"
+  saslMechanism: "SCRAM-SHA-512"
+  # Injected as KAFKA_SASL_USERNAME / KAFKA_SASL_PASSWORD (RUN-FLINK-016 —
+  # the old KAFKA_USERNAME/KAFKA_PASSWORD names never reached the app).
+  # REQUIRED when securityProtocol is SASL_*.
+  credentialsSecretRef:
+    name: "kafka-client-credentials"   # shared with Dataconnect
+    usernameKey: "username"
+    passwordKey: "password"
+  # Optional CA bundle (Secret) for SSL/SASL_SSL brokers and an https REST Proxy.
+  tls:
+    caSecretRef:
+      name: ""
+      key: "ca.crt"
+  # Confluent REST Proxy (topic catalog, preview, consumer lag). http or https.
+  # Empty = those features report "unavailable".
+  restProxy:
+    url: ""
+    verifySsl: true
+    credentialsSecretRef:      # optional; falls back to the Kafka SASL credentials
+      name: ""
+      usernameKey: "username"
+      passwordKey: "password"
+  # Org scoping for topic list/schema/preview (fnmatch; "{org_id}" substituted).
+  topicAllowedPatterns: []
+  schemaRegistry:
+    url: "http://schema-registry.dp-shared.svc.cluster.local:8081"
+    authEnabled: false
+    credentialsSecretRef:      # REQUIRED name when authEnabled
+      name: ""
+      usernameKey: "username"
+      passwordKey: "password"
+    tls:
+      caSecretRef:
+        name: ""
+        key: "ca.crt"
+
+# Database
+database:
+  host: "postgres.dp-shared.svc.cluster.local"   # REQUIRED
+  port: 5432
+  name: "flinksql"
+  user: "flinksql"
+  passwordSecretRef:
+    name: "flinksql-db-credentials"              # REQUIRED
+    key: "password"
+
+# Redis
+redis:
+  url: "redis://redis.dp-shared.svc.cluster.local:6379/3"
+
+# Polaris / Iceberg — same instance as dbt Runner. ADDRESS ONLY (FL-008): the runner writes the catalog's URI and warehouse into a
+# Gateway session and holds NO Polaris credential — the Flink runtime (chart flink-cluster) owns it. See CREDENTIAL_OWNERSHIP.md.
+polaris:
+  restUri: "http://polaris.dp-shared.svc.cluster.local:8181/api/catalog"
+  icebergWarehouse: "s3://inaiera-REPLACE_ORG-lakehouse/warehouse"
+
+# FL-001: the governed pg_lake connection. The runner registers it as a named JDBC catalog in every SQL Gateway session, so
+# jobs write `INSERT INTO pg_lake.<database>.<table> ...` and NEVER carry a JDBC URL, user or password in their SQL. The
+# credentials come from a Secret; the egress rule `networkPolicy.egress.postgres` (5432 to dp-shared by default) must reach
+# the pg_lake database (add a rule in `networkPolicy.egress` if it lives elsewhere).
+pgLake:
+  enabled: false
+  catalogName: "pg_lake"
+  jdbcBaseUrl: ""                 # REQUIRED when enabled, e.g. jdbc:postgresql://pg-lake.dp-shared.svc.cluster.local:5432
+  database: ""                    # REQUIRED when enabled: the Postgres database the catalog exposes
+  credentialsSecretRef:
+    name: ""                      # REQUIRED when enabled: Secret with the role the jobs write as (least privilege)
+    usernameKey: "username"
+    passwordKey: "password"
+
+# Checkpoint storage (same bucket as flink-cluster chart)
+checkpoint:
+  storageBackend: "s3"
+  storagePath: "s3://inaiera-REPLACE_ORG-flink-checkpoints"
+
+# Delegated Workspace tokens (X-001). Workspace calls this service with a short-lived JWT (HS256,
+# aud=flinksql-runner, ONE scope, sub=the end user, act=workspace) signed with this key instead of
+# forwarding the user's own credential. Its own key: it must differ from internalServiceToken.
+# Must hold the same value as Workspace's FLINKSQL_DELEGATION_JWT_SECRET.
+delegation:
+  secretRef:
+    name: "flinksql-delegation-jwt"   # REQUIRED
+    key: "secret"
+  allowedIssuers: ["workspace"]
+  maxLifetimeSeconds: 120
+  # X-001: the Data Quality service also acts on a user's behalf (it reads a job and creates/updates its quality job), with
+  # a key of ITS OWN (DQ's FLINKSQL_DELEGATION_JWT_SECRET). DQ is accepted as an issuer only while enabled, and only for
+  # the scopes below: it cannot deploy, stop or delete a job. A Secret of its own: it must differ from every other secret
+  # of this chart.
+  dq:
+    enabled: true
+    secretRef:
+      name: "flinksql-dq-delegation-jwt"
+      key: "secret"
+    allowedScopes: ["flink.jobs.read", "flink.jobs.edit"]
+
+# Service-to-service signing key (scoped JWTs on /api/v1/validate).
+internalServiceToken:
+  secretRef:
+    name: "flinksql-internal-token"   # REQUIRED
+    key: "token"
+  # RUN-FLINK-009: accept the raw static token itself as a bearer credential
+  # (only for callers not yet minting scoped JWTs). Off by default.
+  legacyStaticTokenEnabled: false
+
+# Auth (same JWKS as workspace and dbt runner)
+controlPlane:
+  jwksUrl: "https://www.app.inaiera.com/.well-known/jwks.json"   # REQUIRED
+  issuer: "https://www.app.inaiera.com"                          # REQUIRED
+  # THIS service's own audience (X-001). Never "workspace.inaiera": a token minted for Workspace must
+  # mean nothing here. External CI gets a service-principal token with aud=flinksql-runner + a scope.
+  audience: "flinksql-runner"
+  jwksCacheTtlSeconds: 3600
+
+# UCS — governance (Kafka preview policy) and quality-result delivery.
+ucs:
+  enabled: false
+  url: ""                      # REQUIRED when enabled
+  internalTokenSecretRef:      # REQUIRED when enabled
+    name: ""
+    key: ""
+
+# Quality consumer (RUN-FLINK-010). Explicitly enabled — never inferred.
+# Requires ucs.enabled. Topics/contract version come from the shared DQ
+# quality contract (app/contracts/quality_contract.json) and MUST equal the
+# DQ service's values.
+quality:
+  consumerEnabled: false
+  contractVersion: "2.0"
+  resultsTopic: "dq.quality.results.v2"
+  gateTopic: "dq.quality.gate.v2"
+  quarantineTopic: "dq.quality.quarantine.v2"
+  ucsQualityRunsEnabled: false
+  checkStaleAfterSeconds: 300
+  gateFailStopEnabled: true
+  consumerGroupId: "flinksql-runner-quality-consumer"
+  retryBackoffSeconds: 5
+  maxBackoffSeconds: 60
+  staleAfterSeconds: 120
+  batchSize: 50
+  flushIntervalSeconds: 10
+  # Outbox delivery to UCS (FL-004/FL-005): a worker claims rows for outboxLeaseSeconds (must outlast one
+  # delivery); a failed delivery is retried after retryBase x 2^(attempts-1) seconds, capped at retryMax, and the
+  # row is PARKED after maxAttempts failures (docs: QUALITY_OUTBOX.md).
+  outboxLeaseSeconds: 300
+  outboxRetryBaseSeconds: 30
+  outboxRetryMaxSeconds: 900
+  outboxMaxAttempts: 20
+
+lifecycle:
+  reconcilerPollIntervalSeconds: 20
+  # FL-011: the leader's reconciler is the only thing that starts a deploy/stop. It is woken at once by a Postgres NOTIFY; this poll
+  # of 'deploying'/'pausing' jobs is the safety net, and at most dispatchConcurrency deploys/stops run at the same time.
+  dispatchPollSeconds: 2
+  dispatchConcurrency: 8
+  deploymentLeaseTtlSeconds: 60
+
+# Metrics
+metrics:
+  pollIntervalSeconds: 15
+  retentionDays: 30
+
+# Every alert is windowed; these all reach the app's ConfigMap.
+alerts:
+  kafkaLagThreshold: 100000
+  kafkaLagWindowMinutes: 5
+  backpressureThreshold: 0.8
+  backpressureWindowMinutes: 5
+  checkpointFailureWindowMinutes: 30
+  restartThreshold: 3
+  restartWindowMinutes: 10
+  windowMinCoverage: 0.8
+
+readiness:
+  checkFlink: true
+  probeTimeoutSeconds: 2
+
+probes:
+  liveness:
+    httpGet:
+      path: /healthz
+      port: 8080
+    initialDelaySeconds: 15
+    periodSeconds: 15
+  readiness:
+    httpGet:
+      path: /readyz
+      port: 8080
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 8
+
+# NetworkPolicy: default-deny ingress/egress except what is listed.
+networkPolicy:
+  enabled: true
+  # Who may call the API (in addition to pods in this namespace).
+  ingressFrom:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: dp-shared
+  dns:
+    to:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: kube-system
+        podSelector:
+          matchLabels:
+            k8s-app: kube-dns
+  # One rule per dependency. `to` defaults to the dp-shared namespace.
+  egress:
+    flinkSqlGateway: {ports: [8083]}
+    flinkJobManager: {ports: [8081]}
+    kafka: {ports: [9092, 9093, 9094]}
+    kafkaRestProxy: {ports: [8082, 8443]}
+    schemaRegistry: {ports: [8081]}
+    polaris: {ports: [8181]}
+    ucs: {ports: [8000]}
+    postgres: {ports: [5432]}
+    redis: {ports: [6379]}
+    # Control-plane JWKS is external (https) — allowed on 443 to anywhere
+    # except link-local/metadata.
+    controlPlane:
+      ports: [443]
+      to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: ["169.254.0.0/16"]
+  defaultTo:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: dp-shared

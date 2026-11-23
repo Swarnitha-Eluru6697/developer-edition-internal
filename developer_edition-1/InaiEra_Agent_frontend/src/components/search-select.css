@@ -1,0 +1,52 @@
+/* SearchSelect — shared dropdown for UCS catalog, Agents and AI/ML Studio.
+   Copied verbatim into each app next to SearchSelect.tsx. Literal colours from
+   InaiEra_UI_Style_Spec.md so it looks identical whatever an app's tokens are. */
+.ss{position:relative;display:block;min-width:0;font-size:13px}
+.ss-trigger{display:flex;align-items:center;gap:8px;width:100%;min-width:0;margin:0;
+  padding:8px 11px;border:1px solid #E5E7EB;border-radius:8px;background:#fff;
+  font:inherit;font-size:13px;line-height:1.4;color:#1F2937;text-align:left;cursor:pointer;
+  transition:border-color .12s,box-shadow .12s}
+.ss-trigger:hover:not(:disabled){border-color:#D1D5DB}
+.ss-trigger[aria-expanded="true"],.ss-trigger:focus-visible{outline:none;border-color:#F97316;box-shadow:0 0 0 3px #FFF7ED}
+.ss-trigger:disabled{background:#F9FAFB;color:#9CA3AF;cursor:not-allowed}
+.ss-value{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ss-value.muted{color:#9CA3AF}
+.ss-chev{width:14px;height:14px;flex:none;fill:none;stroke:#6B7280;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .12s}
+.ss-chev.up{transform:rotate(180deg)}
+.ss-sm{font-size:12.5px}
+.ss-sm .ss-trigger{padding:5px 9px;font-size:12.5px;gap:6px}
+.ss-sm .ss-chev{width:12px;height:12px}
+
+.ss-chip{display:inline-flex;align-items:center;flex:none;padding:1px 8px;border:1px solid #E5E7EB;border-radius:20px;
+  background:#fff;color:#6B7280;font-size:11px;font-weight:600;line-height:1.5;white-space:nowrap}
+
+.ss-menu{z-index:2000;display:flex;flex-direction:column;background:#fff;border:1px solid #E5E7EB;border-radius:10px;
+  box-shadow:0 12px 40px rgba(16,32,58,.18);overflow:hidden;font-size:13px;color:#1F2937;text-align:left;
+  font-family:inherit}
+.ss-search{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid #F3F4F6}
+.ss-ico{width:14px;height:14px;flex:none;fill:none;stroke:#9CA3AF;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ss-search input{flex:1;min-width:0;margin:0;padding:6px 9px;border:1px solid #FFEDD5;border-radius:7px;background:#fff;
+  font:inherit;font-size:13px;color:#1F2937;outline:none;box-shadow:0 0 0 3px #FFF7ED}
+.ss-search input::placeholder{color:#9CA3AF}
+.ss-steppers{display:flex;flex-direction:column;gap:2px;flex:none}
+.ss-steppers button{display:flex;align-items:center;justify-content:center;width:22px;height:14px;padding:0;margin:0;
+  border:1px solid #E5E7EB;border-radius:4px;background:#fff;cursor:pointer}
+.ss-steppers button:hover:not(:disabled){background:#F9FAFB}
+.ss-steppers button:disabled{opacity:.35;cursor:default}
+.ss-steppers .ss-chev{width:11px;height:11px}
+.ss-list{max-height:248px;overflow-y:auto;overscroll-behavior:contain;padding:4px;outline:none}
+.ss-group{padding:8px 10px 4px;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#9CA3AF}
+.ss-option{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;cursor:pointer;color:#1F2937}
+.ss-option.active{background:#F9FAFB}
+.ss-option.sel{background:#FFF7ED;color:#C2410C;font-weight:600}
+.ss-option.sel.active{background:#FFEDD5}
+.ss-option.disabled{color:#9CA3AF;cursor:not-allowed;background:none}
+.ss-option-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ss-option-desc{display:block;margin-top:1px;font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:11px;font-weight:400;color:#9CA3AF;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ss-check{width:13px;height:13px;flex:none;fill:none;stroke:#C2410C;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ss-empty{padding:14px 12px;text-align:center;color:#9CA3AF;font-size:12.5px}
+.ss-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 11px;border-top:1px solid #E5E7EB;
+  background:#F9FAFB;font-size:11.5px;color:#6B7280}
+.ss-foot > span:first-child{white-space:nowrap}
+.ss-hint{min-width:0;overflow:hidden;text-overflow:ellipsis;font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:#9CA3AF;white-space:nowrap}

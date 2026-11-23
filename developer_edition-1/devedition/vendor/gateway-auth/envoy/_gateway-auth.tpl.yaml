@@ -1,0 +1,77 @@
+{{/*
+Reusable Envoy route fragment for any data-plane service's north-south
+trust boundary. Include this from a service's own route config rather
+than hand-writing jwt_authn + claim_to_headers + the gateway secret
+injection per service -- that hand-writing, done once per service, is
+what let ML Studio's original gap through and go unnoticed.
+
+Usage, from a service's own Helm template:
+
+    routes:
+      - match: { prefix: "/api/v1/" }
+        {{ include "gateway-auth.route" (dict
+             "cluster" "unified_catalog"
+             "gatewaySecretEnvVar" "ENVOY_INTERNAL_SECRET"
+             "root" $) | nindent 8 }}
+
+Every service gets the identical jwt_authn provider, the identical
+claim_to_headers mapping, and the identical gateway-secret injection --
+
+The route fragment does NOT strip client-supplied identity headers: that has to
+be a header_mutation filter placed BEFORE jwt_authn in the listener's filter
+chain (see envoy.dataplane.yaml), removing x-user-name, x-user-id, x-user-groups,
+x-user-roles, x-user-role, x-user-permissions, x-tenant-id and
+x-inaiera-gateway-secret.
+the only things that vary per service are the upstream cluster name and,
+if you've adopted the east-west secret pattern for calls INTO this
+service from other platform services, that secret's env var name.
+*/}}
+
+{{- define "gateway-auth.jwtProvider" -}}
+providers:
+  keycloak:
+    issuer: {{ .Values.gatewayAuth.oidcIssuer | quote }}
+    audiences: {{ .Values.gatewayAuth.oidcAudiences | toJson }}
+    remote_jwks:
+      http_uri:
+        uri: {{ .Values.gatewayAuth.jwksUri | quote }}
+        cluster: keycloak_jwks
+        timeout: 5s
+      cache_duration: 300s
+    forward: true
+    # Standardized claim -> header mapping. Do not vary this per service --
+    # every service downstream of Envoy relies on these exact header names
+    # via @inaiera/gateway-auth (Node) or inaiera-gateway-auth (Python).
+    claim_to_headers:
+      - header_name: "x-user-name"
+        claim_name: "preferred_username"
+      - header_name: "x-user-groups"
+        claim_name: "groups"
+      - header_name: "x-tenant-id"
+        claim_name: "tenant"
+      # Display/audit only -- applications never authorise on roles.
+      - header_name: "x-user-roles"
+        claim_name: "realm_access.roles"
+      # What the user may do (contract section 3): the ONLY input to authorisation.
+      - header_name: "x-user-permissions"
+        claim_name: "permissions"
+      - header_name: "x-user-id"
+        claim_name: "sub"
+  rules:
+    - match: { prefix: {{ .Values.gatewayAuth.pathPrefix | default "/api/" | quote }} }
+      requires: { provider_name: "keycloak" }
+{{- end -}}
+
+{{- define "gateway-auth.route" -}}
+route:
+  cluster: {{ .cluster }}
+request_headers_to_add:
+  - header:
+      key: "x-inaiera-gateway-secret"
+      # Substituted at Envoy startup from the environment -- never commit
+      # the literal value. append: false is not optional: without it a
+      # caller's own forged header could ride alongside the real one
+      # instead of being overwritten.
+      value: "%ENV({{ .gatewaySecretEnvVar | default "ENVOY_INTERNAL_SECRET" }})%"
+    append: false
+{{- end -}}

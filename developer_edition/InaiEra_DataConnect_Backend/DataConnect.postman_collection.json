@@ -1,0 +1,2335 @@
+{
+  "info": {
+    "name": "DataConnect \u2014 Connections & Templates (all types)",
+    "description": "Each connection type runs as a Create -> Test -> Discover trio. The Create request's test script saves the new id into a collection variable (conn_<type>_id), which the Test and Discover requests reuse. Run a whole folder top-to-bottom in the Collection Runner.\n\nAdapter required fields (connection_adapters.py):\n- Database adapter: connection_config needs hostname AND database; /discover reads tables.\n- API adapter: needs base_url or url (http/https); optional health_path does a real GET; /discover reads endpoints.\n- File adapter: needs bucket or path or container; /discover reads objects.\n\nGotcha: mongodb, elasticsearch, http, ftp are valid source_types but FALL BACK to the Database adapter, so their /test still requires hostname+database.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api/v1/dataconnect"
+    },
+    {
+      "key": "org_id",
+      "value": "org_1001"
+    }
+  ],
+  "item": [
+    {
+      "name": "Connections \u2014 DB family (postgres/mysql/sqlserver/oracle/jdbc)",
+      "item": [
+        {
+          "name": "Create \u2014 postgres",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create returned 201', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var id = pm.response.json().id;",
+                  "if (id) { pm.collectionVariables.set('conn_postgres_id', id); console.log('saved conn_postgres_id=' + id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"orders-postgres\",\n  \"source_type\": \"postgres\",\n  \"connection_config\": {\n    \"hostname\": \"pg.internal\",\n    \"port\": 5432,\n    \"database\": \"orders\",\n    \"username\": \"dataconnect\",\n    \"tables\": [\n      \"public.orders\",\n      \"public.customers\"\n    ]\n  },\n  \"secret_ref\": \"vault://dataconnect/org_1001/orders-pg\",\n  \"network_profile\": \"default\",\n  \"status\": \"draft\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Test \u2014 postgres",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('test status is ok', function () { pm.expect(pm.response.json().status).to.eql('ok'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_postgres_id}}/test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_postgres_id}}",
+                "test"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Discover \u2014 postgres",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('discover returns objects array', function () { pm.expect(pm.response.json().objects).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_postgres_id}}/discover",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_postgres_id}}",
+                "discover"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create \u2014 postgresql",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create returned 201', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var id = pm.response.json().id;",
+                  "if (id) { pm.collectionVariables.set('conn_postgresql_id', id); console.log('saved conn_postgresql_id=' + id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"orders-postgresql\",\n  \"source_type\": \"postgresql\",\n  \"connection_config\": {\n    \"hostname\": \"pg.internal\",\n    \"port\": 5432,\n    \"database\": \"orders\",\n    \"tables\": [\n      \"public.orders\"\n    ]\n  },\n  \"status\": \"draft\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Test \u2014 postgresql",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('test status is ok', function () { pm.expect(pm.response.json().status).to.eql('ok'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_postgresql_id}}/test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_postgresql_id}}",
+                "test"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Discover \u2014 postgresql",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('discover returns objects array', function () { pm.expect(pm.response.json().objects).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_postgresql_id}}/discover",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_postgresql_id}}",
+                "discover"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create \u2014 mysql",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create returned 201', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var id = pm.response.json().id;",
+                  "if (id) { pm.collectionVariables.set('conn_mysql_id', id); console.log('saved conn_mysql_id=' + id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"sales-mysql\",\n  \"source_type\": \"mysql\",\n  \"connection_config\": {\n    \"hostname\": \"mysql.internal\",\n    \"port\": 3306,\n    \"database\": \"sales\",\n    \"tables\": [\n      \"orders\",\n      \"line_items\"\n    ]\n  },\n  \"status\": \"draft\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Test \u2014 mysql",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('test status is ok', function () { pm.expect(pm.response.json().status).to.eql('ok'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_mysql_id}}/test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_mysql_id}}",
+                "test"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Discover \u2014 mysql",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('discover returns objects array', function () { pm.expect(pm.response.json().objects).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_mysql_id}}/discover",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_mysql_id}}",
+                "discover"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create \u2014 sqlserver",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create returned 201', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var id = pm.response.json().id;",
+                  "if (id) { pm.collectionVariables.set('conn_sqlserver_id', id); console.log('saved conn_sqlserver_id=' + id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"erp-sqlserver\",\n  \"source_type\": \"sqlserver\",\n  \"connection_config\": {\n    \"hostname\": \"mssql.internal\",\n    \"port\": 1433,\n    \"database\": \"ERP\",\n    \"tables\": [\n      \"dbo.Invoices\"\n    ]\n  },\n  \"status\": \"draft\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Test \u2014 sqlserver",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('test status is ok', function () { pm.expect(pm.response.json().status).to.eql('ok'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_sqlserver_id}}/test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_sqlserver_id}}",
+                "test"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Discover \u2014 sqlserver",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('discover returns objects array', function () { pm.expect(pm.response.json().objects).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_sqlserver_id}}/discover",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_sqlserver_id}}",
+                "discover"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create \u2014 oracle",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create returned 201', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var id = pm.response.json().id;",
+                  "if (id) { pm.collectionVariables.set('conn_oracle_id', id); console.log('saved conn_oracle_id=' + id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"fin-oracle\",\n  \"source_type\": \"oracle\",\n  \"connection_config\": {\n    \"hostname\": \"oracle.internal\",\n    \"port\": 1521,\n    \"database\": \"FINPDB\",\n    \"tables\": [\n      \"FIN.GL_ENTRIES\"\n    ]\n  },\n  \"status\": \"draft\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Test \u2014 oracle",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('test status is ok', function () { pm.expect(pm.response.json().status).to.eql('ok'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_oracle_id}}/test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_oracle_id}}",
+                "test"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Discover \u2014 oracle",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('discover returns objects array', function () { pm.expect(pm.response.json().objects).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_oracle_id}}/discover",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_oracle_id}}",
+                "discover"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create \u2014 jdbc",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create returned 201', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var id = pm.response.json().id;",
+                  "if (id) { pm.collectionVariables.set('conn_jdbc_id', id); console.log('saved conn_jdbc_id=' + id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"generic-jdbc\",\n  \"source_type\": \"jdbc\",\n  \"connection_config\": {\n    \"hostname\": \"jdbc-host.internal\",\n    \"port\": 5432,\n    \"database\": \"analytics\",\n    \"jdbc_url\": \"jdbc:postgresql://jdbc-host.internal:5432/analytics\",\n    \"tables\": [\n      \"events\"\n    ]\n  },\n  \"status\": \"draft\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Test \u2014 jdbc",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('test status is ok', function () { pm.expect(pm.response.json().status).to.eql('ok'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_jdbc_id}}/test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_jdbc_id}}",
+                "test"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Discover \u2014 jdbc",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('discover returns objects array', function () { pm.expect(pm.response.json().objects).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_jdbc_id}}/discover",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_jdbc_id}}",
+                "discover"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Connections \u2014 DB fallback (mongodb/elasticsearch/http/ftp)",
+      "item": [
+        {
+          "name": "Create \u2014 mongodb",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create returned 201', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var id = pm.response.json().id;",
+                  "if (id) { pm.collectionVariables.set('conn_mongodb_id', id); console.log('saved conn_mongodb_id=' + id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"catalog-mongo\",\n  \"source_type\": \"mongodb\",\n  \"connection_config\": {\n    \"hostname\": \"mongo.internal\",\n    \"port\": 27017,\n    \"database\": \"catalog\",\n    \"tables\": [\n      \"products\",\n      \"reviews\"\n    ]\n  },\n  \"status\": \"draft\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Test \u2014 mongodb",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('test status is ok', function () { pm.expect(pm.response.json().status).to.eql('ok'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_mongodb_id}}/test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_mongodb_id}}",
+                "test"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Discover \u2014 mongodb",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('discover returns objects array', function () { pm.expect(pm.response.json().objects).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_mongodb_id}}/discover",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_mongodb_id}}",
+                "discover"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create \u2014 elasticsearch",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create returned 201', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var id = pm.response.json().id;",
+                  "if (id) { pm.collectionVariables.set('conn_elasticsearch_id', id); console.log('saved conn_elasticsearch_id=' + id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"logs-elastic\",\n  \"source_type\": \"elasticsearch\",\n  \"connection_config\": {\n    \"hostname\": \"es.internal\",\n    \"port\": 9200,\n    \"database\": \"logs-2025\",\n    \"tables\": [\n      \"logs-2025.06\"\n    ]\n  },\n  \"status\": \"draft\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Test \u2014 elasticsearch",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('test status is ok', function () { pm.expect(pm.response.json().status).to.eql('ok'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_elasticsearch_id}}/test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_elasticsearch_id}}",
+                "test"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Discover \u2014 elasticsearch",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('discover returns objects array', function () { pm.expect(pm.response.json().objects).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_elasticsearch_id}}/discover",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_elasticsearch_id}}",
+                "discover"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create \u2014 http",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create returned 201', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var id = pm.response.json().id;",
+                  "if (id) { pm.collectionVariables.set('conn_http_id', id); console.log('saved conn_http_id=' + id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"legacy-http\",\n  \"source_type\": \"http\",\n  \"connection_config\": {\n    \"hostname\": \"legacy.internal\",\n    \"database\": \"feed\",\n    \"base_url\": \"http://legacy.internal/feed\"\n  },\n  \"status\": \"draft\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Test \u2014 http",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('test status is ok', function () { pm.expect(pm.response.json().status).to.eql('ok'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_http_id}}/test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_http_id}}",
+                "test"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Discover \u2014 http",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('discover returns objects array', function () { pm.expect(pm.response.json().objects).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_http_id}}/discover",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_http_id}}",
+                "discover"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create \u2014 ftp",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create returned 201', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var id = pm.response.json().id;",
+                  "if (id) { pm.collectionVariables.set('conn_ftp_id', id); console.log('saved conn_ftp_id=' + id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"drop-ftp\",\n  \"source_type\": \"ftp\",\n  \"connection_config\": {\n    \"hostname\": \"ftp.internal\",\n    \"port\": 21,\n    \"database\": \"incoming\",\n    \"path\": \"/incoming\"\n  },\n  \"status\": \"draft\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Test \u2014 ftp",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('test status is ok', function () { pm.expect(pm.response.json().status).to.eql('ok'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_ftp_id}}/test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_ftp_id}}",
+                "test"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Discover \u2014 ftp",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('discover returns objects array', function () { pm.expect(pm.response.json().objects).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_ftp_id}}/discover",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_ftp_id}}",
+                "discover"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Connections \u2014 API family (api/rest/webhook)",
+      "item": [
+        {
+          "name": "Create \u2014 api",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create returned 201', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var id = pm.response.json().id;",
+                  "if (id) { pm.collectionVariables.set('conn_api_id', id); console.log('saved conn_api_id=' + id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"salesforce-api\",\n  \"source_type\": \"api\",\n  \"connection_config\": {\n    \"base_url\": \"https://api.salesforce.com\",\n    \"endpoints\": [\n      \"/accounts\",\n      \"/contacts\"\n    ],\n    \"poll.interval.ms\": \"60000\"\n  },\n  \"secret_ref\": \"vault://dataconnect/org_1001/salesforce\",\n  \"status\": \"active\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Test \u2014 api",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('test status is ok', function () { pm.expect(pm.response.json().status).to.eql('ok'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_api_id}}/test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_api_id}}",
+                "test"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Discover \u2014 api",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('discover returns objects array', function () { pm.expect(pm.response.json().objects).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_api_id}}/discover",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_api_id}}",
+                "discover"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create \u2014 rest",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create returned 201', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var id = pm.response.json().id;",
+                  "if (id) { pm.collectionVariables.set('conn_rest_id', id); console.log('saved conn_rest_id=' + id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"billing-rest\",\n  \"source_type\": \"rest\",\n  \"connection_config\": {\n    \"base_url\": \"https://api.example.com\",\n    \"health_path\": \"/healthz\",\n    \"endpoints\": [\n      \"/invoices\",\n      \"/customers\"\n    ]\n  },\n  \"status\": \"active\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Test \u2014 rest",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('test status is ok', function () { pm.expect(pm.response.json().status).to.eql('ok'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_rest_id}}/test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_rest_id}}",
+                "test"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Discover \u2014 rest",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('discover returns objects array', function () { pm.expect(pm.response.json().objects).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_rest_id}}/discover",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_rest_id}}",
+                "discover"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create \u2014 webhook",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create returned 201', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var id = pm.response.json().id;",
+                  "if (id) { pm.collectionVariables.set('conn_webhook_id', id); console.log('saved conn_webhook_id=' + id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"events-webhook\",\n  \"source_type\": \"webhook\",\n  \"connection_config\": {\n    \"url\": \"https://hooks.example.com/ingest\",\n    \"endpoints\": [\n      \"order.created\",\n      \"order.updated\"\n    ]\n  },\n  \"status\": \"active\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Test \u2014 webhook",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('test status is ok', function () { pm.expect(pm.response.json().status).to.eql('ok'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_webhook_id}}/test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_webhook_id}}",
+                "test"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Discover \u2014 webhook",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('discover returns objects array', function () { pm.expect(pm.response.json().objects).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_webhook_id}}/discover",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_webhook_id}}",
+                "discover"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Connections \u2014 File family (s3/gcs/azure_blob/sftp/file)",
+      "item": [
+        {
+          "name": "Create \u2014 s3",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create returned 201', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var id = pm.response.json().id;",
+                  "if (id) { pm.collectionVariables.set('conn_s3_id', id); console.log('saved conn_s3_id=' + id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"lake-s3\",\n  \"source_type\": \"s3\",\n  \"connection_config\": {\n    \"bucket\": \"my-data-lake\",\n    \"prefix\": \"raw/orders/\",\n    \"region\": \"us-east-1\",\n    \"objects\": [\n      \"orders-2024.parquet\",\n      \"orders-2025.parquet\"\n    ]\n  },\n  \"secret_ref\": \"vault://dataconnect/org_1001/s3\",\n  \"status\": \"draft\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Test \u2014 s3",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('test status is ok', function () { pm.expect(pm.response.json().status).to.eql('ok'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_s3_id}}/test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_s3_id}}",
+                "test"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Discover \u2014 s3",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('discover returns objects array', function () { pm.expect(pm.response.json().objects).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_s3_id}}/discover",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_s3_id}}",
+                "discover"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create \u2014 gcs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create returned 201', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var id = pm.response.json().id;",
+                  "if (id) { pm.collectionVariables.set('conn_gcs_id', id); console.log('saved conn_gcs_id=' + id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"lake-gcs\",\n  \"source_type\": \"gcs\",\n  \"connection_config\": {\n    \"bucket\": \"gcs-data-lake\",\n    \"prefix\": \"raw/\",\n    \"objects\": [\n      \"events.json\"\n    ]\n  },\n  \"status\": \"draft\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Test \u2014 gcs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('test status is ok', function () { pm.expect(pm.response.json().status).to.eql('ok'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_gcs_id}}/test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_gcs_id}}",
+                "test"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Discover \u2014 gcs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('discover returns objects array', function () { pm.expect(pm.response.json().objects).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_gcs_id}}/discover",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_gcs_id}}",
+                "discover"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create \u2014 azure_blob",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create returned 201', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var id = pm.response.json().id;",
+                  "if (id) { pm.collectionVariables.set('conn_azure_blob_id', id); console.log('saved conn_azure_blob_id=' + id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"lake-azure\",\n  \"source_type\": \"azure_blob\",\n  \"connection_config\": {\n    \"container\": \"datalake\",\n    \"account\": \"mystorage\",\n    \"objects\": [\n      \"orders/part-0001.csv\"\n    ]\n  },\n  \"status\": \"draft\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Test \u2014 azure_blob",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('test status is ok', function () { pm.expect(pm.response.json().status).to.eql('ok'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_azure_blob_id}}/test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_azure_blob_id}}",
+                "test"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Discover \u2014 azure_blob",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('discover returns objects array', function () { pm.expect(pm.response.json().objects).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_azure_blob_id}}/discover",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_azure_blob_id}}",
+                "discover"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create \u2014 sftp",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create returned 201', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var id = pm.response.json().id;",
+                  "if (id) { pm.collectionVariables.set('conn_sftp_id', id); console.log('saved conn_sftp_id=' + id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"partner-sftp\",\n  \"source_type\": \"sftp\",\n  \"connection_config\": {\n    \"hostname\": \"sftp.partner.com\",\n    \"port\": 22,\n    \"path\": \"/exports/orders\",\n    \"objects\": [\n      \"orders.csv\"\n    ]\n  },\n  \"secret_ref\": \"vault://dataconnect/org_1001/sftp\",\n  \"status\": \"draft\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Test \u2014 sftp",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('test status is ok', function () { pm.expect(pm.response.json().status).to.eql('ok'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_sftp_id}}/test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_sftp_id}}",
+                "test"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Discover \u2014 sftp",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('discover returns objects array', function () { pm.expect(pm.response.json().objects).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_sftp_id}}/discover",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_sftp_id}}",
+                "discover"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create \u2014 file",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create returned 201', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var id = pm.response.json().id;",
+                  "if (id) { pm.collectionVariables.set('conn_file_id', id); console.log('saved conn_file_id=' + id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"local-file\",\n  \"source_type\": \"file\",\n  \"connection_config\": {\n    \"path\": \"/data/dropzone\",\n    \"format\": \"csv\",\n    \"objects\": [\n      \"orders.csv\",\n      \"customers.csv\"\n    ]\n  },\n  \"status\": \"draft\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Test \u2014 file",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('test status is ok', function () { pm.expect(pm.response.json().status).to.eql('ok'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_file_id}}/test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_file_id}}",
+                "test"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Discover \u2014 file",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('discover returns objects array', function () { pm.expect(pm.response.json().objects).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Org-Id",
+                "value": "{{org_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections/{{conn_file_id}}/discover",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connections",
+                "{{conn_file_id}}",
+                "discover"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Connector Templates (representative per class)",
+      "item": [
+        {
+          "name": "Template \u2014 Debezium PostgreSQL CDC",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var id = pm.response.json().id;",
+                  "if (id) { pm.collectionVariables.set('template_id', id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connector-templates",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connector-templates"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Debezium PostgreSQL CDC\",\n  \"connector_type\": \"source\",\n  \"category\": \"database_cdc\",\n  \"connector_class\": \"io.debezium.connector.postgresql.PostgresConnector\",\n  \"runtime_pool_type\": \"connect-cdc-pool\",\n  \"config_schema\": {\n    \"database.hostname\": {\n      \"type\": \"string\",\n      \"required\": true\n    }\n  },\n  \"default_config\": {\n    \"plugin.name\": \"pgoutput\",\n    \"tasks.max\": \"1\",\n    \"snapshot.mode\": \"initial\"\n  },\n  \"default_transforms\": [],\n  \"version\": \"v1\",\n  \"is_active\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Template \u2014 Debezium MySQL CDC",
+          "event": [],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connector-templates",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connector-templates"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Debezium MySQL CDC\",\n  \"connector_type\": \"source\",\n  \"category\": \"database_cdc\",\n  \"connector_class\": \"io.debezium.connector.mysql.MySqlConnector\",\n  \"runtime_pool_type\": \"connect-cdc-pool\",\n  \"config_schema\": {\n    \"database.hostname\": {\n      \"type\": \"string\",\n      \"required\": true\n    }\n  },\n  \"default_config\": {\n    \"tasks.max\": \"1\",\n    \"snapshot.mode\": \"initial\",\n    \"include.schema.changes\": \"true\"\n  },\n  \"default_transforms\": [],\n  \"version\": \"v1\",\n  \"is_active\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Template \u2014 Debezium MongoDB CDC",
+          "event": [],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connector-templates",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connector-templates"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Debezium MongoDB CDC\",\n  \"connector_type\": \"source\",\n  \"category\": \"database_cdc\",\n  \"connector_class\": \"io.debezium.connector.mongodb.MongoDbConnector\",\n  \"runtime_pool_type\": \"connect-cdc-pool\",\n  \"config_schema\": {\n    \"mongodb.connection.string\": {\n      \"type\": \"string\",\n      \"required\": true\n    }\n  },\n  \"default_config\": {\n    \"tasks.max\": \"1\",\n    \"capture.mode\": \"change_streams_update_full\"\n  },\n  \"default_transforms\": [],\n  \"version\": \"v1\",\n  \"is_active\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Template \u2014 JDBC Source",
+          "event": [],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connector-templates",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connector-templates"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"JDBC Source\",\n  \"connector_type\": \"source\",\n  \"category\": \"database_jdbc\",\n  \"connector_class\": \"io.confluent.connect.jdbc.JdbcSourceConnector\",\n  \"runtime_pool_type\": \"connect-jdbc-pool\",\n  \"config_schema\": {\n    \"connection.url\": {\n      \"type\": \"string\",\n      \"required\": true\n    }\n  },\n  \"default_config\": {\n    \"mode\": \"incrementing\",\n    \"incrementing.column.name\": \"id\",\n    \"tasks.max\": \"1\"\n  },\n  \"default_transforms\": [],\n  \"version\": \"v1\",\n  \"is_active\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Template \u2014 S3 Sink",
+          "event": [],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connector-templates",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connector-templates"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"S3 Sink\",\n  \"connector_type\": \"sink\",\n  \"category\": \"object_store\",\n  \"connector_class\": \"io.confluent.connect.s3.S3SinkConnector\",\n  \"runtime_pool_type\": \"connect-file-pool\",\n  \"config_schema\": {\n    \"s3.bucket.name\": {\n      \"type\": \"string\",\n      \"required\": true\n    }\n  },\n  \"default_config\": {\n    \"format.class\": \"io.confluent.connect.s3.format.parquet.ParquetFormat\",\n    \"flush.size\": \"1000\",\n    \"tasks.max\": \"1\"\n  },\n  \"default_transforms\": [],\n  \"version\": \"v1\",\n  \"is_active\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Template \u2014 REST API Source",
+          "event": [],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connector-templates",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connector-templates"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"REST API Source\",\n  \"connector_type\": \"source\",\n  \"category\": \"api\",\n  \"connector_class\": \"com.github.castorm.kafka.connect.http.HttpSourceConnector\",\n  \"runtime_pool_type\": \"connect-api-pool\",\n  \"config_schema\": {\n    \"http.request.url\": {\n      \"type\": \"string\",\n      \"required\": true\n    }\n  },\n  \"default_config\": {\n    \"tasks.max\": \"1\",\n    \"http.timer.interval.millis\": \"60000\"\n  },\n  \"default_transforms\": [],\n  \"version\": \"v1\",\n  \"is_active\": true\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

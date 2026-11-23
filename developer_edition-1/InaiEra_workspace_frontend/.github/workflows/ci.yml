@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    name: Install, typecheck, lint, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Matches node:20-alpine used by docker-compose.yml for this service.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Clean install
+        run: npm ci
+
+      # WS-FE-014: src/api/generated/workspace-schema.ts must be exactly what
+      # `npm run codegen:api` produces from the committed OpenAPI snapshot
+      # (openapi/workspace.v0.1.0.json). A hand-edit of the generated file, or a
+      # snapshot update without regenerating, fails here.
+      - name: API contract drift (generated types match the snapshot)
+        run: |
+          npm run codegen:api
+          git diff --exit-code -- src/api/generated/workspace-schema.ts \
+            || { echo "::error file=src/api/generated/workspace-schema.ts::Generated API types are stale — run 'npm run codegen:api' and commit the result (see openapi/README.md)."; exit 1; }
+
+      - name: Typecheck (src, tests, vite configs)
+        run: npm run typecheck
+
+      - name: Lint (src + tests)
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build

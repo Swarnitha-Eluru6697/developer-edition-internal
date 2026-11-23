@@ -1,0 +1,6 @@
+apiVersion: v2
+name: inaiera-data-quality
+description: InAiEra Data Quality — cross-stack rule registry and rendering engine
+type: application
+version: 0.2.0
+appVersion: "0.2.0"

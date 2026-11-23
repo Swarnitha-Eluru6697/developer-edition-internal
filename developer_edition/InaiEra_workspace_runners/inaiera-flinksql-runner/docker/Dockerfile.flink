@@ -1,0 +1,42 @@
+# ============================================================
+# InAiEra Flink image
+# Apache Flink 1.19.1 + all connectors required by the platform
+#
+# Build:  docker build -f docker/Dockerfile.flink -t inaiera-flink:1.19.1 .
+# Push:   docker push registry.inaiera.com/products/flink:1.19.1
+# ============================================================
+FROM apache/flink:1.19.1-scala_2.12-java17
+
+ARG KAFKA_CONNECTOR_VERSION=3.2.0-1.19
+ARG ICEBERG_VERSION=1.6.1
+ARG JDBC_CONNECTOR_VERSION=3.2.0-1.19
+ARG FLINK_VERSION=1.19.1
+
+USER root
+
+# Kafka source connector
+RUN curl -fsSL \
+  "https://repo1.maven.org/maven2/org/apache/flink/flink-connector-kafka/${KAFKA_CONNECTOR_VERSION}/flink-connector-kafka-${KAFKA_CONNECTOR_VERSION}.jar" \
+  -o /opt/flink/lib/flink-connector-kafka.jar
+
+# Iceberg Flink runtime — Polaris REST catalog support
+RUN curl -fsSL \
+  "https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-flink-runtime-1.19/${ICEBERG_VERSION}/iceberg-flink-runtime-1.19-${ICEBERG_VERSION}.jar" \
+  -o /opt/flink/lib/iceberg-flink-runtime.jar
+
+# Avro format with Confluent Schema Registry
+RUN curl -fsSL \
+  "https://repo1.maven.org/maven2/org/apache/flink/flink-sql-avro-confluent-registry/${FLINK_VERSION}/flink-sql-avro-confluent-registry-${FLINK_VERSION}.jar" \
+  -o /opt/flink/lib/flink-sql-avro-confluent-registry.jar
+
+# JDBC connector + PostgreSQL driver (pg_lake sink)
+RUN curl -fsSL \
+  "https://repo1.maven.org/maven2/org/apache/flink/flink-connector-jdbc/${JDBC_CONNECTOR_VERSION}/flink-connector-jdbc-${JDBC_CONNECTOR_VERSION}.jar" \
+  -o /opt/flink/lib/flink-connector-jdbc.jar && \
+  curl -fsSL "https://jdbc.postgresql.org/download/postgresql-42.7.3.jar" \
+  -o /opt/flink/lib/postgresql-jdbc.jar
+
+# S3 filesystem plugin — enables s3:// for checkpoints and Iceberg warehouse
+ENV ENABLE_BUILT_IN_PLUGINS=flink-s3-fs-hadoop-${FLINK_VERSION}.jar
+
+USER flink

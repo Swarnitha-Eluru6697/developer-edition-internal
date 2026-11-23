@@ -1,0 +1,179 @@
+{{- include "inaiera-flinksql-runner.validate" . }}
+{{- $kafkaCa := .Values.kafka.tls.caSecretRef.name }}
+{{- $srCa := .Values.kafka.schemaRegistry.tls.caSecretRef.name }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "inaiera-flinksql-runner.fullname" . }}
+  labels:
+    {{- include "inaiera-flinksql-runner.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "inaiera-flinksql-runner.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "inaiera-flinksql-runner.labels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "inaiera-flinksql-runner.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.topologySpread.enabled }}
+      topologySpreadConstraints:
+        {{- range .Values.topologySpread.topologyKeys }}
+        - maxSkew: {{ $.Values.topologySpread.maxSkew }}
+          topologyKey: {{ . }}
+          whenUnsatisfiable: {{ $.Values.topologySpread.whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              {{- include "inaiera-flinksql-runner.selectorLabels" $ | nindent 14 }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: flinksql-runner
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 8080
+          livenessProbe:
+            {{- toYaml .Values.probes.liveness | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.probes.readiness | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "inaiera-flinksql-runner.fullname" . }}-config
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: INSTANCE_ID
+              value: "$(POD_NAME)"
+            {{- include "inaiera-flinksql-runner.databaseEnv" . | nindent 12 }}
+            {{- if .Values.kafka.credentialsSecretRef.name }}
+            - name: KAFKA_SASL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.kafka.credentialsSecretRef.name }}
+                  key: {{ .Values.kafka.credentialsSecretRef.usernameKey }}
+            - name: KAFKA_SASL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.kafka.credentialsSecretRef.name }}
+                  key: {{ .Values.kafka.credentialsSecretRef.passwordKey }}
+            {{- end }}
+            {{- if .Values.kafka.restProxy.credentialsSecretRef.name }}
+            - name: KAFKA_REST_PROXY_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.kafka.restProxy.credentialsSecretRef.name }}
+                  key: {{ .Values.kafka.restProxy.credentialsSecretRef.usernameKey }}
+            - name: KAFKA_REST_PROXY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.kafka.restProxy.credentialsSecretRef.name }}
+                  key: {{ .Values.kafka.restProxy.credentialsSecretRef.passwordKey }}
+            {{- end }}
+            {{- if .Values.kafka.schemaRegistry.authEnabled }}
+            - name: SCHEMA_REGISTRY_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.kafka.schemaRegistry.credentialsSecretRef.name }}
+                  key: {{ .Values.kafka.schemaRegistry.credentialsSecretRef.usernameKey }}
+            - name: SCHEMA_REGISTRY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.kafka.schemaRegistry.credentialsSecretRef.name }}
+                  key: {{ .Values.kafka.schemaRegistry.credentialsSecretRef.passwordKey }}
+            {{- end }}
+            {{- /* FL-008: NO Polaris credentials here. The Flink runtime (SQL Gateway / TaskManagers, chart flink-cluster) owns the catalog
+                 credential; the runner only writes the catalog's URI and warehouse into a session. See CREDENTIAL_OWNERSHIP.md. */}}
+            {{- if .Values.pgLake.enabled }}
+            - name: PG_LAKE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.pgLake.credentialsSecretRef.name }}
+                  key: {{ .Values.pgLake.credentialsSecretRef.usernameKey }}
+            - name: PG_LAKE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.pgLake.credentialsSecretRef.name }}
+                  key: {{ .Values.pgLake.credentialsSecretRef.passwordKey }}
+            {{- end }}
+            - name: INTERNAL_SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.internalServiceToken.secretRef.name }}
+                  key: {{ .Values.internalServiceToken.secretRef.key }}
+            - name: DELEGATION_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.delegation.secretRef.name }}
+                  key: {{ .Values.delegation.secretRef.key }}
+            {{- if .Values.delegation.dq.enabled }}
+            - name: DQ_DELEGATION_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.delegation.dq.secretRef.name }}
+                  key: {{ .Values.delegation.dq.secretRef.key }}
+            {{- end }}
+            {{- if .Values.ucs.enabled }}
+            - name: UCS_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.ucs.internalTokenSecretRef.name }}
+                  key: {{ .Values.ucs.internalTokenSecretRef.key }}
+            {{- end }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- if $kafkaCa }}
+            - name: kafka-ca
+              mountPath: /etc/inaiera/tls/kafka
+              readOnly: true
+            {{- end }}
+            {{- if $srCa }}
+            - name: schema-registry-ca
+              mountPath: /etc/inaiera/tls/schema-registry
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: {{ .Values.tmpVolume.sizeLimit }}
+        {{- if $kafkaCa }}
+        - name: kafka-ca
+          secret:
+            secretName: {{ $kafkaCa }}
+            items:
+              - key: {{ .Values.kafka.tls.caSecretRef.key }}
+                path: ca.crt
+        {{- end }}
+        {{- if $srCa }}
+        - name: schema-registry-ca
+          secret:
+            secretName: {{ $srCa }}
+            items:
+              - key: {{ .Values.kafka.schemaRegistry.tls.caSecretRef.key }}
+                path: ca.crt
+        {{- end }}

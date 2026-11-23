@@ -1,0 +1,141 @@
+{{/*
+FlinkDeployment custom resource — consumed by the Flink Kubernetes Operator.
+This is the PRIMARY object that defines the entire Flink session cluster:
+  - JobManager (HA, 2 replicas)
+  - TaskManagers (Reactive mode — count adjusts automatically)
+  - Flink configuration (checkpointing, state backend, Iceberg catalog)
+  - Pod templates with Kafka and storage credentials injected as env vars
+
+The Flink Kubernetes Operator (installed as a subchart) watches this CRD and
+manages the actual Pods, Services, and ConfigMaps for the cluster.
+*/}}
+apiVersion: flink.apache.org/v1beta1
+kind: FlinkDeployment
+metadata:
+  name: {{ .Values.cluster.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.cluster.name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    inaiera.com/org-id: {{ .Values.tenant.orgId }}
+    inaiera.com/component: flink-cluster
+spec:
+  image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+  imagePullPolicy: {{ .Values.image.pullPolicy }}
+  imagePullSecrets:
+    {{- toYaml .Values.imagePullSecrets | nindent 4 }}
+  serviceAccount: {{ .Values.serviceAccount.name }}
+
+  # Session cluster: multiple jobs share one cluster
+  # Application mode would require a separate cluster per job
+  flinkVersion: v1_19
+  mode: standalone                    # standalone = session cluster
+
+  flinkConfiguration:
+    {{- range $k, $v := .Values.flinkConfiguration }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    # High-availability configuration (Kubernetes leader election)
+    {{- if .Values.jobManager.ha.enabled }}
+    high-availability: kubernetes
+    high-availability.storageDir: {{ .Values.jobManager.ha.storageDir | quote }}
+    kubernetes.cluster-id: {{ .Values.cluster.name }}-ha
+    {{- end }}
+    # Checkpoint storage path
+    state.checkpoints.dir: "s3://{{ .Values.checkpointStorage.bucket }}/checkpoints"
+    state.savepoints.dir: "s3://{{ .Values.checkpointStorage.bucket }}/savepoints"
+    # HA state dir
+    high-availability.storageDir: "s3://{{ .Values.checkpointStorage.bucket }}/ha"
+    # Polaris catalog
+    table.catalog.inaiera.uri: {{ .Values.polaris.restUri | quote }}
+    table.catalog.inaiera.warehouse: {{ .Values.polaris.icebergWarehouse | quote }}
+
+  # ----- JobManager -----
+  jobManager:
+    replicas: {{ .Values.jobManager.replicas }}
+    resource:
+      memory: {{ .Values.jobManager.resources.requests.memory | quote }}
+      cpu: {{ .Values.jobManager.resources.requests.cpu | quote }}
+    podTemplate:
+      spec:
+        containers:
+          - name: flink-main-container
+            resources:
+              requests:
+                {{- toYaml .Values.jobManager.resources.requests | nindent 16 }}
+              limits:
+                {{- toYaml .Values.jobManager.resources.limits | nindent 16 }}
+            env:
+              # Polaris / Iceberg credentials
+              - name: POLARIS_CLIENT_ID
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.polaris.credentialsSecretRef.name }}
+                    key: {{ .Values.polaris.credentialsSecretRef.clientIdKey }}
+              - name: POLARIS_CLIENT_SECRET
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.polaris.credentialsSecretRef.name }}
+                    key: {{ .Values.polaris.credentialsSecretRef.clientSecretKey }}
+              # S3 region for checkpoint storage (IRSA handles credentials)
+              - name: AWS_REGION
+                value: {{ .Values.tenant.region | quote }}
+
+  # ----- TaskManager -----
+  taskManager:
+    replicas: {{ .Values.taskManager.replicas }}   # initial; Reactive mode adjusts
+    resource:
+      memory: {{ .Values.taskManager.resources.requests.memory | quote }}
+      cpu: {{ .Values.taskManager.resources.requests.cpu | quote }}
+    podTemplate:
+      spec:
+        containers:
+          - name: flink-main-container
+            resources:
+              requests:
+                {{- toYaml .Values.taskManager.resources.requests | nindent 16 }}
+              limits:
+                {{- toYaml .Values.taskManager.resources.limits | nindent 16 }}
+            env:
+              # ---------------------------------------------------------------
+              # Kafka credentials — SAME secret as Dataconnect.
+              # Both services connect to the SAME Kafka cluster.
+              # The secret is provisioned once during data-plane setup and
+              # referenced by Dataconnect, FlinkSQL Runner, and this cluster.
+              # ---------------------------------------------------------------
+              - name: KAFKA_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.kafka.saslCredentialsSecretRef.name }}
+                    key: {{ .Values.kafka.saslCredentialsSecretRef.usernameKey }}
+              - name: KAFKA_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.kafka.saslCredentialsSecretRef.name }}
+                    key: {{ .Values.kafka.saslCredentialsSecretRef.passwordKey }}
+              # Schema Registry credentials (if auth enabled)
+              {{- if .Values.kafka.schemaRegistry.authEnabled }}
+              - name: SCHEMA_REGISTRY_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.kafka.schemaRegistry.credentialsSecretRef.name }}
+                    key: {{ .Values.kafka.schemaRegistry.credentialsSecretRef.usernameKey }}
+              - name: SCHEMA_REGISTRY_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.kafka.schemaRegistry.credentialsSecretRef.name }}
+                    key: {{ .Values.kafka.schemaRegistry.credentialsSecretRef.passwordKey }}
+              {{- end }}
+              # Polaris credentials
+              - name: POLARIS_CLIENT_ID
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.polaris.credentialsSecretRef.name }}
+                    key: {{ .Values.polaris.credentialsSecretRef.clientIdKey }}
+              - name: POLARIS_CLIENT_SECRET
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.polaris.credentialsSecretRef.name }}
+                    key: {{ .Values.polaris.credentialsSecretRef.clientSecretKey }}
+              - name: AWS_REGION
+                value: {{ .Values.tenant.region | quote }}
