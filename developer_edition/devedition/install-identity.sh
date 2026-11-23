@@ -2,7 +2,10 @@
 # Developer Edition: writes this installation's identity into .env (run once by install.sh;
 # safe to run again: existing values are kept).
 #
-#   DE_INSTALL_ID        random UUID for this installation (Plan of Execution: download_events.install_id)
+#   DE_INSTALL_ID        UUID for this installation (Plan of Execution: download_events.install_id). Derived from
+#                        the machine fingerprint, so the Data and the Agent & Model editions on one machine are
+#                        one installation for the Registration service (one active install per account); random
+#                        when the machine ID cannot be read.
 #   DE_FINGERPRINT_HASH  SHA-256 of hostname + machine ID. Only the hash leaves the machine; the
 #                        license token is bound to it, so a copied install folder fails check-in.
 #   DE_OS                OS and CPU, e.g. "macOS arm64", reported at sign-in and check-in
@@ -44,7 +47,16 @@ os_name() {
 if ! has DE_INSTALL_ID; then
   printf '\n# This installation (devedition/install-identity.sh). Do not copy to another machine.\n' >> "$ENV_FILE"
 fi
-put DE_INSTALL_ID "$(uuid)"
-put DE_FINGERPRINT_HASH "$(printf '%s:%s' "$(hostname)" "$(machine_id)" | sha256)"
+FP=$(printf '%s:%s' "$(hostname)" "$(machine_id)" | sha256)
+install_uuid() {
+  if [ -n "$(machine_id)" ]; then
+    printf 'inaiera-developer-edition:%s' "$FP" | sha256 \
+      | sed -E 's/^(.{8})(.{4}).(.{3}).(.{3})(.{12}).*/\1-\2-5\3-8\4-\5/'
+  else
+    uuid
+  fi
+}
+put DE_INSTALL_ID "$(install_uuid)"
+put DE_FINGERPRINT_HASH "$FP"
 put DE_OS "$(os_name)"
 echo "Install identity is in $ENV_FILE"

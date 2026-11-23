@@ -1,11 +1,11 @@
 #!/bin/sh
 # Sourced by the nginx image before it renders the templates: reads the bearer the
-# dev JWKS stub minted (shared volume) so /dq-api calls from UCS reach Data Quality.
+# dev JWKS stub minted (shared volume) so Workspace's /api/v1/dq calls reach Data Quality.
 DQ_BEARER=""
 if [ -s /jwks/token.txt ]; then
   DQ_BEARER="$(tr -d '\n\r' < /jwks/token.txt)"
   echo "$0: Data Quality bearer loaded"
 else
-  echo "$0: /jwks/token.txt missing; UCS quality-rule calls to Data Quality will get 401"
+  echo "$0: /jwks/token.txt missing; Workspace Data Quality calls will get 401"
 fi
 export DQ_BEARER

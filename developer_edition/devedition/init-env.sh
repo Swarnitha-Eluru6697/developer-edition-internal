@@ -8,6 +8,8 @@
 #
 #   devedition/init-env.sh            # then: docker compose up -d --build
 #
+# The edition (Data, Agent & Model, or both) is not set here: the user picks it when creating their account.
+#
 # Usage: devedition/init-env.sh [path/to/.env]   (the .env.example next to it is the template)
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -28,7 +30,7 @@ fi
 secret_for() {
   case "$1" in
     DE_POSTGRES_PASSWORD|DE_DB_PASSWORD|DE_MINIO_PASSWORD) openssl rand -hex 24 ;;
-    AGENTS_SECRETS_ENCRYPTION_KEY|DATACONNECT_SECRET_ENCRYPTION_KEY|UCS_SECRET_KEY|UCS_SERVICE_JWT_SECRET)
+    AGENTS_SECRETS_ENCRYPTION_KEY|DATACONNECT_SECRET_ENCRYPTION_KEY)
       openssl rand -base64 32 | tr '+/' '-_' ;;
     *) openssl rand -hex 32 ;;
   esac
@@ -49,4 +51,4 @@ mv "$tmp" "$ENV_FILE"
 chmod 600 "$ENV_FILE"
 echo "Generated $filled secret(s)"
 
-"$HERE/install-identity.sh" "$ENV_FILE"
+sh "$HERE/install-identity.sh" "$ENV_FILE"

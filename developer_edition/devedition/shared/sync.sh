@@ -7,7 +7,6 @@ SRC="$ROOT/devedition/shared/DeveloperUserMenu.tsx"
 for dest in \
   InaiEra_DataConnect_Frontend/src/components \
   InaiEra_workspace_frontend/src/app \
-  InaiEra-unified-catalog-frontend/src/components \
   InaiEra_Agent_frontend/src/components \
   InaiEra_AIMLStudio_frontend/src/components
 do

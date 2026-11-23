@@ -20,8 +20,6 @@ SQL
 }
 
 create_db dataconnect  dataconnect
-create_db ucs          ucs
-create_db gravitino    gravitino
 create_db inaiera      inaiera_agents  CREATEDB   # Temporal auto-setup creates temporal + temporal_visibility as this role
 create_db mlstudio     mlstudio
 create_db workspace    workspace
@@ -30,12 +28,6 @@ create_db dbtrunner    dbtrunner
 create_db flinksql     flinksql
 create_db dagster      dagster
 create_db devuser      userdata                    # the user's own pgvector database
-
-# Gravitino keeps its entity store in schema "gravitino" (UCS deploy/postgres-init/00-init.sql).
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname gravitino <<-SQL
-  CREATE SCHEMA IF NOT EXISTS gravitino AUTHORIZATION gravitino;
-  ALTER ROLE gravitino IN DATABASE gravitino SET search_path = gravitino;
-SQL
 
 # pgvector: Agents knowledge bases and the user's own database.
 for db in inaiera_agents userdata; do

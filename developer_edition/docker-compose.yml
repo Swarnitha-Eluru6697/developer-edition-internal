@@ -1,10 +1,19 @@
 # InaiEra Developer Edition: the whole platform in ONE compose stack.
 #
-#   cp .env.example .env      # first time only (a filled-in .env is already provided)
-#   docker compose up -d --build
+#   sh devedition/init-env.sh      # first time only: writes .env
+#   docker compose up -d --build   # starts only the sign-up screens; the chosen edition installs after sign-up
+#
+# Two editions, each a Compose profile that nothing starts by default:
+#   data   Data Developer Edition: DataConnect, Workspace, Data Quality, dbt, Flink SQL, Dagster, Kafka
+#   agent  Agent & Model Developer Edition: Agents, ML Studio, Temporal
+# The user picks one (or both) when creating their account; the edition-manager service then builds and
+# starts only that edition. Before an edition is chosen only the gateway (sign-up / sign-in and dashboard) and the edition
+# manager run; Postgres and MinIO start with either edition, Redis and the dev JWKS stub with Data.
+# There is no Unified Catalog (UCS): every product runs with its UCS integration switched off, and Data
+# Quality rules, rulesets and job bindings are authored in Workspace → Data Quality.
 #   open http://localhost:8080
 #
-# Products: DataConnect, Transformer (Workspace), UCS, Agents, ML Studio, plus Data Quality,
+# Products: DataConnect, Transformer (Workspace), Agents, ML Studio, plus Data Quality,
 # dbt-runner, Flink SQL runner and Dagster. Shared infrastructure, per the feature sheet:
 # ONE PostgreSQL (a database per product + the user's pgvector database), ONE Redis
 # (a db index per product), ONE single-node Kafka, Temporal for Agents, MinIO for files.
@@ -27,16 +36,11 @@ x-logging: &logging
     driver: json-file
     options: { max-size: "10m", max-file: "3" }
 
-# Images built from the product repos. UCS, Agents, Workspace, DataConnect and ML Studio
+# Images built from the product repos. Agents, Workspace, DataConnect and ML Studio
 # pin the private gateway-auth library (Python v1.1.0-rc.1, Node node-v1.1.0-rc.1). A copy
 # of that repo with both tags ships in devedition/vendor/gateway-auth and is passed to each
 # build as the `gatewayauth` context, so the pins resolve from it: no GitHub token and no
 # checkout outside this folder. GATEWAYAUTH_DIR can still point somewhere else.
-x-ucs-build: &ucs-build
-  context: ./InaiEra-unified-catalog-backend
-  additional_contexts:
-    gatewayauth: ${GATEWAYAUTH_DIR:-./devedition/vendor/gateway-auth}
-
 x-agents-build: &agents-build
   context: ./InaiEra_agent_backend
   dockerfile: Dockerfile
@@ -57,6 +61,8 @@ services:
   # ═════════════════════════════ shared infrastructure ═════════════════════════════
   postgres:
     <<: [*restart, *logging]
+    # Started with an edition (after sign-up), not before: both editions use it.
+    profiles: [data, agent]
     image: pgvector/pgvector:pg16
     environment:
       POSTGRES_USER: postgres
@@ -82,6 +88,8 @@ services:
 
   redis:
     <<: [*restart, *logging]
+    # Started with the Data edition: only its services use it.
+    profiles: [data]
     image: redis:7-alpine
     command: ["redis-server", "--appendonly", "yes"]
     volumes: [redis-data:/data]
@@ -91,6 +99,7 @@ services:
       retries: 12
 
   zookeeper:
+    profiles: [data]
     <<: [*restart, *logging]
     image: confluentinc/cp-zookeeper:7.6.0
     environment:
@@ -107,6 +116,7 @@ services:
 
   # Single-node Kafka (no HA, no SASL/ACLs). Containers use kafka:29092, host tools localhost:9092.
   kafka:
+    profiles: [data]
     <<: [*restart, *logging]
     image: confluentinc/cp-kafka:7.6.0
     depends_on:
@@ -134,6 +144,7 @@ services:
       start_period: 45s
 
   schema-registry:
+    profiles: [data]
     <<: [*restart, *logging]
     image: confluentinc/cp-schema-registry:7.6.0
     depends_on:
@@ -152,6 +163,7 @@ services:
 
   # One local Kafka Connect worker with every connector plugin (no worker pools).
   kafka-connect:
+    profiles: [data]
     <<: [*restart, *logging]
     build:
       context: ./InaiEra_DataConnect_Backend/infra
@@ -191,6 +203,7 @@ services:
   # Metrics for DataConnect's Dashboard/Monitoring (records read/written, lag, task failures):
   # scrapes the Kafka Connect JMX exporter (:9404). Internal only — DataConnect queries it.
   prometheus:
+    profiles: [data]
     <<: [*restart, *logging]
     image: prom/prometheus:v2.54.1
     command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=7d"]
@@ -207,6 +220,8 @@ services:
 
   minio:
     <<: [*restart, *logging]
+    # Started with an edition (after sign-up), not before: both editions use it.
+    profiles: [data, agent]
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
@@ -220,6 +235,8 @@ services:
 
   minio-init:
     <<: *logging
+    # Started with an edition (after sign-up), not before: both editions use it.
+    profiles: [data, agent]
     image: minio/mc:latest
     depends_on:
       minio: { condition: service_healthy }
@@ -241,8 +258,18 @@ services:
   # control-plane JWT. It keeps its key and minted token in a named volume (fresh, not ~/.inaiera-dev-jwks).
   jwks:
     <<: [*restart, *logging]
+    # Started with the Data edition; the edition manager then restarts the gateway so it loads the Data Quality token.
+    profiles: [data]
     build: ./InaiEra_workspace_backend/docker/jwks
     image: inaiera-de/jwks:local
+    environment:
+      # The dev token is also accepted by the dbt and FlinkSQL runners: Data Quality forwards it when it looks up the
+      # job a binding attaches to. Everything here listens only inside this single-user, localhost-only stack.
+      DEV_JWT_AUD: workspace.inaiera,dbtrunner,flinksql-runner
+      # What Data Quality may do on the runners with it: read the job a binding names, and write its quality job.
+      DEV_JWT_SCOPE: "dbt.projects.read dbt.projects.write flink.jobs.read flink.jobs.edit"
+      # The single local user's Workspace permissions (the same list the gateway sends to Workspace).
+      DEV_JWT_PERMISSIONS: "workspace:access:view,workspace:files:edit,workspace:catalog:view,workspace:datasets:view,workspace:sql:run,workspace:notebooks:run,workspace:dbt:edit,workspace:dbt:run,workspace:dbt:deploy,workspace:sql-jobs:edit,workspace:sql-jobs:run,workspace:python-jobs:edit,workspace:python-jobs:run,workspace:flink:edit,workspace:flink:deploy,workspace:dq:view,workspace:dq:create,workspace:dq:edit,workspace:dq:run,workspace:dq:publish,workspace:dq:manage,workspace:git:write,workspace:connections:manage,workspace:settings:edit,workspace:alerts:view,workspace:alerts:edit,workspace:alerts:manage,workspace:settings:manage"
     volumes: [jwks-data:/root/.inaiera-dev-jwks]
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:9999/.well-known/jwks.json',timeout=3).status==200 else 1)\" && test -s /root/.inaiera-dev-jwks/token.txt"]
@@ -250,164 +277,9 @@ services:
       timeout: 3s
       retries: 12
 
-  # ═════════════════════════════════════ UCS ═════════════════════════════════════
-  gravitino-init:
-    <<: *logging
-    image: postgres:16-alpine
-    depends_on:
-      postgres: { condition: service_healthy }
-    environment:
-      PGPASSWORD: ${DE_DB_PASSWORD}
-    volumes:
-      - ./InaiEra-unified-catalog-backend/deploy/gravitino/schema:/gravitino-schema:ro
-    entrypoint:
-      - sh
-      - -c
-      - |
-        set -e
-        exists=$$(psql -h postgres -U gravitino -d gravitino -tAc \
-          "select 1 from information_schema.tables where table_schema='gravitino' and table_name='metalake_meta'")
-        if [ "$$exists" = "1" ]; then echo "gravitino schema already present"; else
-          psql -h postgres -U gravitino -d gravitino -v ON_ERROR_STOP=1 \
-            -c "set search_path to gravitino" -f /gravitino-schema/schema-1.0.0-postgresql.sql
-        fi
-    restart: "no"
-
-  # Single user: no authentication and no authorization inside Gravitino.
-  gravitino:
-    <<: [*restart, *logging]
-    image: apache/gravitino:1.0.0
-    entrypoint:
-      - /bin/bash
-      - -c
-      - |
-        set -e
-        cd /root/gravitino
-        python bin/rewrite_gravitino_server_config.py
-        export JAVA_OPTS="$${JAVA_OPTS:-} -XX:-UseContainerSupport"
-        ./bin/gravitino.sh run &
-        sleep 10
-        while pgrep -x java >/dev/null; do sleep 5; done
-        echo "Gravitino JVM exited" >&2
-        exit 1
-    depends_on:
-      postgres: { condition: service_healthy }
-      gravitino-init: { condition: service_completed_successfully }
-    volumes:
-      - ./InaiEra-unified-catalog-backend/deploy/gravitino/libs/postgresql-42.7.4.jar:/root/gravitino/libs/postgresql-42.7.4.jar:ro
-      - ./InaiEra-unified-catalog-backend/deploy/gravitino/libs/postgresql-42.7.4.jar:/root/gravitino/catalogs/jdbc-postgresql/libs/postgresql-42.7.4.jar:ro
-      - ./InaiEra-unified-catalog-backend/deploy/gravitino/libs/gravitino-aws-bundle-1.0.0.jar:/root/gravitino/catalogs/lakehouse-iceberg/libs/gravitino-aws-bundle-1.0.0.jar:ro
-      - ./InaiEra-unified-catalog-backend/deploy/gravitino/libs/iceberg-aws-bundle-1.9.2.jar:/root/gravitino/catalogs/lakehouse-iceberg/libs/iceberg-aws-bundle-1.9.2.jar:ro
-    environment:
-      GRAVITINO_ENTITY_STORE: relational
-      GRAVITINO_ENTITY_STORE_RELATIONAL: JDBCBackend
-      GRAVITINO_ENTITY_STORE_RELATIONAL_JDBC_URL: "jdbc:postgresql://postgres:5432/gravitino?currentSchema=gravitino"
-      GRAVITINO_ENTITY_STORE_RELATIONAL_JDBC_DRIVER: "org.postgresql.Driver"
-      GRAVITINO_ENTITY_STORE_RELATIONAL_JDBC_USER: gravitino
-      GRAVITINO_ENTITY_STORE_RELATIONAL_JDBC_PASSWORD: ${DE_DB_PASSWORD}
-      GRAVITINO_AUTHORIZATION_ENABLE: "false"
-    healthcheck:
-      test: ["CMD-SHELL", "[ \"$$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/api/metalakes)\" = 200 ]"]
-      interval: 10s
-      timeout: 5s
-      retries: 18
-      start_period: 30s
-
-  gravitino-metalake:
-    <<: *logging
-    build: *ucs-build
-    image: inaiera-de/ucs:local
-    depends_on:
-      gravitino: { condition: service_healthy }
-    environment:
-      GRAVITINO_URL: http://gravitino:8090
-      GRAVITINO_AUTH: none
-      GRAVITINO_METALAKE: prod_metalake
-    command: ["python", "-m", "app.gravitino_bootstrap"]
-    restart: "no"
-
-  ucs-migrate:
-    <<: *logging
-    build: *ucs-build
-    image: inaiera-de/ucs:local
-    environment: &ucs-env
-      ENV: dev
-      DB_DSN: postgresql+asyncpg://ucs:${DE_DB_PASSWORD}@postgres:5432/ucs
-      REDIS_URL: redis://redis:6379/1
-      GRAVITINO_URL: http://gravitino:8090
-      GRAVITINO_AUTH: none
-      GRAVITINO_METALAKE: prod_metalake
-      TRUST_ENVOY_HEADERS: "true"
-      ENVOY_INTERNAL_SECRET: ${GATEWAY_SECRET:?run with the provided .env}
-      UCS_SECRET_KEY: ${UCS_SECRET_KEY}
-      UCS_SERVICE_JWT_SECRET: ${UCS_SERVICE_JWT_SECRET}
-      IDP_ADMIN_USER: ""                       # no Keycloak: group directory reports unknown
-      PROJECTION_ENABLED: "false"              # no Postgres/Kafka grant projection (RBAC removed)
-      AGENT_PLATFORM_URL: http://agents-api:8000
-      PUBLIC_BASE_URL: http://localhost:8103
-    depends_on:
-      postgres: { condition: service_healthy }
-    command: ["/bin/sh", "-c", "alembic upgrade head && python -m app.seed"]
-    restart: "no"
-
-  # The single user's catalog-wide grant (no RBAC page in Developer Edition).
-  ucs-grant:
-    <<: *logging
-    image: postgres:16-alpine
-    depends_on:
-      ucs-migrate: { condition: service_completed_successfully }
-    environment:
-      PGPASSWORD: ${DE_DB_PASSWORD}
-    volumes: [./devedition/ucs:/sql:ro]
-    command: ["psql", "-h", "postgres", "-U", "ucs", "-d", "ucs", "-v", "ON_ERROR_STOP=1", "-f", "/sql/10-single-user-grant.sql"]
-    restart: "no"
-
-  ucs-api:
-    <<: [*restart, *logging]
-    build: *ucs-build
-    image: inaiera-de/ucs:local
-    environment: *ucs-env
-    depends_on:
-      redis: { condition: service_healthy }
-      gravitino-metalake: { condition: service_completed_successfully }
-      ucs-grant: { condition: service_completed_successfully }
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health',timeout=3).status==200 else 1)"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-
-  ucs-worker:
-    <<: [*restart, *logging]
-    build: *ucs-build
-    image: inaiera-de/ucs:local
-    environment: *ucs-env
-    depends_on:
-      redis: { condition: service_healthy }
-      ucs-migrate: { condition: service_completed_successfully }
-    command: ["python", "-m", "app.worker"]
-
-  ucs-retention:
-    <<: [*restart, *logging]
-    build: *ucs-build
-    image: inaiera-de/ucs:local
-    environment: *ucs-env
-    depends_on:
-      ucs-migrate: { condition: service_completed_successfully }
-    command: ["python", "-m", "app.scheduler"]
-
-  ucs-web:
-    <<: [*restart, *logging]
-    build: ./InaiEra-unified-catalog-frontend
-    image: inaiera-de/ucs-web:local
-    environment:
-      NGINX_ENVSUBST_FILTER: "^(UCS_UPSTREAM|DQ_UPSTREAM|DQ_AUTH_HEADER|GATEWAY_SECRET)$$"
-      UCS_UPSTREAM: ucs-api:8000
-      DQ_UPSTREAM: dataquality:8086
-      GATEWAY_SECRET: ""                       # the gateway, not this container, adds identity
-
   # ═════════════════════════════════ DataConnect ═════════════════════════════════
   dataconnect-api:
+    profiles: [data]
     <<: [*restart, *logging]
     build:
       context: ./InaiEra_DataConnect_Backend
@@ -438,10 +310,8 @@ services:
       DATACONNECT_TOPIC_DEFAULT_MIN_INSYNC_REPLICAS: "1"
       DATACONNECT_RUNTIME_DEPLOY_ENABLED: "true"
       DATACONNECT_RUNTIME_RECONCILE_INTERVAL_SECONDS: "15"
-      DATACONNECT_UCS_LINEAGE_SYNC_ENABLED: "true"
-      DATACONNECT_UCS_QUALITY_SYNC_ENABLED: "true"
-      DATACONNECT_UCS_BASE_URL: http://ucs-api:8000
-      DATACONNECT_UCS_GATEWAY_SECRET: ${GATEWAY_SECRET}
+      DATACONNECT_UCS_LINEAGE_SYNC_ENABLED: "false"   # no Unified Catalog in Developer Edition
+      DATACONNECT_UCS_QUALITY_SYNC_ENABLED: "false"
     depends_on:
       postgres: { condition: service_healthy }
       kafka-connect: { condition: service_healthy }
@@ -453,6 +323,7 @@ services:
       start_period: 30s
 
   dataconnect-web:
+    profiles: [data]
     <<: [*restart, *logging]
     build: ./InaiEra_DataConnect_Frontend
     image: inaiera-de/dataconnect-web:local
@@ -463,6 +334,7 @@ services:
 
   # ═══════════════════════════ Transformer (Workspace) ═══════════════════════════
   workspace:
+    profiles: [data]
     <<: [*restart, *logging]
     build: *workspace-build
     image: inaiera-de/workspace:local
@@ -504,12 +376,14 @@ services:
       DQ_SERVICE_URL: http://dataquality:8086
       DQ_SERVICE_JWT_SECRET: ${DQ_INBOUND_SERVICE_JWT_SECRET}
       DQ_DELEGATION_JWT_SECRET: ${WORKSPACE_DQ_DELEGATION_JWT_SECRET}
-      UCS_SERVICE_URL: http://ucs-api:8000
-      UCS_GATEWAY_SECRET: ${GATEWAY_SECRET}
-      DATA_POLICY_MODE: audit
+      # No Unified Catalog: with UCS_SERVICE_URL unset Workspace never calls it; the single local user owns
+      # their connections (owner bypass in dev) and introspects them directly.
+      GOVERNANCE_PROFILE: development-ungoverned
+      DATA_POLICY_MODE: "off"
       ALERTS_SWEEP_ENABLED: "true"
-      CODEGEN_GATEWAY_URL: http://model-gateway:4000/v1
-      CODEGEN_GATEWAY_API_KEY: ${CODEGEN_GATEWAY_API_KEY:-sk-local-dev-key}
+      # No self-hosted model gateway in Developer Edition: the AI assistant uses the user's own Anthropic or
+      # OpenAI key, entered in Workspace → Settings → Codegen agent (kept in Workspace's secrets store).
+      CODEGEN_GATEWAY_ENABLED: "false"
       CODEGEN_REQUEST_TIMEOUT_SECONDS: "300"
       LOG_LEVEL: INFO
     volumes: [workspace-git:/var/lib/workspace/git]
@@ -517,6 +391,7 @@ services:
 
   # Stand-in lakehouse query engine (SQL editor default engine + catalog browsing).
   lakehouse:
+    profiles: [data]
     <<: [*restart, *logging]
     build: *workspace-build
     image: inaiera-de/workspace:local
@@ -534,25 +409,14 @@ services:
       retries: 5
 
   workspace-web:
+    profiles: [data]
     <<: [*restart, *logging]
     build: ./InaiEra_workspace_frontend
     image: inaiera-de/workspace-web:local
 
-  # Workspace codegen agent: OpenAI-compatible gateway to Ollama running on the Mac
-  # (brew services start ollama; models listed in devedition/litellm/config.yaml).
-  # Starts with the stack; if Ollama is not running, Settings → Codegen agent says so.
-  model-gateway:
-    <<: [*restart, *logging]
-    image: ghcr.io/berriai/litellm:main-stable
-    command: ["--config", "/app/config.yaml", "--host", "0.0.0.0", "--port", "4000"]
-    environment:
-      LITELLM_MASTER_KEY: ${CODEGEN_GATEWAY_API_KEY:-sk-local-dev-key}
-    volumes:
-      - ./devedition/litellm/config.yaml:/app/config.yaml:ro
-    extra_hosts: ["host.docker.internal:host-gateway"]
-
   # ═══════════════════════════ Data Quality and runners ══════════════════════════
   dataquality:
+    profiles: [data]
     <<: [*restart, *logging]
     build:
       context: ./InaiEra_dataquality_backend
@@ -573,7 +437,14 @@ services:
       CONTROL_PLANE_ISSUER: http://localhost:9999
       CONTROL_PLANE_AUDIENCE: workspace.inaiera
       INBOUND_SERVICE_JWT_SECRET: ${DQ_INBOUND_SERVICE_JWT_SECRET}
-      UCS_ENABLED: "false"                     # its UCS v2 endpoints don't exist in UCS yet
+      # No Unified Catalog. UCS_ENABLED=false made binding create/resolve fail ("UCS integration is disabled");
+      # the dev bypass accepts a binding's dataset unverified instead. Contract v2 stays off, so DQ never calls
+      # UCS_URL (a placeholder it requires) and never uses the placeholder secret.
+      UCS_ENABLED: "true"
+      UCS_URL: http://ucs.disabled.invalid
+      UCS_SERVICE_JWT_SECRET: developer-edition-has-no-ucs
+      UCS_CONTRACT_V2_ENABLED: "false"
+      UCS_BIND_DEV_BYPASS: "true"
       DBTRUNNER_ENABLED: "true"
       DBTRUNNER_URL: http://dbtrunner:8080
       DBTRUNNER_SERVICE_JWT_SECRET: ${DBTRUNNER_SERVICE_JWT_SECRET}
@@ -586,6 +457,7 @@ services:
       retries: 10
 
   dbtrunner:
+    profiles: [data]
     <<: [*restart, *logging]
     build:
       context: ./InaiEra_workspace_runners/inaiera-dbt-runner
@@ -602,6 +474,8 @@ services:
       CONTROL_PLANE_JWKS_URL: http://jwks:9999/.well-known/jwks.json
       CONTROL_PLANE_ISSUER: http://localhost:9999
       CONTROL_PLANE_AUDIENCE: dbtrunner
+      # The dev token above is a fixed 90-day token (no control plane mints short ones here): no lifetime cap.
+      EXTERNAL_JWT_MAX_LIFETIME_SECONDS: "0"
       SCHEDULER_JWT_SECRET: ${DBTRUNNER_SCHEDULER_JWT_SECRET}
       DELEGATION_JWT_SECRET: ${DBTRUNNER_DELEGATION_JWT_SECRET}
       WORKSPACE_URL: http://workspace:8080
@@ -612,8 +486,6 @@ services:
       SCHEDULER_ENABLED: "false"               # Dagster owns the schedules
       TRINO_CATALOG: iceberg
       PG_LAKE_DSN: postgresql://dbtrunner:${DE_DB_PASSWORD}@postgres:5432/dbtrunner
-      OPENLINEAGE_URL: http://ucs-api:8000/api/v1/lineage
-      OPENLINEAGE_NAMESPACE: dbt_lake
       ARTIFACT_STORE_BACKEND: local
       LOG_LEVEL: INFO
     volumes: [dbtrunner-git:/var/lib/dbtrunner/git]
@@ -621,6 +493,7 @@ services:
 
   # Flink 1.19 JobManager + TaskManager + SQL Gateway + runner API in one image.
   flinksql-runner:
+    profiles: [data]
     <<: [*restart, *logging]
     build:
       context: ./InaiEra_workspace_runners/inaiera-flinksql-runner
@@ -649,13 +522,17 @@ services:
       CONTROL_PLANE_JWKS_URL: http://jwks:9999/.well-known/jwks.json
       CONTROL_PLANE_ISSUER: http://localhost:9999
       CONTROL_PLANE_AUDIENCE: flinksql-runner
-      QUALITY_CONSUMER_ENABLED: "true"
-      UCS_URL: http://ucs-api:8000
-      UCS_TENANT_ID: local-dev
-    volumes: [flink-checkpoints:/tmp/flink-checkpoints]
+      # The dev token above is a fixed 90-day token (no control plane mints short ones here): no lifetime cap.
+      EXTERNAL_JWT_MAX_LIFETIME_SECONDS: "0"
+      QUALITY_CONSUMER_ENABLED: "false"        # it delivers Flink DQ results to UCS, which isn't here
+    volumes:
+      - flink-checkpoints:/tmp/flink-checkpoints
+      # Developer Edition sizes the in-container Flink cluster for a laptop (see the file).
+      - ./devedition/flink/flink-conf.yaml:/opt/flink/conf/flink-conf.yaml:ro
 
   # ═══════════════════════════════════ Dagster ═══════════════════════════════════
   dagster-code:
+    profiles: [data]
     <<: [*restart, *logging]
     build: *dagster-build
     image: inaiera-de/dagster:local
@@ -689,6 +566,7 @@ services:
       retries: 12
 
   dagster-daemon:
+    profiles: [data]
     <<: [*restart, *logging]
     build: *dagster-build
     image: inaiera-de/dagster:local
@@ -703,6 +581,7 @@ services:
       - dagster-artifacts:/var/lib/dagster/artifacts
 
   dagster-webserver:
+    profiles: [data]
     <<: [*restart, *logging]
     build: *dagster-build
     image: inaiera-de/dagster:local
@@ -715,6 +594,7 @@ services:
 
   # ═════════════════════════════════════ Agents ═════════════════════════════════════
   temporal:
+    profiles: [agent]
     <<: [*restart, *logging]
     image: temporalio/auto-setup:1.24.2
     environment:
@@ -732,6 +612,7 @@ services:
       retries: 30
 
   agents-api:
+    profiles: [agent]
     <<: [*restart, *logging]
     build: *agents-build
     image: inaiera-de/agents:local
@@ -744,13 +625,10 @@ services:
       SECRETS_ENCRYPTION_KEY: ${AGENTS_SECRETS_ENCRYPTION_KEY:?run with the provided .env}
       TRUST_ENVOY_HEADERS: "true"
       ENVOY_INTERNAL_SECRET: ${GATEWAY_SECRET}
-      UCS_BASE_URL: http://ucs-api:8000
-      UCS_GATEWAY_SECRET: ${GATEWAY_SECRET}
-      UCS_TENANT: prod_metalake
+      # No Unified Catalog: entitlement checks allow, catalog registration is skipped (app/ucs_client.py).
+      UCS_ENABLED: "false"
       UCS_SOFT_CHECK: "true"
-      UCS_KB_AUTO_REGISTER: "true"
-      UCS_AUTO_GRANT_GROUP: developers
-      UCS_AGENT_DEFAULT_GROUP: developers
+      UCS_KB_AUTO_REGISTER: "false"
       MLSTUDIO_BASE_URL: http://mlstudio-api:4000
       STORAGE_BACKEND: local
       LOCAL_STORAGE_DIR: /var/inaiera-uploads
@@ -770,6 +648,7 @@ services:
       start_period: 30s
 
   agents-worker:
+    profiles: [agent]
     <<: [*restart, *logging]
     build: *agents-build
     image: inaiera-de/agents:local
@@ -782,6 +661,7 @@ services:
       agents-api: { condition: service_healthy }
 
   agents-maintenance:
+    profiles: [agent]
     <<: [*restart, *logging]
     build: *agents-build
     image: inaiera-de/agents:local
@@ -791,12 +671,16 @@ services:
       agents-api: { condition: service_healthy }
 
   agents-web:
+    profiles: [agent]
     <<: [*restart, *logging]
-    build: ./InaiEra_Agent_frontend
+    build:
+      context: ./InaiEra_Agent_frontend
+      args: { VITE_UCS_ENABLED: "false" }   # no Unified Catalog: hides the publish dialog's UCS Access step
     image: inaiera-de/agents-web:local
 
   # ═══════════════════════════════════ ML Studio ═══════════════════════════════════
   mlstudio-api:
+    profiles: [agent]
     <<: [*restart, *logging]
     build:
       context: ./InaiEra_AIMLStudio_backend
@@ -804,6 +688,9 @@ services:
       additional_contexts:                 # gateway-auth npm package built locally: no GitHub token
         gatewayauth: ${GATEWAYAUTH_DIR:-./devedition/vendor/gateway-auth}
     image: inaiera-de/mlstudio:local
+    # Training runs and model servers (incl. LLMs, which load as float32 on CPU) run inside this container.
+    # The cap makes a model that does not fit fail on its own instead of the kernel killing another service.
+    mem_limit: 7g
     depends_on:
       postgres: { condition: service_healthy }
       minio-init: { condition: service_completed_successfully }
@@ -820,46 +707,17 @@ services:
       S3_REGION: us-east-1
       S3_ACCESS_KEY_ID: ${DE_MINIO_USER:-inaiera}
       S3_SECRET_ACCESS_KEY: ${DE_MINIO_PASSWORD}
-      UCS_BASE_URL: http://ucs-api:8000
-      UCS_GATEWAY_SECRET: ${GATEWAY_SECRET}
-      UCS_SERVICE_GROUPS: developers
+      # No Unified Catalog: the route's ML Studio permission decides; model registration is skipped (src/ucs/config.ts).
+      UCS_ENABLED: "false"
       PUBLIC_HOST: http://localhost:8105
 
   mlstudio-web:
+    profiles: [agent]
     <<: [*restart, *logging]
-    build: ./InaiEra_AIMLStudio_frontend
+    build:
+      context: ./InaiEra_AIMLStudio_frontend
+      args: { VITE_UCS_ENABLED: "false" }   # no Unified Catalog: hides the model Lineage tab
     image: inaiera-de/mlstudio-web:local
-
-  # ═════════════════════════ Deployed models and agents → UCS catalog ═════════════════════════
-  # Deploying registers in UCS from then on: promoting a model in ML Studio (routes/deploy.ts) and
-  # publishing an agent (routers/agents.py) each register it themselves. These one-shot jobs
-  # provision what that needs and catch up on anything deployed before UCS was ready (seed data,
-  # earlier deploys): ML Studio's model catalog + grants + deployed champions, and every published
-  # agent. Idempotent; they run on each `docker compose up` and exit. Re-run by hand with
-  #   docker compose up ucs-register-models ucs-register-agents
-  ucs-register-models:
-    <<: *logging
-    image: inaiera-de/mlstudio:local
-    restart: "no"
-    depends_on:
-      ucs-api: { condition: service_healthy }
-      mlstudio-api: { condition: service_started }
-    environment: *mlstudio-env
-    command: ["sh", "-c", "node dist/scripts/bootstrapUcs.js; node dist/scripts/backfillUcs.js --apply"]
-
-  ucs-register-agents:
-    <<: *logging
-    image: inaiera-de/agents:local
-    restart: "no"
-    depends_on:
-      ucs-api: { condition: service_healthy }
-      agents-api: { condition: service_healthy }
-    environment: *agents-env
-    volumes:
-      - ./devedition/ucs/register_agents.py:/opt/devedition/register_agents.py:ro
-    working_dir: /app
-    # PYTHONPATH: the script sits outside /app, so the product's `app` package must be on the path.
-    entrypoint: ["env", "PYTHONPATH=/app", "python", "/opt/devedition/register_agents.py"]
 
   # ═══════════════════════════ Sample source systems (test only) ═══════════════════════════
   # Throwaway databases to try DataConnect connections/pipelines and Workspace connections against.
@@ -917,8 +775,24 @@ services:
       timeout: 3s
       retries: 10
 
+  # Installs the edition chosen at sign-up (devedition/edition-manager/manager.py): builds and starts that
+  # Compose profile through the host's Docker and stops an edition that was not chosen. It needs the Docker
+  # socket and this folder at the same path as on the host (Compose resolves build contexts and bind mounts
+  # there); it is reachable only from the gateway, which listens on 127.0.0.1.
+  edition-manager:
+    <<: [*restart, *logging]
+    build: ./devedition/edition-manager
+    image: inaiera-de/edition-manager:local
+    environment:
+      DE_PROJECT_DIR: ${PWD:?run docker compose from the developer_edition folder}
+    working_dir: ${PWD}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${PWD}:${PWD}:ro
+      - edition-state:/state
+
   # ═════════════════════════════════════ Gateway ═════════════════════════════════════
-  # The only way in. 8080 launcher, 8101 DataConnect, 8102 Transformer, 8103 UCS,
+  # The only way in. 8080 launcher, 8101 DataConnect, 8102 Transformer,
   # 8104 Agents, 8105 ML Studio. Bound to 127.0.0.1: unreachable from other machines.
   gateway:
     <<: [*restart, *logging]
@@ -941,6 +815,10 @@ services:
       # Version of the Developer License the sign-up checkbox accepts, and where its text is.
       DE_LICENSE_VERSION: ${DE_LICENSE_VERSION:-1.0}
       DE_LICENSE_URL: ${DE_LICENSE_URL:-}
+      # Where the sign-up / sign-in screens look up the country and city sent to the Registration
+      # service (an IP geolocation service called from the browser). Set it empty to send only the
+      # time zone and locale.
+      DE_GEO_URL: ${DE_GEO_URL-https://get.geojs.io/v1/ip/geo.json}
       # Dashboard "Usage limits" (Developer Edition caps) and "Help and resources" links.
       DE_LIMIT_CONNECTORS: ${DE_LIMIT_CONNECTORS:-10}
       DE_LIMIT_WORKSPACES: ${DE_LIMIT_WORKSPACES:-3}
@@ -963,19 +841,21 @@ services:
       - "127.0.0.1:8080:8080"
       - "127.0.0.1:8101:8101"
       - "127.0.0.1:8102:8102"
-      - "127.0.0.1:8103:8103"
       - "127.0.0.1:8104:8104"
       - "127.0.0.1:8105:8105"
     depends_on:
-      jwks: { condition: service_healthy }
-      dataconnect-web: { condition: service_started }
-      workspace-web: { condition: service_started }
-      ucs-web: { condition: service_started }
-      agents-web: { condition: service_started }
-      mlstudio-web: { condition: service_started }
+      jwks: { condition: service_healthy, required: false }
+      # Sign-up installs the chosen edition through it: started with the gateway, stopped after it.
+      edition-manager: { condition: service_started }
+      # Each product's web app exists only once its edition is installed (edition-manager).
+      dataconnect-web: { condition: service_started, required: false }
+      workspace-web: { condition: service_started, required: false }
+      agents-web: { condition: service_started, required: false }
+      mlstudio-web: { condition: service_started, required: false }
 
 volumes:
   pg-data:
+  edition-state:
   sample-postgres-data:
   sample-mysql-data:
   redis-data:

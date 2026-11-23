@@ -21,7 +21,10 @@
     pending: 'inaiera.de.pending',      // the sign-up / reset step to resume after a reload
     queue: 'inaiera.de.loginQueue',     // events waiting for /events/login-batch
     known: 'inaiera.de.hasAccount',     // show "Sign in" instead of "Create account" first
+    edition: 'inaiera.de.editionChoice', // edition picked at sign-up: data | agent | both
     key: 'inaiera.de.licenseKey',       // cached license public key (PEM), for offline checks
+    place: 'inaiera.de.place',          // { at, country, region, city } from the geolocation lookup (1 day)
+    reported: 'inaiera.de.reportedEdition', // edition last sent to the Registration service
   };
   const ISS = 'inaiera-dev-registration';
   const AUD = 'inaiera-developer-edition';
@@ -128,7 +131,8 @@
   // ── Offline queue (login-batch) ───────────────────────────────────────────
   function enqueue(event) {
     const q = ls.get(K.queue) || [];
-    q.push({ event, event_id: uuid(), occurred_at: new Date().toISOString(), install_id: cfg.install_id, app_version: cfg.app_version || undefined });
+    q.push({ event, event_id: uuid(), occurred_at: new Date().toISOString(), install_id: cfg.install_id,
+      app_version: appVersion(), edition: editionCode(), location: placeNow() });
     ls.set(K.queue, q.slice(-500));
   }
   async function flushQueue(s) {
@@ -138,10 +142,149 @@
     if (r.ok || r.status === 400) ls.set(K.queue, null);   // 400: nothing in it is acceptable any more
   }
 
-  // ── Session lifecycle ─────────────────────────────────────────────────────
-  const device = () => ({
+  // ── Edition: chosen at sign-up, installed by the edition manager ─────────────
+  // The first `docker compose up` installs only the core. The edition picked on the sign-up screen (or, on an
+  // install that has none yet, right after signing in) is installed by the edition-manager service, which builds
+  // and starts only that edition's services. The app opens once it runs.
+  const EDITION_CHOICES = { data: ['data'], agent: ['agent'], both: ['data', 'agent'] };
+  const EDITION_INFO = [
+    ['data', 'Data Developer Edition', 'DataConnect and Workspace: pipelines, SQL, Python, dbt, Flink SQL and data quality. About 4.5 GB of memory.'],
+    ['agent', 'Agent & Model Developer Edition', 'Agents and ML Studio: build agents, train and deploy models. About 1.5 GB of memory.'],
+    ['both', 'Both editions', 'Everything above. About 6 GB of memory.'],
+  ];
+  const editionField = (selected) => `
+    <fieldset class="ed-choice" aria-describedby="err-edition">
+      <legend class="af-l">Edition</legend>
+      ${EDITION_INFO.map(([v, title, desc]) => `
+        <label class="ed-opt"><input type="radio" name="edition" value="${v}" ${selected === v ? 'checked' : ''}>
+          <span><b>${esc(title)}</b><small>${esc(desc)}</small></span></label>`).join('')}
+      <small class="af-err" id="err-edition" data-err="edition"></small>
+    </fieldset>`;
+
+  const choiceOf = (editions) => {
+    const e = [...(editions || [])].sort().join(',');
+    return e === 'agent,data' ? 'both' : e === 'data' ? 'data' : e === 'agent' ? 'agent' : null;
+  };
+
+  /** "Change edition" in the user menu: pick another edition (it replaces the one installed) or both (adds it). */
+  async function changeEdition() {
+    overlay.hidden = false;
+    const st = await waitForEditionService();
+    if (!st) return screens.setup(NO_EDITION_SERVICE);
+    if (st.status === 'installing') return screens.installing();
+    overlay.hidden = false;
+    screens.edition({ current: choiceOf(st.editions), cancellable: true });
+  }
+
+  async function editionState() {
+    try {
+      const r = await fetch('/edition-api/edition', { cache: 'no-store' });
+      return r.ok ? await r.json() : null;
+    } catch { return null; }
+  }
+
+  const NO_EDITION_SERVICE = 'The edition service did not start. Make sure Docker Desktop is running, run "docker compose up -d" in the developer_edition folder, then reload this page.';
+
+  /** The edition service, waiting while it starts (Docker starting, the stack restarting): up to about 2 minutes. */
+  async function waitForEditionService() {
+    let st = await editionState();
+    for (let i = 0; !st && i < 40; i++) {
+      if (i === 0) screens.starting();
+      await new Promise((ok) => setTimeout(ok, 3000));
+      st = await editionState();
+    }
+    return st;
+  }
+
+  async function installEdition(choice) {
+    ls.set(K.edition, choice);
+    let r = null;
+    try {
+      r = await fetch('/edition-api/edition', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ editions: EDITION_CHOICES[choice] }) });
+    } catch { /* reported below */ }
+    if (!r || (r.status !== 202 && r.status !== 409)) return screens.edition({ failed: 'The installation could not be started. Try again.' });
+    screens.installing();
+  }
+
+  /** Signed out: the edition manager stops the edition's containers (the choice is kept for the next sign-in). */
+  function stopEdition() {
+    fetch('/edition-api/edition/stop', { method: 'POST', keepalive: true }).catch(() => {});
+  }
+
+  /** Signed in after a sign-out: start the chosen edition's containers again, then open the app. */
+  async function startEdition() {
+    let r = null;
+    try { r = await fetch('/edition-api/edition/start', { method: 'POST' }); } catch { /* reported below */ }
+    if (!r || !r.ok) return screens.setup(NO_EDITION_SERVICE);
+    screens.installing({ starting: true });
+  }
+
+  /** Open the app if this install runs an edition; otherwise install the chosen one (or ask which). */
+  async function enterApp(s) {
+    const st = await waitForEditionService();
+    if (!st) return screens.setup(NO_EDITION_SERVICE);
+    if (st.status === 'ready' && st.editions.length) {
+      // The page was drawn for another edition (or none): load it again with the installed one.
+      if (st.editions.join(',') !== String(window.DE_EDITION || '')) { location.reload(); return; }
+      overlay.hidden = true;
+      hooks.onSignedIn?.(s.user || {});
+      // A new or changed edition: tell the admin portal now (not at the next weekly check-in).
+      if ((ls.get(K.reported) || null) !== (editionCode() || null)) reportEditionChange(s).catch(() => {});
+      return;
+    }
+    if ((st.status === 'stopped' || st.status === 'stopping') && st.editions.length) return startEdition();
+    if (st.status === 'installing') return screens.installing({ starting: /^Starting /.test(st.message || '') });
+    const choice = ls.get(K.edition);
+    if (choice && EDITION_CHOICES[choice] && st.status !== 'failed') return installEdition(choice);
+    return screens.edition({ failed: st.status === 'failed' ? st.message : '' });
+  }
+
+  // ── What the Registration service is told about this install ────────────────
+  // Sign-in, check-in and queued events carry the edition (data | agent_model | full) and the place
+  // (country, region, city, time zone, locale); the admin portal shows them per user, installation and
+  // sign-in. The edition running here, or while it installs, the one chosen at sign-up.
+  const appVersion = () => cfg.app_version || undefined;
+  const editionCode = () => {
+    const eds = (String(window.DE_EDITION || '') || (EDITION_CHOICES[ls.get(K.edition)] || []).join(','))
+      .split(',').map((s) => s.trim()).filter((s) => s === 'data' || s === 'agent');
+    if (eds.includes('data') && eds.includes('agent')) return 'full';
+    return eds.includes('data') ? 'data' : eds.includes('agent') ? 'agent_model' : undefined;
+  };
+
+  // Country and city come from an IP geolocation lookup (cfg.geo_url, at most once a day); time zone
+  // and locale from the browser. Every part is checked against what the Registration service accepts.
+  const clip = (v, n) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : undefined);
+  function placeNow() {
+    const g = ls.get(K.place) || {};
+    let timezone; let locale;
+    try { timezone = clip(Intl.DateTimeFormat().resolvedOptions().timeZone, 64); } catch { /* none */ }
+    const l = navigator.language || '';
+    if (/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(l) && l.length <= 35) locale = l;
+    const p = {
+      country: /^[A-Za-z]{2}$/.test(g.country || '') ? g.country.toUpperCase() : undefined,
+      region: clip(g.region, 100), city: clip(g.city, 100), timezone, locale,
+    };
+    return Object.values(p).some(Boolean) ? p : undefined;
+  }
+  async function place() {
+    const g = ls.get(K.place);
+    if (cfg.geo_url && !(g?.at && Date.now() - g.at < 86400_000)) {
+      try {
+        const r = await fetch(cfg.geo_url, { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer',
+          signal: AbortSignal.timeout(4000) });
+        const d = await r.json();
+        ls.set(K.place, { at: Date.now(), country: d.country_code || d.countryCode || d.country, region: d.region, city: d.city });
+      } catch { /* offline or blocked: time zone and locale only */ }
+    }
+    return placeNow();
+  }
+
+  const device = async () => ({
     install_id: cfg.install_id,
-    app_version: cfg.app_version || undefined,
+    app_version: appVersion(),
+    edition: editionCode(),
+    location: await place(),
     fingerprint_hash: cfg.fingerprint_hash || undefined,
     os: cfg.os || undefined,
   });
@@ -169,7 +312,7 @@
     const wasIn = !!current;
     current = s;
     flushQueue(s).catch(() => {});
-    if (!wasIn) { overlay.hidden = true; hooks.onSignedIn?.(s.user || {}); }
+    if (!wasIn) await enterApp(s);
     return { ok: true };
   }
 
@@ -183,15 +326,34 @@
   }
 
   async function signIn(email, password) {
-    const r = await api('POST', '/sessions', { email, password, ...device() });
+    const dev = await device();
+    const r = await api('POST', '/sessions', { email, password, ...dev });
     if (!r.ok) return r;
+    ls.set(K.reported, dev.edition || null);
     return saveAndEnter(r.body);
   }
 
   async function checkIn(s) {
-    const r = await api('POST', '/activations/check-in', device(), s.session_token);
+    const dev = await device();
+    const r = await api('POST', '/activations/check-in', dev, s.session_token);
     if (!r.ok) return r;
+    ls.set(K.reported, dev.edition || null);
     return saveAndEnter(r.body, s);
+  }
+
+  /**
+   * After "Change edition" (or an edition installed after signing in): the check-in carries the new edition, so the
+   * Registration service writes `edition_changed` (the first use of an edition starts its own row on the admin
+   * portal's Users page). A change from another edition also counts as a sign-in with the new one: a
+   * `login_success` for it (sent through /events/login-batch) adds one to that edition's sign-in count, so switching
+   * back to an edition used before raises its count instead of adding a row.
+   */
+  async function reportEditionChange(s) {
+    const before = ls.get(K.reported) || null;
+    const r = await checkIn(s);
+    if (!r.ok || !before || before === (editionCode() || null)) return;
+    enqueue('login_success');
+    await flushQueue(current || s);
   }
 
   /** Called on start and periodically while signed in. */
@@ -199,7 +361,7 @@
     const lic = await checkLicense(s.license_token);
     const due = !s.next_check_in_at || Date.now() >= Date.parse(s.next_check_in_at);
     if (lic.ok && !due) {
-      if (!current) { current = s; overlay.hidden = true; hooks.onSignedIn?.(s.user || {}); flushQueue(s).catch(() => {}); }
+      if (!current) { current = s; await enterApp(s); flushQueue(s).catch(() => {}); }
       return;
     }
     const r = await checkIn(s);
@@ -207,7 +369,7 @@
     if (r.network) {
       const graceEnds = Date.parse(s.next_check_in_at || 0) + (s.grace_days ?? 7) * DAY;
       if (lic.ok && Date.now() < graceEnds) {                // offline, still within the grace period
-        if (!current) { current = s; overlay.hidden = true; hooks.onSignedIn?.(s.user || {}); }
+        if (!current) { current = s; await enterApp(s); }
         return;
       }
       endLocal();
@@ -229,6 +391,7 @@
   async function signOut() {
     const s = endLocal() || ls.get(K.session);
     ls.set(K.session, null);
+    stopEdition();
     screens.signin({ email: s?.user?.email, notice: "You're signed out." });
     if (s?.session_token) {
       const r = await api('DELETE', '/sessions/current', null, s.session_token);
@@ -279,7 +442,12 @@
     for (const [k, msg] of Object.entries(fields)) {
       const name = map[k] || k;
       const slot = form.querySelector(`[data-err="${name}"]`);
-      if (slot) { slot.textContent = msg[0].toUpperCase() + msg.slice(1) + '.'; form.elements[name]?.setAttribute('aria-invalid', 'true'); placed++; }
+      if (slot) {
+        slot.textContent = msg[0].toUpperCase() + msg.slice(1) + '.';
+        const el = form.elements[name];                    // a radio group is a list, not one element
+        if (el?.setAttribute) el.setAttribute('aria-invalid', 'true');
+        placed++;
+      }
     }
     alert.textContent = placed && e.code === 'validation_failed' ? 'Check the highlighted fields.' : errText(e);
     (form.querySelector('[aria-invalid]') || alert).focus?.();
@@ -308,6 +476,10 @@
       root.innerHTML = `<div class="auth-card"><div class="auth-brand"><span class="logo" aria-hidden="true">In</span><span>InaiEra <b>Developer Edition</b></span></div><p class="auth-sub">Checking your license…</p></div>`;
     },
 
+    starting() {
+      card({ title: 'Starting Developer Edition', sub: 'Waiting for the installation services to start. This page continues on its own.' });
+    },
+
     setup(msg) {
       card({ title: 'Installation is not set up', sub: esc(msg) });
     },
@@ -324,6 +496,7 @@
           + field('email', 'Work email', { type: 'email', auto: 'email', value: o.email })
           + `<div class="af-row">${field('company', 'Company', { auto: 'organization', optional: true, value: o.company, attrs: 'maxlength="200"' })}
              ${field('role', 'Role', { auto: 'organization-title', optional: true, value: o.role, attrs: 'maxlength="200"' })}</div>`
+          + editionField(o.edition || ls.get(K.edition))
           + `<label class="ac"><input type="checkbox" name="license_accepted" value="1" aria-describedby="err-license_accepted">
                <span>I accept the ${lic} (v${esc(cfg.license_version || '1.0')}): personal development and evaluation only, one user, one machine, no production use.</span></label>
              <small class="af-err" id="err-license_accepted" data-err="license_accepted"></small>
@@ -336,13 +509,15 @@
         const miss = {};
         if (!v.name?.trim()) miss.name = 'required';
         if (!v.email?.trim()) miss.email = 'required';
+        if (!EDITION_CHOICES[v.edition]) miss.edition = 'choose the edition to install';
         if (!v.license_accepted) miss.license_accepted = 'accept the license to continue';
         if (Object.keys(miss).length) return local(miss);
         const r = await api('POST', '/registrations', {
           name: v.name.trim(), email: v.email.trim(), company: v.company?.trim() || undefined, role: v.role?.trim() || undefined,
           install_id: cfg.install_id, license_version: cfg.license_version || '1.0', license_accepted: true,
-          marketing_consent: !!v.marketing_consent, source: 'first_run',
+          marketing_consent: !!v.marketing_consent, source: 'first_run', location: await place(),
         });
+        ls.set(K.edition, v.edition);                 // installed once the account is signed in
         if (r.ok) {
           ls.set(K.known, true);
           ls.set(K.pending, { step: 'verify', email: v.email.trim(), verification_id: r.body.verification_id, code_expires_at: r.body.code_expires_at });
@@ -535,6 +710,53 @@
       });
     },
 
+    edition(o = {}) {
+      const changing = !!o.cancellable;
+      const form = card({
+        title: changing ? 'Change edition' : 'Choose your edition',
+        sub: changing
+          ? 'Switch to another edition, or choose both to add it. An edition you leave is stopped, not deleted: its data stays, and it comes back as it was if you switch back.'
+          : 'Pick what to install on this machine. Only that edition is downloaded and started.',
+        body: editionField(o.current || ls.get(K.edition)),
+        submit: changing ? 'Apply' : 'Install',
+        links: changing ? link('cancel', 'Cancel') : '',
+      });
+      if (o.failed) showErr(form, { code: 'install_failed', message: o.failed });
+      on(form, 'cancel', () => { overlay.hidden = true; });
+      onSubmit(form, async (v) => {
+        if (!EDITION_CHOICES[v.edition]) return local({ edition: 'choose the edition to install' });
+        if (changing && v.edition === o.current) { overlay.hidden = true; return; }   // nothing to change
+        await installEdition(v.edition);
+      });
+    },
+
+    installing({ starting = false } = {}) {
+      const name = (EDITION_INFO.find(([v]) => v === ls.get(K.edition)) || [, 'your edition'])[1];
+      card({
+        title: starting ? `Starting ${name}` : `Installing ${name}`,
+        sub: starting
+          ? 'Its services were stopped when you signed out and are starting again. This usually takes a minute or two; the app opens by itself when ready.'
+          : 'Building and starting its services on this machine. The first install can take 20–40 minutes; keep this page open and it opens by itself when ready.',
+        body: '<div class="inst"><div class="inst-msg" role="status">Starting…</div><pre class="inst-log" aria-label="Installation log"></pre></div>',
+      });
+      const started = Date.now();
+      const tick = async () => {
+        const box = root.querySelector('.inst');
+        if (!box) return;                                // another screen took over
+        const st = await editionState();
+        const mins = Math.floor((Date.now() - started) / 60000);
+        if (st?.status === 'ready') { location.reload(); return; }
+        if (st?.status === 'stopped' && st.editions?.length) { startEdition(); return; }
+        if (st?.status === 'failed') { screens.edition({ failed: st.message || 'The installation failed.' }); return; }
+        box.querySelector('.inst-msg').textContent = `${st?.message || 'Installing…'} · ${mins} min`;
+        const pre = box.querySelector('.inst-log');
+        pre.textContent = (st?.log || []).slice(-8).join('\n');
+        pre.scrollTop = pre.scrollHeight;
+        setTimeout(tick, 3000);
+      };
+      tick();
+    },
+
     offline() {
       const form = card({
         title: 'Connect to renew your license',
@@ -581,5 +803,5 @@
     window.addEventListener('online', () => { if (current) flushQueue(current).catch(() => {}); });
   }
 
-  window.DEAuth = { start, signOut, user: () => current?.user || null };
+  window.DEAuth = { start, signOut, changeEdition, user: () => current?.user || null };
 })();

@@ -108,6 +108,18 @@
   .af-alert { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
   .af-note { background: var(--orange-50); color: var(--text-2); border: 1px solid #fed7aa; }
   .af-alert[hidden], .af-note[hidden] { display: none; }
+  .ed-choice { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .ed-choice legend { margin-bottom: 6px; }
+  .ed-opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line);
+            border-radius: 10px; cursor: pointer; }
+  .ed-opt:has(input:checked) { border-color: var(--orange); background: var(--orange-50); }
+  .ed-opt input { margin: 3px 0 0; accent-color: var(--orange); flex-shrink: 0; }
+  .ed-opt span { display: flex; flex-direction: column; gap: 2px; font-size: 13.5px; color: var(--text); }
+  .ed-opt small { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+  .inst { display: flex; flex-direction: column; gap: 8px; }
+  .inst-msg { font-size: 13px; font-weight: 600; color: var(--text-2); }
+  .inst-log { margin: 0; max-height: 160px; overflow: auto; padding: 10px; border-radius: 8px; background: #0f172a; color: #cbd5e1;
+              font: 11.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; word-break: break-word; }
   .auth-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; font-size: 13px; color: var(--muted); }
   .link { border: 0; background: none; padding: 0; font: inherit; color: var(--orange-600); font-weight: 600; cursor: pointer; }
   .link:hover { text-decoration: underline; }
@@ -333,7 +345,7 @@
   <div class="main">
     <header id="topbar">
       <div class="de-mark" title="Developer Edition: for personal development and evaluation only. Not for production use.">
-        <span class="de-badge">Developer Edition</span>
+        <span class="de-badge" id="de-badge">Developer Edition</span>
         <span class="de-note">For personal development and evaluation only · Not for production use</span>
       </div>
       <div class="head-right">
@@ -350,6 +362,7 @@
               <div class="m-email" id="m-email"></div>
             </div>
             <div class="menu-row"><svg class="i"><use href="#i-shield-check"/></svg><span id="m-edition">Developer Edition / Developer</span></div>
+            <button class="menu-row menu-item" id="change-edition" type="button" role="menuitem"><svg class="i"><use href="#i-boxes"/></svg>Change edition</button>
             <div class="menu-sep"></div>
             <button class="menu-row menu-item danger" id="sign-out" type="button" role="menuitem"><svg class="i"><use href="#i-logout"/></svg>Sign out</button>
           </div>
@@ -409,17 +422,25 @@
   <div id="auth-root"></div>
 </div>
 
+<script src="/edition.js"></script>
 <script src="/auth.js"></script>
 <script>
   // Each product is served by the gateway on its own port and opens inside the shell.
   const port = (p) => `${location.protocol}//${location.hostname}:${p}/`;
+  // Editions running here (COMPOSE_PROFILES via /edition.js): "data", "agent" or both. Each product,
+  // tile, meter and infrastructure row belongs to one edition, or to the core both share (ed: 'core').
+  const EDITIONS = String(window.DE_EDITION || 'data,agent').split(',').map((s) => s.trim());
+  const HAS = { core: true, data: EDITIONS.includes('data'), agent: EDITIONS.includes('agent') };
+  const EDITION_NAME = HAS.data && HAS.agent ? 'Developer Edition'
+    : HAS.data ? 'Data Developer Edition' : 'Agent & Model Developer Edition';
   const APPS = [
-    { key: 'data-connect', title: 'Data Connect',     desc: 'Ingestion pipelines and connectors',            icon: 'cable',        url: port(8101) },
-    { key: 'ml-studio',    title: 'ML Studio',        desc: 'Datasets, models and transformers',             icon: 'boxes',        url: port(8105) },
-    { key: 'ucs',          title: 'UCS',              desc: 'Unified data catalog and lineage',              icon: 'library',      url: port(8103) },
-    { key: 'workspace',    title: 'Workspace',        desc: 'Collaborative workspace',                       icon: 'notebook-pen', url: port(8102) },
-    { key: 'agents',       title: 'Agentic Workflow', desc: 'Build, run and monitor AI agents and workflows', icon: 'workflow',     url: port(8104) },
-  ];
+    { key: 'data-connect', ed: 'data',  title: 'Data Connect',     desc: 'Ingestion pipelines and connectors',            icon: 'cable',        url: port(8101) },
+    { key: 'ml-studio',    ed: 'agent', title: 'ML Studio',        desc: 'Datasets, models and transformers',             icon: 'boxes',        url: port(8105) },
+    { key: 'workspace',    ed: 'data',  title: 'Workspace',        desc: 'Collaborative workspace',                       icon: 'notebook-pen', url: port(8102) },
+    { key: 'agents',       ed: 'agent', title: 'Agentic Workflow', desc: 'Build, run and monitor AI agents and workflows', icon: 'workflow',     url: port(8104) },
+  ].filter((a) => HAS[a.ed]);
+  const hasApp = (key) => APPS.some((a) => a.key === key);
+  document.getElementById('de-badge').textContent = EDITION_NAME;
   const icon = (id, cls = 'i') => `<svg class="${cls}"><use href="#i-${id}"/></svg>`;
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -431,7 +452,7 @@
   // ── Dashboard: live status of the local stack ─────────────────────────────
   const $ = (id) => document.getElementById(id);
   let me = {};
-  const PROBE = { 'data-connect': 'dataconnect', 'ml-studio': 'mlstudio', ucs: 'ucs', workspace: 'workspace', agents: 'agents' };
+  const PROBE = { 'data-connect': 'dataconnect', 'ml-studio': 'mlstudio', workspace: 'workspace', agents: 'agents' };
   const pill = (cls, text) => `<span class="pill ${cls}">${esc(text)}</span>`;
   const plural = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`;
 
@@ -444,22 +465,25 @@
     { id: 'flink',      label: 'Flink jobs',    icon: 'zap',        route: 'workspace' },
     { id: 'agents',     label: 'Agents',        icon: 'bot',        route: 'agents' },
     { id: 'models',     label: 'Deployed models', icon: 'brain', route: 'ml-studio' },
-  ];
+  ].filter((r) => hasApp(r.route));
   $('resources').innerHTML = RES.map((r) => `
     <button class="panel res-tile" type="button" data-route="${r.route}" title="Open ${esc(APPS.find((a) => a.key === r.route).title)}">
       <span class="k">${icon(r.icon)}${esc(r.label)}</span>
       <span class="v" id="rv-${r.id}">—</span><span class="s" id="rs-${r.id}">&nbsp;</span>
     </button>`).join('');
-  const setRes = (id, value, sub) => { $(`rv-${id}`).textContent = value; $(`rs-${id}`).textContent = sub || '\u00a0'; };
+  const setRes = (id, value, sub) => {
+    if (!$(`rv-${id}`)) return;                       // tile belongs to an edition that is not running
+    $(`rv-${id}`).textContent = value; $(`rs-${id}`).textContent = sub || '\u00a0';
+  };
   const list = (res) => (res.ok && Array.isArray(res.body) ? res.body : null);
   const down = (res) => `Unavailable${res.status ? ` (HTTP ${res.status})` : ''}`;
 
   // Usage limits: Developer Edition caps (DE_LIMIT_* in .env) against live counts.
   const USAGE = [
-    { id: 'connectors',  label: 'Connectors' },
-    { id: 'workspaces',  label: 'Workspaces' },
-    { id: 'deployments', label: 'Deployed agents and models' },
-  ];
+    { id: 'connectors',  ed: 'data',  label: 'Connectors' },
+    { id: 'workspaces',  ed: 'data',  label: 'Workspaces' },
+    { id: 'deployments', ed: 'agent', label: 'Deployed agents and models' },
+  ].filter((u) => HAS[u.ed]);
   $('usage').style.cssText = 'display:flex;flex-direction:column;gap:14px';
   $('usage').innerHTML = USAGE.map((u) => `
     <div class="meter"><div class="top"><span>${esc(u.label)}</span><span class="c" id="uc-${u.id}">— of —</span></div>
@@ -467,6 +491,7 @@
   function setUsage(id, n) {
     const limit = Number(me.limits?.[id]) || 0;
     const bar = $(`ub-${id}`);
+    if (!bar) return;                                  // meter belongs to an edition that is not running
     $(`uc-${id}`).textContent = `${n === null ? '—' : n} of ${limit || '∞'}`;
     const pct = n === null || !limit ? 0 : Math.min(100, (n / limit) * 100);
     bar.firstElementChild.style.width = `${pct}%`;
@@ -520,16 +545,20 @@
     if (busy) return;
     busy = true;
     try {
+    // Only the APIs of the editions running here are called; the rest answer "not here" without a request.
+    const NONE = Promise.resolve({ ok: false, status: 0, body: null });
+    const when = (cond, path) => (cond ? get(path) : NONE);
     const [probes, flow, pipelines, workspaces, infraProbes, jobs, flinkJobs, agentList, deployments] = await Promise.all([
       Promise.all(APPS.map((a) => get(`/probe/${PROBE[a.key]}`))),
-      get('/dataconnect-api/runtime/flow'),
-      get('/dataconnect-api/pipelines'),
-      get('/workspace-api/workspaces'),
-      Promise.all(['kafka-connect', 'schema-registry', 'gravitino', 'dagster', 'flink', 'minio', 'dataquality'].map((p) => get(`/probe/${p}`))),
-      get('/workspace-api/dbt/projects'),
-      get('/workspace-api/flink/jobs'),
-      get('/agents-api/agents?limit=500'),
-      get('/mlstudio-api/deployments'),
+      when(HAS.data, '/dataconnect-api/runtime/flow'),
+      when(HAS.data, '/dataconnect-api/pipelines'),
+      when(HAS.data, '/workspace-api/workspaces'),
+      Promise.all(['kafka-connect', 'schema-registry', 'dagster', 'flink', 'minio', 'dataquality']
+        .map((p) => when(HAS.data || p === 'minio', `/probe/${p}`))),
+      when(HAS.data, '/workspace-api/dbt/projects'),
+      when(HAS.data, '/workspace-api/flink/jobs'),
+      when(HAS.agent, '/agents-api/agents?limit=500'),
+      when(HAS.agent, '/mlstudio-api/deployments'),
     ]);
 
     // Products
@@ -542,24 +571,27 @@
     $('st-products').textContent = `${healthy} of ${APPS.length} healthy`;
 
     // Infrastructure: each row is a real probe (or a check another service reports).
-    const dcReady = probes[APPS.findIndex((a) => a.key === 'data-connect')].body?.checks || {};
-    const agentsReady = probes[APPS.findIndex((a) => a.key === 'agents')].body?.checks || {};
-    const [kc, sr, grav, dag, flink, minio, dq] = infraProbes;
+    const probeOf = (key) => probes[APPS.findIndex((a) => a.key === key)];
+    const dcReady = probeOf('data-connect')?.body?.checks || {};
+    const agentsReady = probeOf('agents')?.body?.checks || {};
+    // Postgres as one of the products reports it (DataConnect in Data, Agents in Agent & Model).
+    const pgOk = dcReady.postgres ? !!dcReady.postgres.ok
+      : agentsReady.postgres ? agentsReady.postgres.status === 'ok' : undefined;
+    const [kc, sr, dag, flink, minio, dq] = infraProbes;
     const P = me.ports || {};
     const st = (ok) => ok === undefined ? '' : ok ? 'ok' : 'bad';
     const open = (p) => p ? `<a href="${location.protocol}//${location.hostname}:${esc(p)}/" target="_blank" rel="noopener" title="Open UI">${esc(p)} ↗</a>` : '';
     const infra = [
-      ['Kafka', 'single broker', st(kc.ok && !!kc.body?.kafka_cluster_id), esc(P.kafka || '9092')],
-      ['Kafka Connect', kc.body?.version ? `v${kc.body.version}` : '', st(kc.ok), ''],
-      ['Schema Registry', '', st(sr.ok), ''],
-      ['PostgreSQL', 'per-product databases', st(dcReady.postgres ? !!dcReady.postgres.ok : undefined), esc(P.postgres || '55432')],
-      ['Temporal', 'agent workflows', st(agentsReady.temporal ? agentsReady.temporal.status === 'ok' : undefined), ''],
-      ['Gravitino', grav.body?.version?.version ? `v${grav.body.version.version}` : 'catalog', st(grav.ok), ''],
-      ['Dagster', dag.body?.dagster_version ? `v${dag.body.dagster_version}` : '', st(dag.ok), open(P.dagster)],
-      ['Flink SQL', flink.body?.['flink-version'] ? `v${flink.body['flink-version']} · ${plural(flink.body['jobs-running'] ?? 0, 'job')}` : '', st(flink.ok), open(P.flink)],
-      ['MinIO', 'object storage', st(minio.ok), ''],
-      ['Data Quality', '', st(dq.ok), ''],
-    ];
+      ['data',  'Kafka', 'single broker', st(kc.ok && !!kc.body?.kafka_cluster_id), esc(P.kafka || '9092')],
+      ['data',  'Kafka Connect', kc.body?.version ? `v${kc.body.version}` : '', st(kc.ok), ''],
+      ['data',  'Schema Registry', '', st(sr.ok), ''],
+      ['core',  'PostgreSQL', 'per-product databases', st(pgOk), esc(P.postgres || '55432')],
+      ['agent', 'Temporal', 'agent workflows', st(agentsReady.temporal ? agentsReady.temporal.status === 'ok' : undefined), ''],
+      ['data',  'Dagster', dag.body?.dagster_version ? `v${dag.body.dagster_version}` : '', st(dag.ok), open(P.dagster)],
+      ['data',  'Flink SQL', flink.body?.['flink-version'] ? `v${flink.body['flink-version']} · ${plural(flink.body['jobs-running'] ?? 0, 'job')}` : '', st(flink.ok), open(P.flink)],
+      ['core',  'MinIO', 'object storage', st(minio.ok), ''],
+      ['data',  'Data Quality', '', st(dq.ok), ''],
+    ].filter((r) => HAS[r[0]]).map((r) => r.slice(1));
     const label = { ok: 'Running', bad: 'Down', '': 'Unknown' };
     $('infra').innerHTML = infra.map(([n, d, s, p]) => `
       <div class="svc"><span class="dot ${s}" title="${label[s]}" aria-label="${label[s]}"></span>
@@ -681,6 +713,7 @@
     },
   });
   $('sign-out').addEventListener('click', () => { setMenu(false); DEAuth.signOut(); });
+  $('change-edition').addEventListener('click', () => { setMenu(false); DEAuth.changeEdition(); });
 
   // Each product's account menu (DeveloperUserMenu) talks to the shell: it asks who is signed in, and its
   // Sign out signs out of Developer Edition here. Only the products' own origins are listened to.

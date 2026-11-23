@@ -1,0 +1,52 @@
+# Developer Edition: Flink configuration for the in-container cluster of the Flink SQL runner.
+# Mounted over the product's docker/flink-conf.yaml (docker-compose.yml, flinksql-runner), which sizes
+# the cluster for a server (JobManager 1600m + TaskManager 2048m). A developer runs a few small jobs,
+# so every memory pool is set explicitly to laptop sizes. Everything else matches the product file.
+
+# ── JobManager: 448m = heap 192 + off-heap 64 + metaspace 128 + overhead 64 ─────────────────────────
+jobmanager.rpc.address: localhost
+jobmanager.bind-host: localhost
+jobmanager.rpc.port: 6123
+jobmanager.memory.process.size: 448m
+jobmanager.memory.off-heap.size: 64m
+jobmanager.memory.jvm-metaspace.size: 128m
+jobmanager.memory.jvm-overhead.min: 64m
+jobmanager.memory.jvm-overhead.max: 64m
+
+# ── TaskManager: 640m = task heap 224 + framework heap 64 + framework off-heap 64 + network 32
+#    + managed 64 + metaspace 128 + overhead 64 (state backend is hashmap, so managed memory stays small)
+taskmanager.bind-host: localhost
+taskmanager.host: localhost
+taskmanager.memory.process.size: 640m
+taskmanager.memory.framework.heap.size: 64m
+taskmanager.memory.framework.off-heap.size: 64m
+taskmanager.memory.network.min: 32m
+taskmanager.memory.network.max: 32m
+taskmanager.memory.managed.size: 64m
+taskmanager.memory.jvm-metaspace.size: 128m
+taskmanager.memory.jvm-overhead.min: 64m
+taskmanager.memory.jvm-overhead.max: 64m
+taskmanager.numberOfTaskSlots: 2
+parallelism.default: 1
+
+# ── JVM options ───────────────────────────────────────────────────────────────────────────────────
+# Serial GC: the smallest footprint for one developer's small jobs (G1, the default, reserves more).
+# The SQL Gateway has no memory setting of its own, so its heap is capped here.
+env.java.opts.all: -XX:+UseSerialGC
+env.java.opts.sql-gateway: -Xms64m -Xmx160m -XX:MaxMetaspaceSize=128m -XX:+UseSerialGC
+
+# ── REST / Web UI (JobManager) ───────────────────────────────────────────────────────────────────
+rest.address: localhost
+rest.bind-address: 0.0.0.0
+rest.port: 8081
+
+# ── Checkpointing / state (local filesystem) ─────────────────────────────────────────────────────
+execution.checkpointing.interval: 10s
+state.backend: hashmap
+state.checkpoints.dir: file:///tmp/flink-checkpoints
+state.savepoints.dir: file:///tmp/flink-savepoints
+
+# ── SQL Gateway ──────────────────────────────────────────────────────────────────────────────────
+sql-gateway.endpoint.rest.address: 0.0.0.0
+sql-gateway.endpoint.rest.port: 8083
+sql-gateway.session.idle-timeout: 30min
