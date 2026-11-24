@@ -1,5 +1,0 @@
-order-1001,paid,49.90
-order-1002,pending,12.00
-order-1003,paid,310.50
-order-1004,paid,89.00
-order-1005,pending,15.25

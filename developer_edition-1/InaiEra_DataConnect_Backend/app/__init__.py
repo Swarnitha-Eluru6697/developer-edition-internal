@@ -1,2 +1,0 @@
-"""InaiEra DataConnect backend package."""
-

@@ -71,7 +71,11 @@ COPY requirements-training.txt ./
 # CPU-only torch first: on x86_64 the PyPI torch wheel pulls the NVIDIA CUDA libraries (several GB) that this
 # CPU image never uses, and the extra space ran Docker Desktop's disk out mid-build on smaller machines. With torch
 # already installed, the requirements below (torch>=2.2, and everything that depends on it) keep this one.
-RUN pip3 install --no-cache-dir --break-system-packages --index-url https://download.pytorch.org/whl/cpu torch
+# --extra-index-url, not --index-url: torch's own dependencies must still come from PyPI. With the PyTorch index
+# alone, Debian's pip 23 rejects that index's typing_extensions wheel (name mismatch), falls back to building it
+# from source, and fails ("No matching distribution found for flit_core"). The +cpu build still wins: its
+# version (2.x.y+cpu) sorts above PyPI's 2.x.y.
+RUN pip3 install --no-cache-dir --break-system-packages --extra-index-url https://download.pytorch.org/whl/cpu torch
 RUN pip3 install --no-cache-dir --break-system-packages -r requirements-training.txt
 
 # Kokoro (text-to-speech) tags English with spaCy's en_core_web_sm and, if it is missing, tries to

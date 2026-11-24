@@ -1,1 +1,0 @@
-export { AlertsPanel } from "./AlertsPanel";

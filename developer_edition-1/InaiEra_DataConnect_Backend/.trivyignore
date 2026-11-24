@@ -1,3 +1,0 @@
-# Accepted, time-boxed vulnerability exceptions for `aquasecurity/trivy-action` (see docs/SUPPLY_CHAIN.md).
-# One per line:  <CVE-ID>   # reason — owner — expires YYYY-MM-DD.  An expired entry must be re-justified or removed.
-# (none at present)

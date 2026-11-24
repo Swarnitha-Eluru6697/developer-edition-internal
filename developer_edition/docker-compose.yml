@@ -105,6 +105,8 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+      # One broker's metadata: a small heap (the image default is 512 MB).
+      KAFKA_HEAP_OPTS: "-Xms32M -Xmx128M"
     volumes:
       - zookeeper-data:/var/lib/zookeeper/data
       - zookeeper-log:/var/lib/zookeeper/log
@@ -134,7 +136,8 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_HEAP_OPTS: "-Xms256M -Xmx1G"
+      # Sized for an 8 GB machine: a developer's few topics need far less than the 1 GB it had.
+      KAFKA_HEAP_OPTS: "-Xms128M -Xmx384M"
     volumes: [kafka-data:/var/lib/kafka/data]
     healthcheck:
       test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
@@ -153,7 +156,7 @@ services:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:29092
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
-      SCHEMA_REGISTRY_HEAP_OPTS: "-Xms256M -Xmx512M"
+      SCHEMA_REGISTRY_HEAP_OPTS: "-Xms64M -Xmx192M"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8081/subjects"]
       interval: 15s
@@ -174,9 +177,10 @@ services:
       kafka: { condition: service_healthy }
       schema-registry: { condition: service_healthy }
     environment:
-      # 1 GB heap is ample for a developer's handful of connectors. At 2 GB it grew past what an
-      # 8 GB Docker VM has left with the whole stack running, and the kernel OOM-killed it (exit 137).
-      KAFKA_HEAP_OPTS: "-Xms256M -Xmx1G -XX:+ExitOnOutOfMemoryError"
+      # A developer's handful of connectors fits in 640 MB. Larger heaps grew past what an 8 GB machine's Docker
+      # VM has left with the whole stack running, and the kernel OOM-killed it (exit 137). Override with
+      # DE_CONNECT_HEAP if many connectors run at once.
+      KAFKA_HEAP_OPTS: "-Xms128M -Xmx${DE_CONNECT_HEAP:-640M} -XX:+ExitOnOutOfMemoryError"
       CONNECT_BOOTSTRAP_SERVERS: kafka:29092
       CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
       CONNECT_REST_PORT: 8083
@@ -206,7 +210,8 @@ services:
     profiles: [data]
     <<: [*restart, *logging]
     image: prom/prometheus:v2.54.1
-    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=7d"]
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=3d",
+              "--storage.tsdb.retention.size=256MB"]
     volumes:
       - ./devedition/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
@@ -263,6 +268,7 @@ services:
     build: ./InaiEra_workspace_backend/docker/jwks
     image: inaiera-de/jwks:local
     environment:
+      MALLOC_ARENA_MAX: "2"          # fewer glibc malloc arenas: much less idle memory per Python service
       # The dev token is also accepted by the dbt and FlinkSQL runners: Data Quality forwards it when it looks up the
       # job a binding attaches to. Everything here listens only inside this single-user, localhost-only stack.
       DEV_JWT_AUD: workspace.inaiera,dbtrunner,flinksql-runner
@@ -289,6 +295,7 @@ services:
     image: inaiera-de/dataconnect:local
     volumes: [file-connector-data:/tmp/file-connector]
     environment:
+      MALLOC_ARENA_MAX: "2"          # fewer glibc malloc arenas: much less idle memory per Python service
       # Single-user development mode: one fixed principal holding every dataconnect:* permission.
       DATACONNECT_ENV: development
       DATACONNECT_DEV_PERMISSIONS: all
@@ -343,6 +350,7 @@ services:
       redis: { condition: service_healthy }
       minio-init: { condition: service_completed_successfully }
     environment:
+      MALLOC_ARENA_MAX: "2"          # fewer glibc malloc arenas: much less idle memory per Python service
       ENVIRONMENT: dev
       ORG_ID: local-dev
       TRUST_ENVOY_HEADERS: "true"
@@ -398,6 +406,7 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
     environment:
+      MALLOC_ARENA_MAX: "2"          # fewer glibc malloc arenas: much less idle memory per Python service
       LAKEHOUSE_PG_DSN: postgresql://workspace:${DE_DB_PASSWORD}@postgres:5432/workspace
     volumes:
       - ./InaiEra_workspace_backend/docker/lakehouse_stub.py:/app/lakehouse_stub.py:ro
@@ -427,6 +436,7 @@ services:
       redis: { condition: service_healthy }
       jwks: { condition: service_healthy }
     environment:
+      MALLOC_ARENA_MAX: "2"          # fewer glibc malloc arenas: much less idle memory per Python service
       ENVIRONMENT: dev
       ORG_ID: local-dev
       DATABASE_URL: postgresql+asyncpg://dataquality:${DE_DB_PASSWORD}@postgres:5432/dataquality
@@ -467,6 +477,7 @@ services:
       postgres: { condition: service_healthy }
       jwks: { condition: service_healthy }
     environment:
+      MALLOC_ARENA_MAX: "2"          # fewer glibc malloc arenas: much less idle memory per Python service
       ENVIRONMENT: dev
       ORG_ID: local-dev
       DATABASE_URL: postgresql+asyncpg://dbtrunner:${DE_DB_PASSWORD}@postgres:5432/dbtrunner
@@ -506,6 +517,7 @@ services:
       jwks: { condition: service_healthy }
     ports: ["127.0.0.1:${DE_FLINK_UI_PORT:-8181}:8081"]
     environment:
+      MALLOC_ARENA_MAX: "2"          # fewer glibc malloc arenas: much less idle memory per Python service
       ENVIRONMENT: dev
       ORG_ID: local-dev
       DATABASE_URL: postgresql+asyncpg://flinksql:${DE_DB_PASSWORD}@postgres:5432/flinksql
@@ -539,6 +551,7 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
     environment: &dagster-env
+      MALLOC_ARENA_MAX: "2"          # fewer glibc malloc arenas: much less idle memory per Python service
       DAGSTER_HOME: /dagster-config
       DAGSTER_DEPLOYMENT_TARGET: local
       DAGSTER_PG_HOST: postgres
@@ -619,6 +632,7 @@ services:
     user: "0:0"                     # Code-node sandbox needs root + SYS_ADMIN (unshare/mount)
     cap_add: [SYS_ADMIN]
     environment: &agents-env
+      MALLOC_ARENA_MAX: "2"          # fewer glibc malloc arenas: much less idle memory per Python service
       DATABASE_URL: postgresql://inaiera:${DE_DB_PASSWORD}@postgres:5432/inaiera_agents
       TEMPORAL_ADDRESS: temporal:7233
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
@@ -690,7 +704,9 @@ services:
     image: inaiera-de/mlstudio:local
     # Training runs and model servers (incl. LLMs, which load as float32 on CPU) run inside this container.
     # The cap makes a model that does not fit fail on its own instead of the kernel killing another service.
-    mem_limit: 7g
+    # 4 GB fits an 8 GB machine (a 0.5B LLM fine-tune peaks at about 3.4 GB); raise DE_MLSTUDIO_MEM_LIMIT on a
+    # bigger machine to train larger models.
+    mem_limit: ${DE_MLSTUDIO_MEM_LIMIT:-4g}
     depends_on:
       postgres: { condition: service_healthy }
       minio-init: { condition: service_completed_successfully }
@@ -804,7 +820,11 @@ services:
       DE_ORGANIZATION: ${DE_ORGANIZATION:-Developer Edition}
       # Sign-up / sign-in against the hosted Registration service (Plan of Execution: "First-run
       # sign-up"). DE_INSTALL_ID, DE_FINGERPRINT_HASH, DE_OS come from devedition/install-identity.sh.
-      DE_REGISTRATION_URL: ${DE_REGISTRATION_URL:-http://localhost:4102/v1}
+      # The browser calls /registration-api on this gateway, which forwards to the hosted service below.
+      DE_REGISTRATION_URL: ${DE_REGISTRATION_URL:-/registration-api}
+      DE_REGISTRATION_UPSTREAM: ${DE_REGISTRATION_UPSTREAM:-https://18.189.180.3/v1}
+      # Name the server's certificate is checked against (it is issued to inaiera.com, not to the IP address).
+      DE_REGISTRATION_TLS_NAME: ${DE_REGISTRATION_TLS_NAME:-inaiera.com}
       DE_APP_VERSION: ${DE_APP_VERSION:-v1.0.0}
       DE_INSTALL_ID: ${DE_INSTALL_ID:-}
       DE_FINGERPRINT_HASH: ${DE_FINGERPRINT_HASH:-}
@@ -835,6 +855,8 @@ services:
     volumes:
       - ./devedition/gateway/default.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./devedition/gateway/15-dq-token.envsh:/docker-entrypoint.d/15-dq-token.envsh:ro
+      - ./devedition/gateway/16-registration-ca.envsh:/docker-entrypoint.d/16-registration-ca.envsh:ro
+      - ./devedition/gateway/registration-server.pem:/etc/nginx/registration-server.pem:ro
       - ./devedition/gateway/html:/usr/share/nginx/html:ro
       - jwks-data:/jwks:ro
     ports:

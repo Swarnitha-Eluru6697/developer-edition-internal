@@ -1,0 +1,10 @@
+#!/bin/sh
+# Sourced by the nginx image before it renders the templates: builds the certificates the gateway trusts when it
+# forwards /registration-api/ to the hosted Registration service. The usual public certificate authorities, plus the
+# certificate that server uses today (registration-server.pem, self-signed), so it is checked rather than skipped.
+CA=/tmp/registration-ca.pem
+cat /etc/ssl/certs/ca-certificates.crt > "$CA" 2>/dev/null || : > "$CA"
+if [ -s /etc/nginx/registration-server.pem ]; then
+  cat /etc/nginx/registration-server.pem >> "$CA"
+  echo "$0: trusting the Registration service's certificate"
+fi

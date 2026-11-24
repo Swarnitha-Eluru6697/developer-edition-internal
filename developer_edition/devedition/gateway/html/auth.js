@@ -161,6 +161,24 @@
       <small class="af-err" id="err-edition" data-err="edition"></small>
     </fieldset>`;
 
+  // Memory each choice needs while running (GB), and the note shown when Docker has less than that.
+  const NEED_GB = { data: 4.5, agent: 1.5, both: 6 };
+  /** Under each edition option, say when Docker (its VM on Docker Desktop) has less memory than it needs. */
+  async function markMemory(form) {
+    const st = await editionState();
+    const have = (st?.docker_memory || 0) / 1024 ** 3;
+    if (!have || !form.isConnected) return;
+    for (const input of form.querySelectorAll('input[name=edition]')) {
+      const need = NEED_GB[input.value];
+      if (!need || have >= need) continue;
+      const note = document.createElement('small');
+      note.className = 'ed-mem';
+      note.textContent = `Docker has ${have.toFixed(1)} GB of memory; this needs about ${need} GB. `
+        + 'Give Docker more memory (Docker Desktop › Settings › Resources) or pick a smaller edition.';
+      input.parentElement.querySelector('span')?.appendChild(note);
+    }
+  }
+
   const choiceOf = (editions) => {
     const e = [...(editions || [])].sort().join(',');
     return e === 'agent,data' ? 'both' : e === 'data' ? 'data' : e === 'agent' ? 'agent' : null;
@@ -504,6 +522,7 @@
         submit: 'Create account',
         links: `<span>Already have an account?</span> ${link('signin', 'Sign in')}`,
       });
+      markMemory(form).catch(() => {});
       on(form, 'signin', () => screens.signin({ email: form.elements.email.value }));
       onSubmit(form, async (v) => {
         const miss = {};
@@ -721,6 +740,7 @@
         submit: changing ? 'Apply' : 'Install',
         links: changing ? link('cancel', 'Cancel') : '',
       });
+      markMemory(form).catch(() => {});
       if (o.failed) showErr(form, { code: 'install_failed', message: o.failed });
       on(form, 'cancel', () => { overlay.hidden = true; });
       onSubmit(form, async (v) => {

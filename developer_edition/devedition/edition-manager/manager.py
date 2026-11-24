@@ -52,6 +52,43 @@ def edition_services(edition):
     return services(edition) - services()
 
 
+SEQUENTIAL_BUILD_BELOW = 12 * 1024 ** 3   # Docker memory under which images are built one at a time
+_mem = {"bytes": 0, "at": 0.0}
+
+
+def docker_memory():
+    """Memory Docker can use (its VM on Docker Desktop), in bytes; 0 when unknown. Cached for a minute."""
+    if time.time() - _mem["at"] > 60:
+        try:
+            out = subprocess.run(["docker", "info", "--format", "{{.MemTotal}}"],
+                                 capture_output=True, text=True, timeout=15).stdout.strip()
+            _mem.update(bytes=int(out or 0), at=time.time())
+        except Exception:  # noqa: BLE001
+            _mem.update(at=time.time())
+    return _mem["bytes"]
+
+
+def build_one_at_a_time(editions, wanted):
+    """Build each image on its own: building them all at once needs several GB more than a 4-6 GB Docker VM has."""
+    cmd, env = compose(*[a for e in editions for a in ("--profile", e)], "config", "--format", "json")
+    cfg = json.loads(subprocess.run(cmd, env=env, capture_output=True, text=True, check=True).stdout)
+    seen = set()
+    for name in wanted:
+        svc = cfg["services"].get(name) or {}
+        if not svc.get("build"):
+            continue
+        image = svc.get("image") or name
+        if image in seen:
+            continue
+        seen.add(image)
+        set_state(message=f"Building {image} ({len(seen)})")
+        cmd, env = compose(*[a for e in editions for a in ("--profile", e)], "build", name)
+        code = run(cmd, env)
+        if code != 0:
+            return code
+    return 0
+
+
 def missing_dockerfiles(editions, wanted):
     """Build files Docker cannot read for these services: [(service, path)]. Empty means all are there."""
     cmd, env = compose(*[a for e in editions for a in ("--profile", e)], "config", "--format", "json")
@@ -119,7 +156,16 @@ def install(editions, build=True):
         if others:
             cmd, env = compose(*[a for e in EDITIONS for a in ("--profile", e)], "stop", *others)
             run(cmd, env)
-        cmd, env = compose(*[a for e in editions for a in ("--profile", e)], "up", "-d", *(["--build"] if build else []), *wanted)
+        sequential = build and 0 < docker_memory() < SEQUENTIAL_BUILD_BELOW
+        if sequential:
+            log(f"Docker has {docker_memory() / 1024 ** 3:.1f} GB: building images one at a time")
+            code = build_one_at_a_time(editions, wanted)
+            if code != 0:
+                set_state(status="failed", message=f"Building failed (docker compose exited {code}); see the log")
+                return
+            set_state(message=f"Starting {' and '.join(NAMES[e] for e in editions)}: {len(wanted)} services")
+        cmd, env = compose(*[a for e in editions for a in ("--profile", e)], "up", "-d",
+                           *(["--build"] if build and not sequential else []), *wanted)
         code = run(cmd, env)
         if code != 0:
             set_state(status="failed", message=f"Installing failed (docker compose exited {code}); see the log")
@@ -222,7 +268,7 @@ class Handler(BaseHTTPRequestHandler):
         with _lock:
             snap = dict(_state, log=list(_state["log"]))
         if self.path == "/edition":
-            return self._send(200, snap)
+            return self._send(200, dict(snap, docker_memory=docker_memory()))
         if self.path == "/edition.js":
             eds = ",".join(snap["editions"]) if snap["status"] == "ready" else ""
             return self._send(200, f"window.DE_EDITION = {json.dumps(eds)};\n", "application/javascript")

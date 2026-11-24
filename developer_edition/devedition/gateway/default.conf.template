@@ -44,8 +44,24 @@ server {
     add_header Cache-Control "no-store";
   }
 
-  # This installation's identity and where the hosted Registration service is (sign-up, sign-in,
-  # check-in). The shell calls that service directly over HTTPS; its CORS allows this origin.
+  # The hosted Registration service (sign-up, sign-in, check-in, license key), forwarded from this origin so the
+  # browser never meets that server's certificate (self-signed today) or needs its CORS. The gateway checks the
+  # certificate against /tmp/registration-ca.pem (public CAs + devedition/gateway/registration-server.pem) under
+  # DE_REGISTRATION_TLS_NAME. The server sees this machine's own public address, as with a direct call.
+  location /registration-api/ {
+    proxy_pass ${DE_REGISTRATION_UPSTREAM}/;
+    proxy_ssl_server_name on;
+    proxy_ssl_name ${DE_REGISTRATION_TLS_NAME};
+    proxy_ssl_verify on;
+    proxy_ssl_verify_depth 3;
+    proxy_ssl_trusted_certificate /tmp/registration-ca.pem;
+    proxy_set_header Host $proxy_host;
+    proxy_connect_timeout 10s; proxy_read_timeout 30s;
+    add_header Cache-Control "no-store";
+  }
+
+  # This installation's identity and where the Registration service is (sign-up, sign-in, check-in):
+  # /registration-api above unless DE_REGISTRATION_URL names another address.
   location = /install.json {
     default_type application/json;
     add_header Cache-Control "no-store";
