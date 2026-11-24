@@ -227,7 +227,10 @@ services:
     <<: [*restart, *logging]
     # Started with an edition (after sign-up), not before: both editions use it.
     profiles: [data, agent]
-    image: minio/minio:latest
+    # MinIO no longer publishes images (Docker Hub minio/minio and minio/mc are gone, quay.io and
+    # dl.min.io too), so the free Chainguard build is used. It ships minio, mc and sh, so the
+    # healthcheck below and minio-init both run from this one image.
+    image: &minio-image cgr.dev/chainguard/minio:latest
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${DE_MINIO_USER:-inaiera}
@@ -242,7 +245,7 @@ services:
     <<: *logging
     # Started with an edition (after sign-up), not before: both editions use it.
     profiles: [data, agent]
-    image: minio/mc:latest
+    image: *minio-image
     depends_on:
       minio: { condition: service_healthy }
     entrypoint:

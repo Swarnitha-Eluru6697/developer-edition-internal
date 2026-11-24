@@ -52,3 +52,4 @@ chmod 600 "$ENV_FILE"
 echo "Generated $filled secret(s)"
 
 sh "$HERE/install-identity.sh" "$ENV_FILE"
+sh "$HERE/prepare-vendor.sh"
