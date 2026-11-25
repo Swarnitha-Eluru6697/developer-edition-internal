@@ -846,9 +846,9 @@ services:
       DE_LIMIT_CONNECTORS: ${DE_LIMIT_CONNECTORS:-10}
       DE_LIMIT_WORKSPACES: ${DE_LIMIT_WORKSPACES:-3}
       DE_LIMIT_DEPLOYMENTS: ${DE_LIMIT_DEPLOYMENTS:-5}
-      DE_SLACK_URL: ${DE_SLACK_URL:-}
-      DE_DOCS_URL: ${DE_DOCS_URL:-}
-      DE_ISSUES_URL: ${DE_ISSUES_URL:-}
+      DE_SLACK_URL: ${DE_SLACK_URL:-https://aadhyaanalytics.slack.com/archives/C0CGXTFUBPV}
+      DE_DOCS_URL: ${DE_DOCS_URL:-https://github.com/Swarnitha-Eluru6697/developer-edition-external-test#readme}
+      DE_ISSUES_URL: ${DE_ISSUES_URL:-https://github.com/Swarnitha-Eluru6697/developer-edition-external-test/issues}
       # Host ports shown on the dashboard's Infrastructure table.
       DE_PG_PORT: ${DE_PG_PORT:-55432}
       DE_KAFKA_PORT: ${DE_KAFKA_PORT:-9092}
