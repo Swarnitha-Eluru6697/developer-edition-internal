@@ -1,0 +1,1246 @@
+@import "./fonts/fonts.css";
+
+:root{
+  /* Platform palette — same tokens as the Unified Catalog (InAIEra design
+     system): white/gray surfaces, gray text, ORANGE as the one accent.
+     --navy is the dark TEXT token (and dark chip/toast surface), not a blue.
+     --teal is the accent FILL (buttons, active rails); --teal-d is hover AND
+     the on-white TEXT shade — #0A7D5A on white fails AA for text, #086347
+     passes, so text must never use the fill value. */
+  --navy:#14201B; --navy-2:#0F1A15; --navy-700:#2E3D36; --ink:#14201B; --mute:#5B6D62; --faint:#73827A;
+  --paper:#F8FAF9; --card:#FFFFFF; --line:#E3E8E2; --line-2:#EEF2ED;
+  --teal:#0A7D5A; --teal-d:#086347; --teal-t:#E3F6EA;
+  --purple:#5B4EA6; --purple-t:#EDEBF7;
+  --amber:#F59E0B; --amber-d:#A8470A; --amber-t:#FDEBDD;
+  --red:#EF4444; --red-d:#B23B3B; --red-t:#FBE9E9; --green:#22C55E; --green-d:#2F6B14; --green-t:#EAF3E1;
+  --slate:#5B6D62; --slate-t:#EEF2ED;
+  --blue:#1D5FBF; --blue-t:#E6EEFA;
+  /* aliases some components reference */
+  --danger:var(--red-d); --amber-text:var(--amber-d);
+  --shadow:0 1px 2px rgba(11,59,46,.06),0 8px 24px rgba(11,59,46,.06);
+  --shadow-lg:0 12px 40px rgba(11,59,46,.18);
+  --r:11px; --r-s:8px;
+  --disp:Inter,system-ui,sans-serif;
+  --body:"Inter",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+/* The document itself never scrolls — every scroll in the app is an inner
+   scroll owned by a bounded container (.main for page content, .sidebar,
+   drawers, panels). Without this, tall page content could grow the body
+   and produce a second, outer scrollbar alongside the inner one. */
+html,body{overflow:hidden}
+
+/* Hidden-but-functional scrollbars, app-wide. Scrolling (wheel, trackpad,
+   keyboard, touch, programmatic scrollTo) is untouched; only the visual
+   scrollbar is removed. Both properties are needed: scrollbar-width for
+   Firefox, the ::-webkit-scrollbar pseudo-element for Chrome/Safari/Edge.
+   Add .show-scrollbar to opt a specific container back in. */
+*{scrollbar-width:none}
+*::-webkit-scrollbar{width:0;height:0}
+.show-scrollbar{scrollbar-width:auto}
+.show-scrollbar::-webkit-scrollbar{width:10px;height:10px}
+body{font-family:var(--body);color:var(--ink);background:var(--paper);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+svg{width:16px;height:16px;flex:none;vertical-align:middle}
+a{color:inherit;text-decoration:none}
+::selection{background:var(--amber-t)}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:4px}
+
+.app{display:grid;grid-template-columns:248px 1fr;grid-template-rows:56px 1fr;height:100vh;grid-template-areas:"brand top" "side main"}
+.topbar{grid-area:top;display:flex;align-items:center;gap:16px;padding:0 20px;background:var(--card);border-bottom:1px solid var(--line);z-index:20}
+.brandbar{grid-area:brand;display:flex;align-items:center;gap:10px;padding:0 18px;background:var(--card);color:var(--ink);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.brandbar .logo{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--teal),var(--teal-d));display:grid;place-items:center;color:#fff;font-family:var(--disp);font-weight:700;font-size:15px}
+.brandbar b{font-family:var(--disp);font-weight:600;font-size:15px;letter-spacing:.2px}
+.brandbar span{font-size:10px;color:var(--faint);font-weight:500;letter-spacing:.5px;text-transform:uppercase}
+
+.sidebar{grid-area:side;background:var(--card);color:var(--mute);border-right:1px solid var(--line);overflow-y:auto;min-height:0;overscroll-behavior:contain;padding:14px 12px 40px}
+.navgroup{margin-bottom:14px}
+.navgroup > .lbl{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding:8px 12px 6px;font-weight:600}
+.navitem{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:var(--mute);font-weight:500;font-size:13.5px;margin-bottom:2px;transition:background .12s,color .12s}
+.navitem svg{width:17px;height:17px;flex:none;opacity:.85}
+.navitem:hover{background:var(--line-2);color:var(--ink)}
+/* Selected page: tinted pill with a half stroke — a short accent rail on the
+   left edge that follows the pill's rounded corners. */
+.navitem.active{background:var(--teal-t);color:var(--teal-d);font-weight:600;box-shadow:inset 2px 0 0 var(--teal)}
+.navitem.active svg{opacity:1;color:var(--teal)}
+.navitem .count{margin-left:auto;font-family:var(--mono);font-size:11px;background:var(--line-2);padding:1px 7px;border-radius:20px;color:var(--mute)}
+.navitem .dot{margin-left:auto;width:7px;height:7px;border-radius:50%;background:var(--amber)}
+/* The open-alert count. Same shape as the agent count so the sidebar
+   stays uniform, but tinted: an agent tally is neutral information
+   while alerts waiting are work outstanding. */
+.navitem .count.alert{background:var(--red-t);color:var(--red-d)}
+.navitem.active .count.alert{background:var(--red-t);color:var(--red-d)}
+
+/* Top-bar search: one size across Agents, UCS and ML Studio — 520px wide (shrinks only
+   when the bar runs out of room), 38px tall. Keep the three in step. */
+.cmd{flex:0 1 520px;min-width:0;height:38px;box-sizing:border-box;display:flex;align-items:center;gap:9px;background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:0 12px;color:var(--mute)}
+.cmd svg{width:15px;height:15px}
+.cmd input{border:0;background:none;flex:1;min-width:0;font:inherit;font-size:13.5px;color:var(--ink);outline:none}
+.cmd kbd{font-family:var(--mono);font-size:11px;background:#fff;border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--faint)}
+.spacer{flex:1}
+.seg{display:flex;background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:3px}
+.seg button{padding:5px 11px;border-radius:6px;font-size:12.5px;font-weight:600;color:var(--mute);display:flex;align-items:center;gap:6px}
+.seg button .pd{width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.5}
+/* Segmented control. Active option: white chip, accent text, solid dot.
+   Inactive options: gray text, faded dot. */
+.seg button:hover:not(.on){color:var(--ink)}
+.seg button.on{background:var(--card);color:var(--teal-d);box-shadow:var(--shadow)}
+.seg button.on .pd{background:var(--teal);opacity:1}
+.iconbtn{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;color:var(--mute)}
+.iconbtn:hover{background:var(--paper)}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--slate-t);color:var(--slate);display:grid;place-items:center;font-weight:600;font-size:12px;font-family:var(--mono)}
+/* The portal's role strip (hosted only). One line at the right of the top bar:
+   it gives way to the search first, then scrolls sideways rather than wrap. */
+.rolebadges{flex:0 1 auto;min-width:0;max-width:60%;display:flex;align-items:center;white-space:nowrap;overflow-x:auto;overflow-y:hidden}
+.rolebadges > *{flex:none}
+
+.main{grid-area:main;overflow-y:auto;min-height:0;overscroll-behavior:contain}
+.wrap{max-width:1220px;margin:0 auto;padding:24px 28px 64px}
+.wrap.wide{max-width:1440px}
+/* Pinned page header: the title/eyebrow/subtitle/actions row stays put
+   while the page's content scrolls underneath it inside .main.
+   The negative top margin pulls the header up through .wrap's own 24px
+   top padding so it can pin flush against the scrollport, and that 24px
+   is re-added as the header's own padding — visually identical at rest,
+   but now the opaque background belongs to the sticky box, so content
+   scrolling past is covered instead of showing through the gap. The old
+   margin-bottom:20px becomes padding-bottom for the same reason.
+   .wrap keeps its padding-top for the few pages that render no PageHead
+   (e.g. the RAG knowledge-base detail view). */
+.pagehead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;position:sticky;top:0;z-index:15;background:var(--paper);margin:-24px 0 0;padding:24px 0 20px}
+
+/* A page's filter bar / tab strip pins directly under the pinned header.
+   --ph-h is the header's measured height, published by Shell in App.tsx.
+   Scoped to direct children of .wrap so the same .tabs class stays
+   ordinary inside NodePicker, drawers, modals and KnowledgeBaseDetail.
+   The box-shadow paints an opaque band the height of the element's own
+   margin-bottom, covering the gap content would otherwise show through
+   without moving the tab strip's border-bottom. */
+.wrap > .studio-filterbar,.wrap > .tabs:not(.inline){position:sticky;top:var(--ph-h,0px);z-index:14;background:var(--paper)}
+/* A SECONDARY tab bar partway down a page is not the page's own tab bar.
+   Without the exclusion it stuck to the header and its 20px shadow block
+   painted over the content directly beneath it. */
+.tabs.inline{margin-bottom:14px}
+.wrap > .studio-filterbar{box-shadow:0 18px 0 var(--paper)}
+/* A page's tab strip plus the controls under it, pinned as ONE block. Pinned
+   separately they share the same top and the lower one slides over the tabs. */
+.wrap > .sticky-head{position:sticky;top:var(--ph-h,0px);z-index:14;background:var(--paper);box-shadow:0 18px 0 var(--paper)}
+.wrap > .tabs:not(.inline){box-shadow:0 20px 0 var(--paper)}
+.eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal-d);font-weight:600;margin-bottom:7px;display:flex;align-items:center;gap:8px}
+.eyebrow .crumb{color:var(--faint)}
+.eyebrow .crumb-link{text-decoration:none;cursor:pointer}
+.eyebrow .crumb-link:hover{color:var(--teal-d);text-decoration:underline}
+h1.title{font-family:var(--disp);font-weight:600;font-size:23px;margin:0;letter-spacing:-.01em;display:flex;align-items:center;gap:12px}
+.subtitle{color:var(--mute);font-size:13.5px;margin-top:6px;max-width:70ch}
+.headactions{display:flex;gap:9px;flex:none}
+
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:9px;font-weight:600;font-size:13px;background:var(--teal);color:#fff;box-shadow:var(--shadow);transition:background .12s,transform .05s}
+.btn:hover{background:var(--teal-d)} .btn:active{transform:translateY(1px)}
+.btn svg{width:15px;height:15px}
+.btn.ghost{background:var(--card);color:var(--navy);border:1px solid var(--line);box-shadow:none}
+.btn.ghost:hover{background:var(--paper)}
+.btn.sm{padding:6px 11px;font-size:12.5px}
+.btn.danger{background:var(--red)} .btn.danger:hover{filter:brightness(.94)}
+.btn.ghost.danger{background:#fff;color:var(--red-d);border-color:#FCA5A5}
+.btn.ghost.danger:hover{background:var(--red-t);filter:none}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+/* Icon-only action button (UI style spec §3) — one look for every row/card
+   action. Always carries title + aria-label naming the action. */
+.icon-action{width:30px;height:30px;display:inline-grid;place-items:center;padding:0;border:1px solid #E3E8E2;border-radius:8px;background:#fff;color:#5B6D62;cursor:pointer;transition:background .12s,color .12s,border-color .12s}
+.icon-action svg{width:15px;height:15px}
+.icon-action:hover:not(:disabled){background:#F8FAF9;color:#14201B;border-color:#CFD8D1}
+.icon-action.danger:hover:not(:disabled){background:#FBE9E9;color:#B23B3B;border-color:#FECACA}
+.icon-action:disabled{opacity:.45;cursor:not-allowed}
+.icon-action.sm{width:24px;height:24px;border-radius:6px}
+.icon-action.sm svg{width:13px;height:13px}
+/* Layout only: never squeezed by a flex row, centred on a text line. */
+.icon-action{flex:none;vertical-align:middle}
+
+/* Native single selects (UI style spec §4). */
+select:not([multiple]){
+  appearance:none;-webkit-appearance:none;
+  padding:8px 32px 8px 11px;font:inherit;font-size:13px;line-height:1.4;color:#14201B;
+  background-color:#fff;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;background-size:14px 14px;
+  border:1px solid #E3E8E2;border-radius:8px;cursor:pointer;outline:none;
+  transition:border-color .12s,box-shadow .12s;
+}
+select:not([multiple]):hover{border-color:#CFD8D1}
+select:not([multiple]):focus{border-color:#0A7D5A;box-shadow:0 0 0 3px #E3F6EA}
+select:disabled{background-color:#F8FAF9;color:#73827A;cursor:not-allowed}
+/* compact (pagers, dense filter bars, table cells) */
+select.sm, .pager select{padding:5px 28px 5px 9px;font-size:12.5px;background-position:right 8px center;background-size:12px 12px}
+.btn.block{width:100%;justify-content:center}
+
+.grid{display:grid;gap:16px}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))} .g3{grid-template-columns:repeat(3,minmax(0,1fr))} .g2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} .g6{grid-template-columns:repeat(6,minmax(0,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.card.pad{padding:18px}
+.card-h{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line-2)}
+.card-h h3{margin:0;font-size:13.5px;font-weight:600;font-family:var(--disp);letter-spacing:.01em;display:flex;align-items:center;gap:8px}
+.link{font-size:12.5px;color:var(--teal-d);font-weight:600;cursor:pointer}
+.link:hover{text-decoration:underline}
+.card-h .link{font-size:12.5px;color:var(--teal-d);font-weight:600}
+.card-b{padding:16px 18px}
+
+.stat{padding:16px 18px}
+.stat .k{font-size:12px;color:var(--mute);font-weight:600;display:flex;align-items:center;gap:7px}
+.stat .v{font-family:var(--disp);font-weight:600;font-size:28px;letter-spacing:-.02em;margin-top:6px;line-height:1}
+.stat .m{font-size:11.5px;color:var(--faint);margin-top:6px}
+.stat .m.up{color:var(--green)} .stat .m.warn{color:var(--amber)} .stat .m.bad{color:var(--red)}
+
+.chip{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:20px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.chip.teal{background:var(--teal-t);color:var(--teal-d)} .chip.purple{background:var(--purple-t);color:var(--purple)}
+.chip.amber{background:var(--amber-t);color:var(--amber)} .chip.slate{background:var(--slate-t);color:var(--slate)}
+.chip.green{background:var(--green-t);color:var(--green)} .chip.red{background:var(--red-t);color:var(--red)}
+.chip.blue{background:var(--blue-t);color:var(--blue)}
+.chip.line{background:#fff;border:1px solid var(--line);color:var(--mute)}
+.mono{font-family:var(--mono)}
+.codeblock{background:var(--navy);color:#E3E8E2;font-family:var(--mono);font-size:11.5px;line-height:1.6;padding:12px 14px;border-radius:8px;overflow-x:auto;white-space:pre;margin:0 0 8px}
+/* Copy affordance pinned to the top-right of a code block. The button
+   is a sibling of <pre>, not a child, so it stays put when the block
+   scrolls horizontally instead of sliding away with the code. The pre
+   gets extra right padding so a long first line cannot run underneath
+   the button. */
+.codeblock-wrap{position:relative}
+.codeblock-wrap .codeblock{padding-right:46px}
+.codeblock-copy{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#cfd9ea;transition:background .12s,color .12s,border-color .12s}
+.codeblock-copy svg{width:14px;height:14px}
+.codeblock-copy:hover{background:rgba(255,255,255,.16);color:#fff;border-color:rgba(255,255,255,.34)}
+.codeblock-copy:active{transform:translateY(1px)}
+/* Nested subtab row inside the API tab. Reads as secondary to the
+   detail view's own tab strip above it: smaller type, tighter, and no
+   full-width rule underneath. */
+.api-subtabs{margin-bottom:16px;border-bottom:0;gap:6px}
+.api-subtabs .tab{font-size:12.5px;padding:6px 12px;border-radius:8px;border-bottom:0;background:var(--paper)}
+.api-subtabs .tab.on{background:var(--teal-t);color:var(--teal-d);font-weight:700}
+/* The provider-card links used to be bare <span>s styled to look
+   clickable while doing nothing. They are real buttons now, so they
+   need the link styling plus a disabled state for a provider that
+   cannot accept models. */
+.link-btn{background:none;border:0;padding:0;font:inherit;font-size:12.5px;font-weight:600;color:var(--teal-d);cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+.link-btn:hover:not(:disabled){text-decoration:underline}
+.link-btn:disabled{color:var(--faint);cursor:not-allowed}
+.link-btn svg{width:13px;height:13px}
+.provider-models{margin-top:10px;border-top:1px solid var(--line-2);padding-top:8px}
+.provider-model-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line-2)}
+.provider-model-row:last-child{border-bottom:0}
+/* Per-document metadata editor inside the Documents table. */
+.doc-meta-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;padding:10px 0 0}
+.fqn{font-family:var(--mono);font-size:12.5px;color:var(--slate)}
+.fqn b{color:var(--ink)}
+
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600;padding:10px 18px;border-bottom:1px solid var(--line-2)}
+td{padding:11px 18px;border-bottom:1px solid var(--line-2);font-size:13px;vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tbody tr{transition:background .1s}
+tbody tr.click:hover{background:var(--paper);cursor:pointer}
+.t-actions{display:flex;gap:6px;justify-content:flex-end}
+
+.tab{padding:10px 14px;font-size:13.5px;font-weight:600;color:var(--mute);position:relative;border-radius:8px 8px 0 0}
+.tab:hover{color:var(--ink)}
+.tab.on{color:var(--navy)}
+.tab.on:after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:2.5px;background:var(--teal);border-radius:3px}
+
+.kv{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px dashed var(--line-2);font-size:13px}
+.kv:last-child{border-bottom:0}
+.kv .k{color:var(--mute)}
+.kv .v{font-weight:500;text-align:right}
+
+.srcstat{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600}
+.srcstat i{width:7px;height:7px;border-radius:50%}
+.ok i{background:var(--green)} .ok{color:var(--green)}
+.appx i{background:var(--amber)} .appx{color:var(--amber)}
+.nc i{background:var(--faint)} .nc{color:var(--faint)}
+.err i{background:var(--red)} .err{color:var(--red)}
+
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--mute);margin-bottom:6px}
+.field input,.field select,.field textarea{width:100%;padding:8px 11px;border:1px solid var(--line);border-radius:8px;font:inherit;background-color:#fff;outline:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-t)}
+.field select:not([multiple]){padding:8px 32px 8px 11px;font-size:13px}
+.field select:not([multiple]):hover{border-color:#CFD8D1}
+.field select:not([multiple]):focus{border-color:#0A7D5A;box-shadow:0 0 0 3px #E3F6EA}
+.hint{font-size:11.5px;color:var(--faint);margin-top:5px}
+.radio-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.radio-cards .rc{border:1px solid var(--line);border-radius:10px;padding:13px;cursor:pointer;display:flex;flex-direction:column;gap:8px}
+.radio-cards .rc.on{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-t)}
+.radio-cards .rc .nm{font-weight:600;font-size:13px}
+.radio-cards .rc .ds{font-size:11.5px;color:var(--mute)}
+
+.steps{display:flex;gap:8px;margin-bottom:22px}
+.steps .s{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--faint);font-weight:600}
+.steps .s .n{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-family:var(--mono);font-size:12px}
+.steps .s.on{color:var(--navy)} .steps .s.on .n{border-color:var(--teal);background:var(--teal);color:#fff}
+.steps .s.done .n{border-color:var(--teal);color:var(--teal-d)}
+.steps .sep{flex:1;height:1.5px;background:var(--line);align-self:center;max-width:44px}
+
+.tog{width:38px;height:22px;border-radius:20px;background:var(--line);position:relative;transition:background .15s;flex:none}
+.tog:after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:var(--shadow);transition:left .15s}
+.tog.on{background:var(--teal)} .tog.on:after{left:18px}
+
+.banner{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:var(--r);font-size:13px;font-weight:500}
+.banner svg{width:20px;height:20px;flex:none}
+.banner.good{background:var(--green-t);color:var(--green-d)} .banner.good svg{color:var(--green)}
+.banner.warn{background:var(--amber-t);color:var(--amber-d)} .banner.warn svg{color:var(--amber)}
+.banner.info{background:var(--blue-t);color:#1E40AF} .banner.info svg{color:var(--blue)}
+
+.feed .row{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--line-2)}
+.feed .row:last-child{border-bottom:0}
+.feed .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex:none}
+.feed .tx{font-size:13px} .feed .tx b{font-weight:600}
+.feed .ts{font-size:11.5px;color:var(--faint);margin-top:2px}
+
+.overlay{position:fixed;inset:0;background:rgba(11,59,46,.34);z-index:60;display:flex;justify-content:flex-end}
+.overlay.center{align-items:center;justify-content:center}
+.drawer{width:520px;max-width:94vw;height:100%;background:var(--card);box-shadow:var(--shadow-lg);overflow-y:auto}
+/* Panels open from the right, never in the middle of the screen. A
+   centred dialog covers whatever you were reading and gives no sense of
+   where it came from; a side panel leaves the page visible behind it.
+   `.modal` keeps its name so the twenty components using it, and the
+   selectors in the tests, do not all have to change. */
+.modal{width:600px;max-width:94vw;height:100%;background:var(--card);
+  box-shadow:var(--shadow-lg);overflow:hidden;display:flex;flex-direction:column}
+.modal .db{flex:1;overflow-y:auto}
+.dh{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--line-2)}
+.dh h3{margin:0;font-family:var(--disp);font-size:16px;font-weight:600}
+.db{padding:20px;overflow-y:auto}
+/* A drawer scrolls its BODY, not itself: the title bar and the footer
+   actions stay put, and a pinned block inside the body (.drawer-sticky)
+   has a scroll container to stick to. */
+.drawer{display:flex;flex-direction:column}
+.drawer > .dh,.drawer > .df{flex:none}
+.drawer > .db{flex:1;min-height:0;padding-top:0}
+/* The body's top spacing is a margin on its first child, not padding on the
+   body: a sticky child pins at top:0 measured INSIDE the scroll container's
+   padding, so with 20px of padding a pinned block stuck 20px down and rows
+   showed through the gap above it. */
+.drawer > .db > :first-child{margin-top:20px}
+/* Pinned at the top of a drawer's body, flush with the title bar. Its
+   spacing is padding, not margin, so it is opaque all round: rows scrolling
+   underneath never show above, beside or just below it. */
+.drawer-sticky{position:sticky;top:0;z-index:5;background:var(--card);
+  margin:0 -20px 4px;padding:20px 20px 12px}
+.drawer > .db > .drawer-sticky:first-child{margin-top:0}
+.df{padding:16px 20px;border-top:1px solid var(--line-2);display:flex;justify-content:flex-end;gap:9px;background:var(--paper)}
+.x{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--mute)}
+.x:hover{background:var(--paper)}
+
+.sechead{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600;margin:22px 0 10px}
+.row-split{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.priv{font-family:var(--mono);font-size:11px;color:var(--slate);background:var(--paper);border:1px solid var(--line-2);padding:1px 7px;border-radius:5px}
+.muted{color:var(--mute)} .small{font-size:12px}
+hr.sep{border:0;border-top:1px solid var(--line-2);margin:18px 0}
+
+/* health gauge */
+.gauge{display:flex;align-items:center;gap:14px}
+.gauge .ring{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font-family:var(--disp);font-weight:700;font-size:18px;position:relative}
+.gauge .ring.pass{background:conic-gradient(var(--green) calc(var(--pct)*1%),var(--line-2) 0)}
+.gauge .ring.warn{background:conic-gradient(var(--amber) calc(var(--pct)*1%),var(--line-2) 0)}
+.gauge .ring.fail{background:conic-gradient(var(--red) calc(var(--pct)*1%),var(--line-2) 0)}
+.gauge .ring:after{content:"";position:absolute;inset:6px;border-radius:50%;background:#fff}
+.gauge .ring span{position:relative;z-index:1}
+.dims{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.dim{border:1px solid var(--line);border-radius:9px;padding:10px 12px}
+.dim .nm{font-size:11px;color:var(--mute);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.dim .st{margin-top:5px}
+
+/* principal chain */
+.chain{display:flex;align-items:center;gap:0;flex-wrap:wrap}
+.chain .hop{border:1px solid var(--line);border-radius:9px;padding:9px 12px;background:#fff;font-size:12px;display:flex;flex-direction:column;gap:2px;min-width:130px}
+.chain .hop b{font-size:12.5px}
+.chain .hop.user{border-color:var(--slate)} .chain .hop.agent{border-color:var(--purple);background:var(--purple-t)}
+.chain .hop.data{border-color:var(--blue);background:var(--blue-t)}
+.chain .arrow{color:var(--faint);font-size:20px;padding:0 8px}
+.chain .gate{display:flex;flex-direction:column;align-items:center;gap:2px;padding:0 4px}
+.chain .gate .g{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--green-t);color:var(--green)}
+.chain .gate .g.deny{background:var(--red-t);color:var(--red)}
+.chain .gate small{font-size:9px;color:var(--faint);font-weight:600}
+
+/* trace timeline */
+.trace{display:flex;flex-direction:column;gap:2px}
+.trace .span{display:flex;flex-direction:column;gap:3px;padding:7px 0;border-bottom:1px solid var(--line-2);font-size:12px}
+.trace .span>.row-split{display:grid;grid-template-columns:130px 1fr 70px;align-items:center;gap:10px}
+.span-preview{padding-left:140px;color:var(--mute);white-space:pre-wrap;word-break:break-word;line-height:1.4}
+.trace .lbl{display:flex;align-items:center;gap:7px;font-weight:600}
+.trace .lbl i{width:8px;height:8px;border-radius:2px;flex:none}
+.trace .bar{height:16px;border-radius:4px;position:relative;background:var(--line-2)}
+.trace .bar > span{position:absolute;top:0;bottom:0;border-radius:4px}
+.trace .dur{text-align:right;font-family:var(--mono);color:var(--mute)}
+.orch i,.orch .bar>span{background:var(--slate)} .orch{color:var(--slate)}
+.harn i,.harn .bar>span{background:var(--purple)} .harn{color:var(--purple)}
+.ucsx i,.ucsx .bar>span{background:var(--teal)} .ucsx{color:var(--teal-d)}
+.fail i,.fail .bar>span{background:var(--red)} .fail{color:var(--red)}
+
+/* ---------- builder canvas ---------- */
+.studio-filterbar{margin-bottom:18px;gap:10px;flex-wrap:wrap}
+.studio-filterbar select,.studio-tagtrigger{background-color:#fff;border:1px solid #E3E8E2;border-radius:8px;padding:8px 32px 8px 11px;font-size:13px;line-height:1.4;font-weight:400;color:#14201B}
+.studio-tagtrigger{position:relative;display:inline-flex;align-items:center;cursor:pointer;transition:border-color .12s,box-shadow .12s}
+.studio-tagtrigger:hover{border-color:#CFD8D1}
+.studio-tagtrigger[aria-expanded="true"],.studio-tagtrigger:focus-visible{border-color:#0A7D5A;box-shadow:0 0 0 3px #E3F6EA;outline:none}
+.studio-tagtrigger > svg{position:absolute;right:10px;top:50%;width:14px;height:14px;margin-top:-7px;color:#5B6D62;transition:transform .12s}
+.studio-tagtrigger[aria-expanded="true"] > svg{transform:rotate(180deg)}
+.studio-tagmenu{position:absolute;top:100%;margin-top:6px;left:0;z-index:20;background:#fff;border:1px solid #E3E8E2;border-radius:10px;box-shadow:0 12px 40px rgba(11,59,46,.18);padding:4px;min-width:180px;max-height:280px;overflow-y:auto}
+.studio-tagoption{display:flex;align-items:center;gap:8px;padding:8px 10px;font-size:13px;color:#14201B;border-radius:6px;cursor:pointer}
+.studio-tagoption:hover{background:#F8FAF9}
+.studio-tagoption input[type=checkbox]{accent-color:#0A7D5A;margin:0}
+.studio-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.studio-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;cursor:pointer;transition:box-shadow .15s,border-color .15s;position:relative}
+.studio-card-openapp{width:30px;height:30px;border-radius:8px;background:#fff;border:1px solid #E3E8E2;display:inline-grid;place-items:center;color:var(--teal-d);opacity:0;transition:opacity .12s}
+.studio-card-openapp svg{width:15px;height:15px}
+.studio-card:hover .studio-card-openapp{opacity:1}
+.studio-card-openapp:hover{border-color:var(--teal-d);background:var(--teal-t)}
+/* Hover-revealed edit, same shape as the delete button below it so the
+   two read as one row of card actions. pointer-events:none while hidden
+   for the same reason given there — an invisible but clickable target is
+   a poor trade even for a non-destructive action, since a stray click on
+   an unhovered card would throw a modal over whatever the person was
+   actually reading. :focus-visible keeps it reachable by Tab. */
+.studio-card-edit{width:30px;height:30px;padding:0;border-radius:8px;background:#fff;border:1px solid #E3E8E2;display:inline-grid;place-items:center;color:#5B6D62;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .12s,color .12s,border-color .12s,background .12s}
+.studio-card-edit svg{width:15px;height:15px}
+.studio-card:hover .studio-card-edit,.studio-card-edit:focus-visible{opacity:1;pointer-events:auto}
+.studio-card-edit:hover:not(:disabled){background:#F8FAF9;color:#14201B;border-color:#CFD8D1}
+
+/* Hover-revealed delete, rendered only for draft agents (see Agents.tsx).
+   Unlike .studio-card-openapp above this also sets pointer-events:none
+   while hidden: an invisible but still clickable target is a bad trade
+   for a destructive action, since a stray click on a card that is not
+   hovered would delete an agent. Keyboard users are not locked out —
+   :focus-visible reveals it and restores pointer events, so it is
+   reachable by Tab even though the mouse cannot hit it unseen. */
+.studio-card-delete{width:30px;height:30px;padding:0;border-radius:8px;background:#fff;border:1px solid #E3E8E2;display:inline-grid;place-items:center;color:#5B6D62;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .12s,color .12s,border-color .12s,background .12s}
+.studio-card-delete svg{width:15px;height:15px}
+.studio-card:hover .studio-card-delete,.studio-card-delete:focus-visible{opacity:1;pointer-events:auto}
+.studio-card-delete:hover:not(:disabled){background:#FBE9E9;color:#B23B3B;border-color:#FECACA}
+.studio-card-delete:disabled{cursor:progress;opacity:.45}
+/* Always-visible variant: on the RAG page this button replaces a
+   permanently visible "Manage" button, so hiding it until hover
+   would remove an affordance rather than tidy one away. */
+.studio-card-delete.visible{opacity:1;pointer-events:auto}
+.studio-card:hover{box-shadow:var(--shadow-lg);border-color:var(--teal)}
+.studio-card-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none;color:#fff}
+.studio-card-icon svg{width:20px;height:20px}
+.studio-card-title{font-weight:700;font-size:14.5px;color:var(--navy)}
+.studio-card-desc{margin-top:12px;min-height:36px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.studio-addtag{background:none;border:1px dashed var(--line);cursor:pointer}
+.studio-card-footer{margin-top:14px;padding-top:12px;border-top:1px solid var(--line-2);align-items:center}
+/* Details (eye) is always visible, so it sits flush right; the hover-only actions
+   (open app, edit, delete) appear to its left instead of leaving a gap after it. */
+.studio-card-footer > .icon-action{order:9}
+.chip.sm{font-size:10.5px;padding:2px 8px}
+.overlay-side{position:fixed;inset:0;background:rgba(11,59,46,.35);display:flex;justify-content:flex-end;z-index:70}
+.features-panel{width:420px;max-width:92vw;height:100%;background:var(--card);box-shadow:var(--shadow-lg);display:flex;flex-direction:column;overflow:hidden}
+.features-body{flex:1;overflow-y:auto;padding:6px 20px 24px}
+.feature-row{background:var(--paper);border-radius:10px;padding:14px;margin-bottom:10px}
+.feature-row-h{display:flex;align-items:center;gap:10px}
+.feature-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex:none;color:#fff}
+.feature-icon svg{width:15px;height:15px}
+.feature-input{width:100%;margin-top:10px;font-size:12.5px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;font-family:inherit}
+.feature-preview{margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:320px}
+.opener-question-row{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:6px}
+/* Legacy icon-only button (row "Add" buttons in the node config panel) —
+   same look as .icon-action (spec §3). Row removes use .icon-action.danger. */
+.icon-btn{width:30px;height:30px;display:inline-grid;place-items:center;flex:none;padding:0;border:1px solid #E3E8E2;border-radius:8px;background:#fff;color:#5B6D62;cursor:pointer;transition:background .12s,color .12s,border-color .12s}
+.icon-btn svg{width:15px;height:15px}
+.icon-btn:hover:not(:disabled){background:#F8FAF9;color:#14201B;border-color:#CFD8D1}
+.icon-btn:disabled{opacity:.45;cursor:not-allowed}
+.radio-card-lg{border:1.5px solid var(--line);border-radius:10px;padding:14px;margin-bottom:10px;cursor:pointer}
+.radio-card-lg.on{border-color:var(--teal-d);background:var(--teal-t)}
+.radio-dot{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--line);flex:none;position:relative}
+.radio-dot.on{border-color:var(--teal-d)}
+.radio-dot.on:after{content:'';position:absolute;inset:3px;border-radius:50%;background:var(--teal-d)}
+.prompt-preview{margin-top:10px;background:#fff;border-radius:8px;padding:10px;font-size:12px;color:var(--mute)}
+.provider-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.provider-card{border:1.5px solid var(--line);border-radius:10px;padding:14px 8px;text-align:center;cursor:pointer}
+.provider-card.on{border-color:var(--teal-d);background:var(--teal-t)}
+.provider-card svg{width:20px;height:20px;margin-bottom:6px}
+.mod-direction-row{background:var(--paper);border-radius:10px;padding:14px;margin-bottom:10px}
+/* One boolean option in a card — label and destination on the left, the
+   switch on the right, the explanation underneath.
+
+   Its own block rather than a .field, and that is the whole point:
+   `.field input,.field select,.field textarea{width:100%;padding:9px 11px;
+   border:1px solid ...}` (line ~199) is written for text boxes, so a
+   checkbox inside a .field is stretched across the entire row. That is
+   exactly what happened to "keep the original file": the box filled the
+   row and pushed its own label off the right-hand edge, where the
+   borrowed `.ds-label` ellipsis clipped it to "...in this se...". The
+   same root cause as the source browser's invisible file names, reached
+   a second way — so this option gets a container of its own with no
+   input rules to inherit. */
+/* A markdown link whose target was refused (see safeUrl.ts). It keeps
+   its text — dropping it would hide from the reader that something was
+   written there — but it must not look or behave like a link: no
+   pointer, no link colour, and the refused target only on hover. */
+.comment-link-blocked{text-decoration:line-through;text-decoration-color:var(--red,#b23b3b);
+  text-decoration-thickness:1px;opacity:.75;cursor:help}
+
+.kb-option{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.kb-option-h{display:flex;align-items:center;gap:8px}
+/* Takes the free space so the switch stays hard right, and wraps rather
+   than truncating: a bucket name is worth reading in full. */
+.kb-option-title{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.kb-option .hint{margin-top:6px}
+/* The "original" download beside a document name. A .chip already
+   carries the pill shape; this makes it read as clickable (the chip
+   styles are written for static labels) and keeps its icon in step
+   with the text size. */
+a.file-chip{text-decoration:none;cursor:pointer;color:var(--teal-d);border-color:var(--line)}
+a.file-chip:hover{background:var(--teal-t);border-color:var(--teal-d)}
+a.file-chip svg{width:11px;height:11px}
+.switch{position:relative;display:inline-block;width:36px;height:20px;flex:none}
+.switch input{opacity:0;width:0;height:0}
+.switch span{position:absolute;inset:0;background:var(--line);border-radius:20px;cursor:pointer;transition:.15s}
+.switch span:before{content:'';position:absolute;width:16px;height:16px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.15s}
+.switch input:checked+span{background:var(--teal-d)}
+/* A switch that cannot be turned on has to look that way. Without this
+   a disabled switch is pixel-identical to one that is simply off, so
+   "no storage destination is configured" read as "you forgot to tick
+   it". */
+.switch input:disabled+span{opacity:.45;cursor:not-allowed}
+.switch input:checked+span:before{transform:translateX(16px)}
+.tryit-modal{width:760px;max-width:94vw;height:100%;background:var(--card);
+  box-shadow:var(--shadow-lg);overflow:hidden;display:flex;flex-direction:column}
+.tryit-body{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:16px}
+.tryit-body .chat-runner,.tryit-body .form-runner{max-width:none;margin:0 auto;width:100%}
+.tryit-body .chat-messages{padding:16px 4px}
+/* A direct child of .main, which has no padding of its own — unlike
+   every other page, this one does not sit inside .wrap. The
+   -24px/-28px margins here were cancelling .wrap's padding anyway,
+   so they dragged the rail under the sidebar, the runner header
+   under the topbar, and the app-type chip off the right edge.
+   .main is already exactly the viewport minus the 56px topbar via
+   the .app grid, so 100% needs no arithmetic that can drift. */
+.webapps-shell{display:flex;height:100%;min-height:0}
+.webapps-rail{width:260px;flex:none;min-height:0;background:var(--paper);border-right:1px solid var(--line);overflow-y:auto;padding-bottom:12px}
+.webapps-rail-head{padding:16px 14px 12px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.webapps-rail-item{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--ink)}
+.webapps-rail-item:hover{background:var(--line-2)}
+.webapps-rail-item.active{background:#fff;box-shadow:inset 3px 0 0 var(--teal)}
+.webapps-rail-icon{width:26px;height:26px;border-radius:7px;background:var(--teal-t);color:var(--teal-d);display:flex;align-items:center;justify-content:center;flex:none}
+.webapps-rail-icon svg{width:14px;height:14px}
+.webapps-main{flex:1;min-width:0;min-height:0;overflow:hidden}
+.runner-shell{display:flex;flex-direction:column;height:100vh;background:var(--paper)}
+.runner-shell-dark{background:#14161c;color:#e8e9ee}
+.runner-shell-dark .runner-topbar{background:#1b1e26;border-bottom-color:#2a2e38}
+.runner-shell-dark .chat-bubble.assistant,.runner-shell-dark input,.runner-shell-dark textarea{background:#20232c;color:#e8e9ee;border-color:#2a2e38}
+.runner-topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:#fff;border-bottom:1px solid var(--line)}
+.runner-brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px}
+.runner-subtitle{padding:6px 20px 0}
+.runner-legal{display:flex;gap:14px;justify-content:center;padding:10px;border-top:1px solid var(--line)}
+.runner-legal a{color:var(--runner-accent,var(--brand,#155EEF))}
+.runner-body{flex:1;overflow:hidden;display:flex;justify-content:center}
+.chat-runner{width:100%;max-width:720px;display:flex;flex-direction:column;height:100%}
+.chat-messages{flex:1;overflow-y:auto;padding:24px 16px;display:flex;flex-direction:column;gap:12px}
+.chat-bubble{max-width:72%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.5}
+.chat-bubble.user{align-self:flex-end;background:var(--teal-d);color:#fff;border-bottom-right-radius:4px}
+.chat-bubble.assistant{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:4px}
+.chat-bubble-text{white-space:pre-wrap}
+.chat-reasoning{margin-top:8px}
+.chat-citations{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line-2)}
+.chat-citation{font-size:11.5px;color:var(--mute);padding:3px 0}
+.chat-followups{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.chat-starters{margin-top:4px;display:flex;flex-direction:column;gap:6px;padding:0 4px}
+.chat-followup-chip{text-align:left;background:#fff;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer;color:var(--teal-d)}
+.chat-followup-chip:hover{border-color:var(--teal)}
+.chat-manage-row{padding:8px 16px;text-align:right;background:#fff;border-top:1px solid var(--line-2)}
+.chat-steps{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.chat-step{background:var(--paper);border-radius:8px;padding:8px 10px;font-size:12px}
+.chat-input-row{display:flex;gap:10px;padding:16px;background:#fff;border-top:1px solid var(--line)}
+.chat-input-row input{flex:1}
+.form-runner{width:100%;max-width:640px;padding:32px 16px;overflow-y:auto;min-height:0}
+.structured-output{display:flex;flex-direction:column;gap:14px}
+.structured-output-row{padding-bottom:10px;border-bottom:1px solid var(--line-2)}
+.structured-output-row:last-child{border-bottom:none;padding-bottom:0}
+/* grid-template-rows:minmax(0,1fr) is the whole fix for "the node config
+   panel is cut off".
+
+   Without it the single implicit row is sized `auto`, so it grows to the
+   TALLEST item — an LLM node's config panel is ~2300px — while the shell
+   itself is a fixed `calc(100vh - …)` with overflow:hidden. Measured on a
+   813px-tall window: the panel was laid out 2294px tall inside a 627px
+   box, of which 611px was visible. Roughly three quarters of every
+   node's settings was clipped and unreachable, and `.cfg`'s own
+   overflow-y:auto could never engage because the box was never shorter
+   than its content.
+
+   minmax(0,1fr) caps the row at the container's height, which lets the
+   columns be shorter than their content, which is what finally makes
+   them scroll. min-height:0 on the children is the same point restated
+   for flex/grid's default `auto` minimum. */
+.builder-shell{display:grid;grid-template-columns:220px 1fr 300px;grid-template-rows:minmax(0,1fr);gap:0;height:calc(100vh - 56px - 130px);min-height:520px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:#fff}
+.builder-shell > *{min-height:0}
+/* A panel that scrolls has to LOOK like it scrolls: macOS hides overlay
+   scrollbars until something moves, which is exactly how a clipped panel
+   and a scrollable one become indistinguishable. A thin permanent track
+   on these two is worth the pixels. */
+.pal,.cfg{scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.pal::-webkit-scrollbar,.cfg::-webkit-scrollbar{width:11px}
+.pal::-webkit-scrollbar-thumb,.cfg::-webkit-scrollbar-thumb{background:var(--line);
+  border:3px solid transparent;background-clip:padding-box;border-radius:8px}
+.pal::-webkit-scrollbar-thumb:hover,.cfg::-webkit-scrollbar-thumb:hover{background:var(--mute);
+  border:3px solid transparent;background-clip:padding-box}
+.checklist-btn{position:relative}
+.checklist-badge{position:absolute;top:-6px;right:-6px;background:var(--amber);color:#fff;font-size:10px;font-weight:700;border-radius:10px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.checklist-panel{position:absolute;top:70px;right:24px;width:360px;max-height:70vh;overflow-y:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-lg);z-index:60}
+.checklist-panel .dh{padding:18px 20px 12px}
+.checklist-items{padding:0 20px 16px;display:flex;flex-direction:column;gap:10px}
+.checklist-item{background:var(--paper);border-radius:10px;padding:12px;display:flex;gap:10px;cursor:pointer;align-items:flex-start}
+.checklist-item:hover{background:var(--line-2)}
+.checklist-item-icon{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex:none;color:#fff}
+.checklist-item-icon svg{width:14px;height:14px}
+.checklist-item-msg{font-size:12px;color:var(--amber-d);margin-top:2px}
+.input-field-row{display:flex;align-items:center;gap:10px;background:var(--paper);border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer}
+.input-field-row:hover{background:var(--line-2)}
+.input-field-type-icon{color:var(--mute);display:flex}
+.field-type-select{display:flex;align-items:center;gap:8px;border:1px solid #E3E8E2;border-radius:8px;padding:8px 11px;font-size:13px;line-height:1.4;color:#14201B;cursor:pointer;background:#fff;transition:border-color .12s,box-shadow .12s}
+.field-type-select:hover{border-color:#CFD8D1}
+.field-type-select[aria-expanded="true"]{border-color:#0A7D5A;box-shadow:0 0 0 3px #E3F6EA}
+.field-type-select > svg:last-child{width:14px;height:14px;flex:none;color:#5B6D62;transition:transform .12s}
+.field-type-menu{border:1px solid #E3E8E2;border-radius:10px;margin-top:6px;padding:4px;max-height:280px;overflow-y:auto;background:#fff;box-shadow:0 12px 40px rgba(11,59,46,.18)}
+.field-type-option{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;font-size:13px;color:#14201B;cursor:pointer}
+.field-type-option:hover{background:#F8FAF9}
+.field-type-option.sel{background:#E3F6EA;color:#086347;font-weight:600}
+.check-box{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;flex:none;color:#fff}
+.check-box.on{background:var(--teal-d);border-color:var(--teal-d)}
+.check-box svg{width:12px;height:12px}
+.pal{background:var(--paper);border-right:1px solid var(--line);padding:14px 14px 28px;overflow-y:auto;overscroll-behavior:contain}
+.pal .lbl{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:600;margin:14px 0 8px}
+.pal .lbl:first-child{margin-top:0}
+.palnode{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;background:#fff;border:1px solid var(--line);margin-bottom:6px;font-size:12.5px;font-weight:600;cursor:grab;box-shadow:0 1px 2px rgba(11,59,46,.05)}
+.palnode i{width:9px;height:9px;border-radius:3px;flex:none}
+/* The coloured squares are decoration, and in a real browser they were
+   also drag hazards: grabbing a nested svg starts ITS drag rather than
+   the draggable parent's, so a person who happened to press on the icon
+   — the most obvious thing to grab — got nothing. jsdom fires dragStart
+   on whatever element the test targets, so no test could catch this.
+   pointer-events:none makes the whole row the drag handle. */
+.pal-icon{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex:none;color:#fff;pointer-events:none}
+.pal-icon svg{width:14px;height:14px;stroke-width:2.3}
+.palnode:hover{border-color:var(--teal);box-shadow:0 0 0 2px var(--teal-t)}
+.cnode-top{display:flex;align-items:center;gap:7px;margin-bottom:2px}
+.cnode-icon{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex:none;color:#fff;pointer-events:none}
+.cnode-icon svg{width:12px;height:12px;stroke-width:2.4}
+.cnode .tt{margin:0}
+.canvas{position:relative;background:
+  linear-gradient(var(--line-2) 1px,transparent 1px) 0 0/22px 22px,
+  linear-gradient(90deg,var(--line-2) 1px,transparent 1px) 0 0/22px 22px,var(--paper);
+  overflow:auto;padding:40px}
+.cnode{position:absolute;width:128px;border-radius:10px;padding:10px 11px;cursor:grab;border:2px solid var(--line);background:#fff;box-shadow:0 1px 2px rgba(11,59,46,.06);user-select:none}
+.cnode.locked{cursor:pointer}
+.cnode.sel{box-shadow:0 0 0 3px rgba(10,125,90,.22)}
+.cnode.dragging{opacity:.4}
+.canvas.dropok{background-color:var(--teal-t)}
+.cnode .tt{font-weight:700;font-size:11.5px;letter-spacing:.02em}
+.cnode .ds{font-size:9.5px;color:var(--mute);margin-top:2px;font-style:italic}
+.cnode.trigger{border-color:#8A6D3B;background:#F5EFE3}
+.cnode.gov{border-color:var(--navy);background:#E9EAF3;border-style:dashed}
+/* The switch on the UCS check node. Sits inside the node card, so it
+   has to opt back into pointer events the node's own drag handling does
+   not need, and stay small enough not to change the node's footprint. */
+.cnode-switch{display:flex;align-items:center;gap:6px;margin-top:7px;padding-top:6px;
+  border-top:1px solid rgba(11,59,46,.10);cursor:pointer;user-select:none}
+.cnode-switch-label{font-size:9.5px;font-weight:700;letter-spacing:.03em;
+  color:var(--navy);line-height:1}
+/* A compact .switch for a node card: same control, two thirds the size.
+   The knob travel has to match the track, or the dot stops short of the
+   end and the "on" state reads as half-thrown. */
+.switch.xs{width:26px;height:15px}
+.switch.xs span:before{width:11px;height:11px;left:2px;top:2px}
+.switch.xs input:checked+span:before{transform:translateX(11px)}
+/* Stood down: the node stays visible and in place, but reads as inactive
+   rather than looking like it is still gating the flow. */
+.cnode.gov.off{opacity:.55;border-style:dotted}
+.cnode.gov.off .tt{text-decoration:line-through}
+.cnode.gov .tt{color:var(--navy)}
+.cnode.respond{border-color:var(--teal-d);background:var(--teal-t)}
+.cnode.c-blue{border-color:var(--blue);background:var(--blue-t)}
+.cnode.c-purple{border-color:var(--purple);background:var(--purple-t)}
+.cnode.c-green{border-color:var(--green);background:var(--green-t)}
+.cnode.c-amber{border-color:#B5650A;background:#FBEEDD}
+.cnode.c-slate{border-color:var(--slate);background:var(--slate-t)}
+.cnode.c-red{border-color:var(--red);background:var(--red-t)}
+.cnode.c-teal{border-color:var(--teal-d);background:var(--teal-t)}
+
+.tabs{display:flex;flex-wrap:wrap;gap:2px;border-bottom:1px solid var(--line);margin-bottom:20px}
+.tab{flex:none}
+
+.logline{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--line-2);font-family:var(--mono);font-size:11.5px;align-items:flex-start}
+.logline .lvl{flex:none;width:44px;font-weight:700;border-radius:4px;text-align:center;padding:1px 0;font-size:10px}
+.logline .lvl.info{background:var(--blue-t);color:var(--blue)}
+.logline .lvl.warn{background:var(--amber-t);color:var(--amber)}
+.logline .lvl.error{background:var(--red-t);color:var(--red)}
+.logline .ts{flex:none;color:var(--faint)}
+.logline .msg{flex:1;color:var(--ink);font-family:var(--body);font-size:12.5px}
+.logline.click{cursor:pointer}
+.logline.click:hover{background:var(--paper)}
+.mini-table{width:100%;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:4px}
+.mini-table .r{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--line-2)}
+.mini-table .r:last-child{border-bottom:0}
+.mini-table .c{padding:7px 9px;font-size:12px;color:var(--faint);border-right:1px solid var(--line-2)}
+.mini-table .c:last-child{border-right:0}
+.branchlist{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:6px}
+.branchlist .b{display:flex;align-items:center;justify-content:space-between;padding:5px 0;font-size:12px}
+.branchlist .b:not(:last-child){border-bottom:1px dashed var(--line-2)}
+.cwire{position:absolute;height:2px;background:var(--faint);top:0;left:0}
+.cwire:after{content:"▸";position:absolute;right:-3px;top:-8px;color:var(--faint);font-size:12px}
+
+/* real edge model: ports + SVG connections, replacing implicit x-order wiring */
+.canvas-svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.edge-hit{stroke:transparent;stroke-width:14px;fill:none;pointer-events:stroke;cursor:pointer}
+.edge-line{stroke:var(--faint);stroke-width:2px;fill:none;marker-end:url(#arrow-default)}
+.edge-line.true{stroke:var(--green)}
+.edge-line.false{stroke:var(--red)}
+.edge-line.body{stroke:var(--teal-d)}
+.edge-line.exit{stroke:var(--slate)}
+.edge-line:hover{stroke:var(--teal-d);stroke-width:2.5px}
+.connecting-line{stroke:var(--teal-d);stroke-width:2px;stroke-dasharray:5,4;fill:none;pointer-events:none}
+.port{position:absolute;width:14px;height:14px;border-radius:50%;background:var(--card);border:2.5px solid var(--faint);
+  cursor:crosshair;z-index:5;transition:transform .12s,border-color .12s,background .12s;user-select:none}
+.port:hover{border-color:var(--teal-d);background:var(--teal-t);transform:scale(1.25)}
+.port.connected{border-color:var(--teal-d);background:var(--teal-d)}
+.port.true{border-color:var(--green)}
+.port.true.connected{background:var(--green)}
+.port.false{border-color:var(--red)}
+.port.false.connected{background:var(--red)}
+.port.body{border-color:var(--teal-d)}
+.port.body.connected{background:var(--teal-d)}
+.port.exit{border-color:var(--slate)}
+.port.exit.connected{background:var(--slate)}
+.port.unconnected{width:26px;height:26px;background:#2952E3;border:none;box-shadow:0 2px 6px rgba(41,82,227,.35);
+  display:flex;align-items:center;justify-content:center;transform:translate(-6px,-6px)}
+.port.unconnected:hover{background:#1F3FC4;transform:translate(-6px,-6px) scale(1.1)}
+.port.unconnected:before{content:"+";color:#fff;font-size:16px;font-weight:700;line-height:1;pointer-events:none}
+.port.unconnected.true{background:var(--green)}
+.port.unconnected.true:hover{background:#166B4F}
+.port.unconnected.false{background:var(--red)}
+.port.unconnected.false:hover{background:#96271C}
+.port.unconnected.body{background:var(--teal-d)}
+.port.unconnected.body:hover{background:#083F38}
+.port.unconnected.exit{background:var(--slate)}
+.port.unconnected.exit:hover{background:#2E3850}
+.port-label{position:absolute;font-size:9px;font-weight:700;color:var(--faint);pointer-events:none;user-select:none}
+.port-hint{position:absolute;background:var(--navy);color:#fff;font-size:10.5px;font-weight:600;padding:5px 9px;
+  border-radius:6px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:20;box-shadow:var(--shadow-lg)}
+.port-wrap:hover .port-hint{opacity:1}
+.loop-container{position:absolute;border-radius:16px;background:rgba(202,220,252,.18);
+  border:1.5px dashed var(--teal-d);pointer-events:none;z-index:0}
+.loop-container-label{position:absolute;top:-13px;left:16px;background:var(--card);padding:2px 10px;
+  border-radius:6px;font-size:11px;font-weight:700;color:var(--teal-d);text-transform:uppercase;letter-spacing:.4px;
+  display:flex;align-items:center;gap:5px;border:1px solid var(--line)}
+.comment-note{position:absolute;width:200px;background:#FBF3E4;border:1px solid var(--amber);border-radius:10px;
+  padding:12px 14px;cursor:grab;user-select:none;box-shadow:0 1px 2px rgba(11,59,46,.06);z-index:3}
+.comment-note.sel{box-shadow:0 0 0 2px rgba(11,59,46,.25)}
+.comment-title{font-weight:700;font-size:12.5px;color:var(--navy);margin-bottom:4px}
+.comment-body{color:var(--mute);line-height:1.4;white-space:pre-wrap}
+.comment-body strong{color:var(--navy)}
+.comment-body a{color:var(--blue)}
+.comment-color-swatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;display:inline-flex;align-items:center;justify-content:center}
+.comment-color-swatch.sel{border-color:var(--navy)}
+.comment-toolbar{display:flex;align-items:center;gap:2px;padding:6px;background:var(--card2,#F4F6FB);border-radius:8px;margin-bottom:8px;flex-wrap:wrap}
+.comment-toolbar button{border:none;background:transparent;padding:5px 7px;border-radius:5px;cursor:pointer;color:var(--navy);font-size:12px;display:flex;align-items:center;gap:3px}
+.comment-toolbar button:hover{background:rgba(11,59,46,.06)}
+.comment-toolbar button.on{background:rgba(11,59,46,.1)}
+.comment-toolbar .sep{width:1px;height:18px;background:var(--line);margin:0 3px}
+.node-picker{width:300px;max-height:420px;background:#fff;border-radius:10px;box-shadow:0 12px 40px rgba(11,59,46,.18);
+  border:1px solid var(--line);z-index:60;display:flex;flex-direction:column;overflow:hidden}
+.node-picker-list{overflow-y:auto;padding:0 4px 4px}
+.node-picker-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;color:#14201B}
+.node-picker-item:hover{background:#F8FAF9}
+.node-picker-item i{width:8px;height:8px;border-radius:50%;flex:none}
+/* The node config panel's own wrapper — the grid child that holds the
+   docs-link icon and the scrolling panel. It has to fill its cell and
+   pass the height limit down, or .cfg grows to its content and the
+   shell clips it (see the .builder-shell comment above). */
+.cfg-shell{position:relative;display:flex;flex-direction:column;height:100%;min-height:0}
+.cfg-shell > .cfg{flex:1 1 auto;min-height:0}
+.cfg{border-left:1px solid var(--line);padding:16px 16px 28px;overflow-y:auto;overscroll-behavior:contain;background:#fff}
+.cfg .empty-cfg{color:var(--faint);font-size:13px;text-align:center;padding:60px 10px}
+.modechip{display:flex;gap:8px;margin-bottom:14px}
+.modechip button{flex:1;padding:9px;border-radius:8px;border:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--mute);text-align:center}
+.modechip button.on{border-color:var(--purple);background:var(--purple-t);color:var(--purple)}
+.trigger-type-list{display:flex;flex-direction:column;margin-bottom:16px;border:1px solid var(--line);border-radius:var(--r-s);overflow:hidden}
+.trigger-type-row{display:flex;align-items:center;gap:12px;padding:12px;cursor:pointer;border-bottom:1px solid var(--line-2)}
+.trigger-type-row:last-child{border-bottom:none}
+.trigger-type-row:hover{background:var(--paper)}
+.trigger-type-row.sel{background:var(--teal-t)}
+.trigger-type-row .tt-icon{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--purple));
+  display:flex;align-items:center;justify-content:center;color:#fff;flex:none}
+.trigger-type-row .tt-icon svg{width:16px;height:16px}
+.trigger-type-row .tt-label{font-weight:700;font-size:13.5px;color:var(--ink);flex:1}
+.trigger-type-row .tt-badge{margin-left:auto}
+.pill-row{display:flex;flex-wrap:wrap;gap:6px}
+.builder-toolbar{display:flex;align-items:center;gap:12px;padding:12px 0;flex-wrap:wrap}
+
+.empty{text-align:center;padding:44px 20px;color:var(--mute)}
+.empty .ic{width:46px;height:46px;border-radius:12px;background:var(--paper);display:grid;place-items:center;margin:0 auto 12px;color:var(--faint)}
+
+@media (max-width:1200px){
+  .builder-shell{grid-template-columns:190px 1fr 260px}
+}
+@media (max-width:1080px){
+  .app{grid-template-columns:0 1fr}.brandbar,.sidebar{display:none}
+  .g4{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr}.g6{grid-template-columns:1fr 1fr 1fr}
+}
+
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);z-index:80;display:flex;align-items:flex-start;gap:9px;/* A blocked publish now reports each flow problem on its own line, so the toast has to keep the newlines and be allowed to grow instead of squeezing everything onto one line. */white-space:pre-line;max-width:min(680px,calc(100vw - 32px));text-align:left;line-height:1.45}
+.toast svg{width:16px;height:16px;color:#7FCFAE}
+
+.kb-docs-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.kb-docs-table th{text-align:left;padding:8px 10px;color:var(--mute);font-weight:600;border-bottom:1px solid var(--line-2)}
+.kb-docs-table td{padding:8px 10px;border-bottom:1px solid var(--line-2);vertical-align:middle}
+.retrieval-testing-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+/* Records rows open their stored result snapshot in the right pane, so
+   they need to read as clickable and show which one is open. */
+.kb-record-row{cursor:pointer;transition:background .12s}
+.kb-record-row:hover{background:var(--paper)}
+.kb-record-row.on{background:var(--teal-t)}
+.kb-record-row.on td{color:var(--teal-d)}
+.kb-record-head{padding:10px 12px;background:var(--paper);border:1px solid var(--line);border-radius:10px;align-items:flex-start;gap:10px}
+@media (max-width:860px){.retrieval-testing-grid{grid-template-columns:1fr}}
+.retrieval-source-card{border:1.5px solid var(--blue)}
+/* The Source Text box: width is pinned to the card, height is the
+   reader's to adjust.
+   Without a width rule this textarea fell back to the HTML default of
+   20 `cols` (~180px) regardless of how wide the card was, and the
+   default `resize: both` let it be dragged to any size — including
+   wider than its own container, which broke the card layout. Pinning
+   the width and allowing only vertical resize keeps the box aligned
+   with the card while still letting a long query be opened up.
+   min-height keeps rows={4} as the floor so it cannot be collapsed to
+   nothing; max-width stops any stray inline width from overflowing. */
+.retrieval-source-card textarea{width:100%;max-width:100%;resize:vertical;min-height:92px}
+.retrieval-method-chip{cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-weight:700;letter-spacing:.02em}
+.retrieval-method-chip svg{width:13px;height:13px}
+.retrieval-method-chip:hover{background:var(--blue);color:#fff}
+.batch-results-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+.batch-results-table th{text-align:left;padding:6px 8px;color:var(--mute);font-weight:600;border-bottom:1px solid var(--line-2)}
+.batch-results-table td{padding:6px 8px;border-bottom:1px solid var(--line-2);vertical-align:top}
+.hitl-form{display:flex;flex-direction:column;gap:4px}
+
+.pipeline-card{border:1.5px solid var(--line);border-radius:10px;padding:14px 16px;cursor:pointer;transition:border-color .12s,background .12s;margin-bottom:10px}
+.pipeline-card:hover{border-color:var(--purple)}
+.pipeline-card.selected{border-color:var(--purple);background:var(--purple-t)}
+.pipeline-card.disabled{cursor:default;opacity:.55}
+.pipeline-card.disabled:hover{border-color:var(--line)}
+.pipeline-card-icon{font-size:18px;line-height:1;width:28px;text-align:center;flex-shrink:0}
+.pipeline-card-badge{font-size:10px;font-weight:700;letter-spacing:.03em;color:var(--purple);border:1px solid var(--purple);border-radius:5px;padding:1px 6px;text-transform:uppercase}
+.pipeline-subcard{border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--paper)}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner-sm{display:inline-block;width:13px;height:13px;border:2px solid var(--line);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+/* Two columns need room for two columns. .form-runner caps itself at
+   640px, which is right for the single-column form but was never
+   widened when the split modifier turned it into a grid — so two tracks
+   had to share 640px, could not shrink to fit (a bare 1fr floors at the
+   content's min-width), and the right-hand panel ran past the container.
+   .runner-body clips with overflow:hidden, so it was cut off rather
+   than scrollable: on the shared /app/ link the Workflow Process panel
+   and the JSON output were sliced down the middle.
+
+   minmax(0,1fr) is the part that actually lets a track shrink; the
+   wider cap is what stops it needing to. */
+.form-runner-split{max-width:1180px;display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start}
+/* Applied only once the process/output column actually renders — see
+   showProcessPanel in RunnerUI.tsx. Held open from the start, the
+   empty right-hand track made a centred form look left-aligned. */
+@media (max-width:900px){.form-runner-split{grid-template-columns:minmax(0,1fr)}}
+/* Output values can be long unbroken strings — a sources list is
+   pipe-separated with no spaces to break on — and one of those would
+   set the column's minimum width all on its own. */
+.so-value{white-space:pre-wrap;overflow-wrap:anywhere;max-height:240px;overflow-y:auto;
+  /* Hidden scrollbar, by request. See ScrollValue in RunnerUI.tsx for
+     what replaces the affordance it removes. */
+  scrollbar-width:none;-ms-overflow-style:none}
+.so-value::-webkit-scrollbar{width:0;height:0;display:none}
+.so-value:focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:4px}
+/* Only while it actually overflows: a fade at the bottom edge, so a
+   value that continues does not look like one that simply ends. */
+.so-value-more{
+  -webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 28px),transparent 100%);
+  mask-image:linear-gradient(to bottom,#000 calc(100% - 28px),transparent 100%)}
+.workflow-process-panel{background:var(--green-t);border-color:var(--green)}
+.workflow-process-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line-2)}
+.workflow-process-row:first-of-type{border-top:none}
+.workflow-process-icon{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex:none;color:#fff}
+.workflow-process-icon svg{width:14px;height:14px}
+.json-output-panel{margin-top:16px}
+/* Wrapped, unlike .codeblock's default. A code snippet elsewhere (the
+   API examples) is better scrolled than reflowed, but a run's JSON
+   result is there to be read — and a horizontal scrollbar inside a
+   panel is the same complaint as a panel that runs off the window. */
+.json-output-panel .codeblock{white-space:pre-wrap;overflow-wrap:anywhere;overflow-x:hidden}
+/* .so-value supplies the cap, the hidden scrollbar and the fade; this
+   only keeps the code block's own look now that it is one. */
+.json-output-panel .so-value.codeblock{margin:0}
+.batch-runner{width:100%;overflow-y:auto;min-height:0;padding:8px 0}
+.docs-page{height:100vh;overflow-y:auto;background:#fff}
+.docs-page-header{border-bottom:1px solid var(--line);padding:0 32px}
+.docs-page-body{max-width:760px;margin:0 auto;padding:40px 24px 80px}
+.docs-page-title{display:flex;align-items:flex-start;gap:14px;margin-bottom:24px}
+.docs-page-title h1{font-size:26px;margin:0 0 6px}
+.docs-page-summary{color:var(--mute);font-size:15px;margin:0}
+.docs-page-content h2{font-size:18px;margin:28px 0 10px;color:var(--navy)}
+.docs-page-content h3{font-size:15.5px;margin:20px 0 8px;color:var(--navy)}
+.docs-page-content h4{font-size:14px;margin:16px 0 6px;color:var(--navy)}
+.docs-page-content p{line-height:1.65;color:var(--navy-700);margin:0 0 14px}
+.docs-page-content ul{margin:0 0 14px;padding-left:22px;line-height:1.65;color:var(--navy-700)}
+.docs-page-content li{margin-bottom:6px}
+.docs-page-content code{background:var(--line-2);border-radius:4px;padding:1px 5px;font-family:var(--mono,monospace);font-size:0.92em}
+.docs-page-content a{color:var(--blue)}
+.docs-page-content strong{color:var(--navy)}
+.docs-table{width:100%;border-collapse:collapse;margin:0 0 18px;font-size:14px}
+.docs-table th,.docs-table td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+.docs-table th{color:var(--navy);font-weight:700;background:var(--paper)}
+.docs-link-icon{position:absolute;top:16px;right:16px;width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--mute);background:transparent}
+.docs-link-icon:hover{background:rgba(11,59,46,.06);color:var(--navy)}
+.pal-doc-icon{opacity:0;width:18px;height:18px;display:flex;align-items:center;justify-content:center;color:var(--mute);border-radius:4px;flex:none;margin-left:auto}
+.palnode:hover .pal-doc-icon{opacity:1}
+.pal-doc-icon:hover{background:rgba(11,59,46,.08);color:var(--navy)}
+
+/* Data Source file browser in the RAG Documents tab. Scrolls in place
+   so a folder with hundreds of files doesn't stretch the ingest form. */
+.ds-browser { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--paper); }
+.ds-crumbs { margin-bottom: 6px; }
+.ds-list { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto; }
+.ds-list::-webkit-scrollbar { width: 0; height: 0; }
+.ds-list { scrollbar-width: none; }
+.ds-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 3px 0; }
+/* The row's clickable/selectable area. Truncation lives on .ds-label
+   below, NOT here: text-overflow needs a block container, and on a flex
+   container it applies to no child — a bare text node became an
+   anonymous flex item that was clipped away entirely, so file names
+   rendered as nothing while folder names (already wrapped in a span)
+   showed fine. */
+/* `label.ds-name`, not `.ds-name`: the browser sits inside a .field, and
+   `.field label{display:block;font-weight:600;margin-bottom:6px}` (line
+   ~198) is more specific than a lone class. That rule was silently
+   winning — turning every row label into a block with a 6px bottom
+   margin, which wrapped the name onto its own line and, with the
+   truncation properties that used to live here, clipped a bare text
+   node away entirely. Matching its specificity and resetting the three
+   properties it imposes keeps rows on one line. */
+label.ds-name, span.ds-name { display: flex; align-items: center; gap: 6px; margin-bottom: 0; font-weight: 400;
+  /* Claims the row's free space, so the name is only ever truncated
+     when the row genuinely runs out of width. Left at the default
+     `0 1 auto` with min-width:0 it collapsed instead, rendering a
+     47px name as ".g..." beside a thousand pixels of empty row. */
+  flex: 1 1 auto; min-width: 0; }
+/* Truncation belongs on the text, not the flex row that contains it. */
+.ds-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The trailing size/note never shrinks the name away. */
+.ds-row > .small.muted { flex: 0 0 auto; }
+
+/* THE root cause of file names not rendering at all.
+   `.field input,.field select,.field textarea{width:100%;padding:9px 11px;
+   border:1px solid ...}` (line ~199) is written for text inputs, and this
+   browser sits inside a .field — so every checkbox and radio in it was
+   stretched to the full row width with padding and a border. The name
+   was pushed past the end of the label and clipped by overflow:hidden,
+   which read as "the file has no name". Attribute selectors here are
+   more specific than that rule, so checkboxes get their intrinsic size
+   back. */
+.ds-row input[type="checkbox"],
+.ds-row input[type="radio"],
+.ds-browser input[type="checkbox"],
+.ds-browser input[type="radio"] {
+  width: auto; flex: 0 0 auto; margin: 0; padding: 0;
+  border: 0; border-radius: 0; background: none;
+}
+
+/* Web App Settings — identity, description and legal footer in the published app. */
+.runner-app-icon{width:22px;height:22px;border-radius:6px;object-fit:cover;display:block}
+.runner-app-desc{font-size:11px;font-weight:400;color:var(--muted);line-height:1.3;margin-top:1px;max-width:52ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.runner-footer{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:14px;padding:10px 16px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}
+.runner-footer a{color:inherit;text-decoration:none;border-bottom:1px solid transparent}
+.runner-footer a:hover{color:var(--ink);border-bottom-color:var(--line)}
+.runner-shell-dark .runner-app-desc,.runner-shell-dark .runner-footer{color:#9aa0ae}
+.runner-shell-dark .runner-footer{border-top-color:#2a2e38}
+.runner-shell-dark .runner-footer a:hover{color:#e8e9ee;border-bottom-color:#2a2e38}
+
+/* Queued files in Run Batch — one row per run, removable individually. */
+.batch-file-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;max-height:280px;overflow-y:auto}
+.batch-file-list li{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;font-size:13px}
+.batch-file-list li:nth-child(odd){background:var(--paper)}
+.batch-file-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.batch-file-remove{width:22px;height:22px;flex:none;border-radius:6px;color:var(--muted);font-size:16px;line-height:1;display:grid;place-items:center}
+.batch-file-remove:hover:not(:disabled){background:var(--red-t,#fdeaea);color:var(--red)}
+.batch-file-remove:disabled{opacity:.4;cursor:default}
+
+/* Batch results. `table-layout:fixed` is what actually stops one row's
+   output from setting the table's width — an extracted document has
+   long unbroken runs, and an auto-layout table sizes itself to the
+   widest content no matter what the cells say. */
+.batch-results-table.fixed{table-layout:fixed}
+.batch-results-table.fixed th:nth-child(1),.batch-results-table.fixed td:nth-child(1){width:34px}
+.batch-results-table.fixed th:nth-child(2),.batch-results-table.fixed td:nth-child(2){width:26%}
+.batch-results-table.fixed th:nth-child(3),.batch-results-table.fixed td:nth-child(3){width:86px}
+.batch-cell-input{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mute)}
+/* The cap lives on the cell's own scroller, so the row height is the
+   same whether the output is one line or a whole document. */
+.batch-results-table .so-value{margin:0}
+
+/* Traces pager. Keyset pagination has no total, so the row range sits
+   on the left and the controls on the right rather than pretending to
+   be a numbered page list. */
+.pager{display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:10px 14px;border-top:1px solid var(--line-2);background:var(--paper);
+  border-radius:0 0 12px 12px;flex-wrap:wrap}
+.pager-info{white-space:nowrap}
+.pager-controls{display:flex;align-items:center;gap:10px;margin-left:auto}
+.pager-size{padding:5px 28px 5px 9px;font-size:12.5px;background-position:right 8px center;background-size:12px 12px}
+.pager .btn.sm:disabled{opacity:.4;cursor:default}
+
+/* Traces: the table body scrolls inside the card so the filters, the
+   column headers and the pager all stay put while paging through rows.
+   Scrollbar hidden, matching .so-value elsewhere — the fixed frame and
+   the pager's own row range already say there is more. */
+.traces-filterbar{position:sticky;top:var(--ph-h,0px);z-index:14;
+  background:var(--paper);padding-bottom:12px;margin-bottom:4px}
+.table-scroll{max-height:calc(100vh - 340px);min-height:200px;overflow-y:auto;
+  scrollbar-width:none;-ms-overflow-style:none}
+.table-scroll::-webkit-scrollbar{width:0;height:0;display:none}
+/* Sticky on the cells, not the row: a <thead> cannot be positioned in
+   every browser, and a transparent header would let rows show through
+   as they pass underneath. */
+.table-scroll thead th{position:sticky;top:0;z-index:2;background:var(--card)}
+.table-scroll thead th::after{content:'';position:absolute;left:0;right:0;bottom:0;
+  height:1px;background:var(--line-2)}
+
+
+/* The Alerts tab bar. It is pinned by the .sticky-head around it (with the
+   date filter), not by itself — pinned alone at top:0 it slid under the
+   pinned page header. The ::after draws the tab strip's bottom rule. */
+.alerts-tabbar{position:relative;background:var(--paper);
+  padding:8px 0 0;margin:0 -2px;}
+.alerts-tabbar::after{content:'';position:absolute;left:0;right:0;bottom:-1px;
+  height:1px;background:var(--line-2)}
+
+
+/* The eval set list. A chevron that turns, and cases indented under
+   their set rather than each set being its own padded card. */
+.eval-chev{display:inline-flex;vertical-align:-2px;margin-right:8px;color:var(--faint);
+  transition:transform .12s}
+.eval-chev.open{transform:rotate(90deg)}
+.eval-case{padding:7px 0;border-bottom:1px solid var(--line-2)}
+.eval-case:last-child{border-bottom:0}
+.eval-case b{display:inline-block;min-width:66px;color:var(--mute);font-weight:600}
+
+/* Compact searchable dropdown (SearchSelect). Sits on top of the
+   .field-type-* classes so the closed control matches every other
+   select on the page; everything below is about the open panel, which
+   floats rather than pushing the layout down. */
+.combo{position:relative}
+.combo-trigger{width:100%;text-align:left;font:inherit;color:var(--ink)}
+.combo-trigger:focus-visible{outline:none;border-color:#0A7D5A;box-shadow:0 0 0 3px #E3F6EA}
+.combo-value{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.combo-value.muted{color:var(--faint)}
+.combo-chev{width:14px;height:14px;flex:none;color:#5B6D62;transition:transform .12s}
+.combo-chev.up{transform:rotate(180deg)}
+.combo-menu{position:absolute;top:calc(100% + 6px);left:0;right:0;min-width:260px;z-index:30;
+  max-height:none;overflow:visible;display:flex;flex-direction:column;padding:0}
+.combo-search{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid #EEF2ED}
+.combo-search > svg{width:14px;height:14px;flex:none;color:var(--faint)}
+.combo-search input{flex:1;min-width:0;border:0;background:none;font:inherit;color:var(--ink);outline:none}
+.combo-steppers{display:flex;flex-direction:column;gap:2px;flex:none}
+.combo-steppers button{display:flex;align-items:center;justify-content:center;width:22px;height:14px;
+  padding:0;border:1px solid var(--line);border-radius:4px;background:var(--card);cursor:pointer;color:var(--mute)}
+.combo-steppers button:hover:not(:disabled){background:var(--paper);color:var(--ink)}
+.combo-steppers button:disabled{opacity:.35;cursor:default}
+.combo-steppers svg{width:11px;height:11px}
+/* The cap is on the list, not the panel: the search box and the
+   footer must stay put while the names scroll under them. */
+.combo-list{max-height:248px;overflow-y:auto;overscroll-behavior:contain;padding:4px}
+.combo-option{border-radius:6px}
+.combo-option-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.combo-option-desc{display:block;font-family:var(--mono);font-size:11px;color:var(--faint);font-weight:400;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+.combo-group{padding:8px 10px 4px;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:#73827A;position:sticky;top:-4px;background:#fff;z-index:1}
+.combo-option svg{width:13px;height:13px;flex:none;color:#086347}
+/* One highlight shared by mouse and keyboard — the hover rule from
+   .field-type-option would otherwise draw a second one. */
+.combo-option:hover{background:none}
+.combo-option.sel{background:#E3F6EA;color:#086347;font-weight:600}
+.combo-option.active{background:#F8FAF9}
+.combo-option.sel.active{background:#CFE8DD}
+.combo-empty{padding:14px 12px;text-align:center}
+.combo-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:7px 11px;border-top:1px solid #EEF2ED;background:var(--paper);
+  border-radius:0 0 9px 9px;font-size:11.5px}
+.combo-hint{font-family:var(--mono);font-size:10.5px;color:var(--faint);white-space:nowrap}
+
+/* Overview: header and stat cards fixed, everything below in its own scroll region.
+   .wrap fills .main's height as a flex column; min-height:0 is what lets .home-body
+   shrink to the space that is left instead of growing to its content. */
+.wrap.home-pinned{height:100%;display:flex;flex-direction:column;min-height:0;padding-bottom:0}
+.home-stats{flex:none;margin-bottom:20px}
+.home-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-bottom:28px}
+/* Overview "All agents": a bounded inner scroll with the header row pinned. The bar is
+   already hidden by the app-wide scrollbar rule. overflow:hidden on the card clips the
+   rows to its rounded corners. */
+.home-agents{overflow:hidden}
+/* overscroll-behavior stays at its default (chain) on purpose: when the list reaches its
+   top, the wheel carries on to .home-body and brings Recent activity back into view.
+   With contain, scrolling up inside the list stopped dead and the cards above were
+   unreachable. The cap is kept below .home-body's height so there is always page
+   around the list to scroll with. */
+.home-agents-scroll{max-height:min(42vh,420px);overflow:auto}
+.home-agents-scroll thead th{position:sticky;top:0;z-index:2;background:var(--card);
+  box-shadow:inset 0 -1px 0 var(--line-2)}
+
+/* RAG pipeline detail: the tab's content scrolls inside this frame (sized by
+   useFitToViewport) so the pipeline header and tabs stay on screen. The
+   scrollbar is hidden, as on Traces — the frame's edge already says more. */
+.inner-scroll{overflow-y:auto;min-height:200px;scrollbar-width:none;-ms-overflow-style:none}
+.inner-scroll::-webkit-scrollbar{width:0;height:0;display:none}
+/* A tab's own toolbar, pinned at the top of that frame. Opaque, with padding
+   rather than margin below, so rows passing underneath never show through. */
+.inner-scroll .inner-sticky{position:sticky;top:0;z-index:3;background:var(--paper);padding-bottom:2px}
+/* The Documents table's column headers, pinned directly under that toolbar. */
+.inner-scroll .kb-docs-table thead th{position:sticky;top:var(--inner-sticky-h,0px);z-index:2;background:var(--paper)}
+
+/* RAG: count + list/grid toggle, pinned under the page header. Same shape as
+   AI/ML Studio's datasets toggle, in this app's brand colour. */
+.rag-toolbar{margin:18px 0 14px;padding:4px 0}
+.view-toggle{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--card)}
+.view-toggle button{width:36px;height:32px;border:none;background:none;color:var(--faint);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.view-toggle button + button{border-left:1px solid var(--line)}
+.view-toggle button.active{background:var(--teal);color:#fff}
+.view-toggle button:hover:not(.active){background:var(--paper);color:var(--ink)}
+.view-toggle svg{width:16px;height:16px}
+/* A tab row that also carries filters on its right end (Templates' category
+   filter beside the source tabs) — matches AI/ML Studio's catalog row. */
+.tabs-with-tools{align-items:center}
+/* Each group stretches to the row's height and sits its tabs on the bottom,
+   so both groups' underlines land on the row's border. */
+.tab-group{display:flex;flex-wrap:wrap;gap:2px;align-self:stretch;align-items:flex-end}
+.tab-group-end{margin-left:auto}
+/* The secondary group, a size smaller so it reads as a filter. */
+.tab-group-sub .tab{padding:10px 12px;font-size:12.5px}
+button.tab{border:none;background:none;font-family:inherit;cursor:pointer}
+button.tab:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+/* A non-tab control at the row's end (e.g. the industry dropdown). */
+.tabs-tool{margin:0 0 6px 8px}
+.rag-list{overflow:hidden}
+.rag-list td{vertical-align:middle}
+.rag-list-conn{max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.studio-card-icon.sm{width:30px;height:30px;font-size:15px;flex:none}
+.studio-card-icon.sm svg{width:15px;height:15px}
+.studio-card-edit.visible{opacity:1;pointer-events:auto}
+
+/* The page-level trace of a top-bar search (components/ui.tsx SearchNote). */
+.search-note{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--mute)}
+.search-note b{color:var(--ink);font-weight:600}
+.search-note button:not(.icon-action){font-size:12.5px;font-weight:600;color:var(--teal-d);padding:2px 4px;border-radius:5px}
+.search-note button:not(.icon-action):hover{background:var(--teal-t)}
+.empty-cfg button.link{border:0;background:none;padding:0;font:inherit;font-weight:600;color:var(--teal-d);cursor:pointer}
+
+/* ---- Settings → Git integrations ---- */
+.git-badge{display:inline-grid;place-items:center;border-radius:8px;background:var(--teal);color:#fff;flex:none;vertical-align:middle}
+.git-badge svg{width:60%;height:60%}
+.git-provider-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.git-provider{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);text-align:left;transition:border-color .12s,box-shadow .12s}
+.git-provider:hover:not(:disabled){border-color:var(--teal);box-shadow:var(--shadow)}
+.git-provider:disabled{opacity:.5;cursor:not-allowed}
+.git-provider > span:not(.git-badge){flex:1;display:flex;flex-direction:column;gap:1px}
+.git-provider > svg{color:var(--teal)}
+.git-conn{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--line-2)}
+.git-conn:last-child{border-bottom:0}
+.git-conn-main{flex:1;min-width:0}
+.git-conn-main .chip{margin-left:6px}
+.git-conn-actions{display:flex;align-items:center;gap:4px;flex:none}
+.card-h h3 .git-badge{margin-right:4px}
+.git-toggle{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-s);cursor:pointer;margin-top:4px}
+.git-toggle input{margin-top:3px;accent-color:var(--teal)}
+.git-toggle > span{display:flex;flex-direction:column;gap:2px}
+
+/* ---- Publish panel: agent header + four numbered steps ---- */
+.pub-hero{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--paper);margin-bottom:12px}
+.pub-hero-icon{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;background:var(--teal-t);color:var(--teal-d);flex:none}
+.pub-hero-icon svg{width:18px;height:18px}
+.pub-hero-main{flex:1;min-width:0}
+.pub-hero-main b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pub-hero-actions{display:flex;gap:6px;flex:none}
+.pub-inline{border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin-bottom:12px}
+.pub-section{border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px;background:var(--card)}
+.pub-section-h{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}
+.pub-section-h h4{margin:0;font-size:14px;font-family:var(--disp);color:var(--navy)}
+.pub-section-h p{margin:2px 0 0;font-size:12.5px;color:var(--mute)}
+.pub-step{width:22px;height:22px;border-radius:50%;background:var(--teal-t);color:var(--teal-d);font-size:12px;font-weight:700;display:grid;place-items:center;flex:none;margin-top:1px}
+.pub-status{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-s);background:var(--paper);margin-bottom:10px}
+.pub-status-bad{background:var(--red-t)}
+.pub-status-k{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--mute)}
+.pub-dot{width:9px;height:9px;border-radius:50%;flex:none}
+.pub-dot.draft{background:var(--amber)} .pub-dot.live{background:var(--green)}
+.pub-link-btn{border:0;background:none;padding:0;cursor:pointer}
+.pub-disclosure{display:flex;align-items:center;gap:8px;width:100%;margin-top:12px;padding:8px 2px 0;border-top:1px solid var(--line-2);font-weight:600;font-size:13px;color:var(--ink);text-align:left}
+.pub-disclosure .pub-chev{margin-left:auto;display:flex;transition:transform .15s}
+.pub-versions{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.pub-version{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:var(--r-s);background:var(--paper)}
+.pub-channel{border-top:1px solid var(--line-2);padding:12px 0 2px}
+.pub-channel:first-of-type{border-top:0;padding-top:0}
+.pub-channel-h{display:flex;align-items:center;gap:10px}
+.pub-channel-icon{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--line-2);color:var(--navy-700);flex:none}
+.pub-channel-t{flex:1;min-width:0;display:flex;flex-direction:column}
+.pub-channel-h .chip{margin:0}
+.pub-copy{display:flex;gap:6px;margin-top:10px}
+.pub-copy input{flex:1;min-width:0;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--navy-700)}
+.pub-links{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.pub-links a,.pub-links button{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:7px;font-size:12.5px;font-weight:600;color:var(--mute);background:none;border:0;cursor:pointer}
+.pub-links a:hover,.pub-links button:hover{background:var(--line-2);color:var(--ink)}
+.pub-note{margin:8px 0 0}
+.pub-warn{display:flex;align-items:center;gap:6px;color:var(--amber-d)}
+.pub-warn svg{width:14px;height:14px}
+.pub-fqn{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border-radius:var(--r-s);background:var(--paper);margin-bottom:10px}
+.pub-fqn .mono{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pub-grant{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end}
+.pub-grant .field{margin-bottom:0}
+.pub-grant-btns{display:flex;gap:6px;padding-bottom:1px}
+.pub-role{margin-top:10px;padding:10px 12px;border-radius:var(--r-s);background:var(--paper)}
+.pub-role ul{margin:6px 0;padding-left:18px;color:var(--mute)}
+.pub-recorded{color:var(--amber-d)}
+.pub-export-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pub-export{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border:1px solid var(--line);border-radius:var(--r-s);background:var(--card);text-align:left;transition:border-color .12s,background .12s}
+.pub-export:hover:not(:disabled),.pub-export.on{border-color:var(--teal);background:var(--teal-t)}
+.pub-export:disabled{opacity:.6;cursor:progress}
+.pub-export > svg{color:var(--teal-d);margin-top:2px}
+.pub-export > span{display:flex;flex-direction:column;gap:2px}
+.pub-export b{font-size:13px}
+@media (max-width:560px){.pub-grant{grid-template-columns:1fr}.pub-export-grid{grid-template-columns:1fr}.pub-hero{flex-wrap:wrap}}
+
+/* Standalone text input outside a .field (page-head search boxes etc.) — same box as a select (spec §5). */
+.text-input{padding:8px 11px;font:inherit;font-size:13px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:8px;outline:none;transition:border-color .12s,box-shadow .12s}
+.text-input::placeholder{color:var(--faint)}
+.text-input:hover{border-color:#CFD8D1}
+.text-input:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-t)}
+/* Settings: section icons in the accent orange, like the Workspace app's icons. */
+.settings-page .card-h h3 > svg{color:var(--teal)}
+
+/* Hover tooltip for any icon-only control: put the full operation in
+   data-tip (components/ui.tsx IconAction does this for row/card actions).
+   Dark bubble below, instant on hover or keyboard focus, and pure CSS so it
+   also shows on a disabled button. Modifiers: .tip-end right-aligns it for
+   buttons at the right edge, .tip-start left-aligns it for the left edge, .tip-left sets it beside the button (rows in a
+   clipping scroll box), .tip-up puts it above. */
+/* :where() keeps this at zero specificity, so a control positioned by its own
+   class (e.g. .codeblock-copy, absolute) keeps that and still anchors the bubble. */
+:where([data-tip]){position:relative}
+[data-tip]::after{content:attr(data-tip);position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#0F1A15;color:#fff;font-size:11.5px;font-weight:500;line-height:1.3;letter-spacing:normal;text-transform:none;text-align:left;white-space:nowrap;padding:5px 8px;border-radius:6px;pointer-events:none;opacity:0;visibility:hidden;transition:opacity .12s ease;z-index:60}
+[data-tip]:hover::after,[data-tip]:focus-visible::after{opacity:1;visibility:visible}
+[data-tip].tip-end::after{left:auto;right:0;transform:none}
+[data-tip].tip-start::after{left:0;transform:none}
+[data-tip].tip-left::after{top:50%;left:auto;right:calc(100% + 8px);transform:translateY(-50%)}
+[data-tip].tip-up::after{top:auto;bottom:calc(100% + 8px)}
+
+/* Pralai brand: primary action is amber with forest text (UI Style Guide .ui-btn-primary). */
+/* --cta* are tokens so a web app's own accent colour (AgentRunner sets them) still wins inside its runner. */
+:root{--cta:#F2B134;--cta-hover:#E9A529;--cta-ink:#0B3B2E;--cta-line:#E5A82C}
+.btn:not(.ghost):not(.danger){background:var(--cta);color:var(--cta-ink);border:1px solid var(--cta-line);box-shadow:none;font-weight:700}
+.btn:not(.ghost):not(.danger):hover{background:var(--cta-hover)}
+.tab.on:after{background:#F2B134}

@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["pralai_dbt_runner_dags*"]
+
+[project]
+name = "pralai-dbt-runner-dags"
+version = "0.1.0"
+description = "Dagster code location for pralai-dbt-runner (Phase 2 orchestration)"
+requires-python = ">=3.11"
+dependencies = [
+  # Dagster core — must match the version used by the webserver/daemon images
+  "dagster>=1.9,<2.0",
+  # Cron expression evaluation (same library as the native scheduler)
+  "croniter>=2.0",
+  # HTTP client for talking to the dbt Runner API
+  "httpx>=0.27",
+  # Structured logging (consistent with the dbt Runner app)
+  "structlog>=24.1",
+]
+
+[tool.dagster]
+module_name = "pralai_dbt_runner_dags.definitions"
+attribute = "defs"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-asyncio>=0.23",
+  "dagster-webserver>=1.9,<2.0",
+  "ruff>=0.3",
+]

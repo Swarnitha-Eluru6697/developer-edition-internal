@@ -5,10 +5,10 @@ set -eu
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 SRC="$ROOT/devedition/shared/DeveloperUserMenu.tsx"
 for dest in \
-  InaiEra_DataConnect_Frontend/src/components \
-  InaiEra_workspace_frontend/src/app \
-  InaiEra_Agent_frontend/src/components \
-  InaiEra_AIMLStudio_frontend/src/components
+  Pralai_DataConnect_Frontend/src/components \
+  Pralai_workspace_frontend/src/app \
+  Pralai_Agent_frontend/src/components \
+  Pralai_AIMLStudio_frontend/src/components
 do
   cp "$SRC" "$ROOT/$dest/DeveloperUserMenu.tsx"
   echo "→ $dest/DeveloperUserMenu.tsx"

@@ -42,19 +42,19 @@ x-logging: &logging
 # build as the `gatewayauth` context, so the pins resolve from it: no GitHub token and no
 # checkout outside this folder. GATEWAYAUTH_DIR can still point somewhere else.
 x-agents-build: &agents-build
-  context: ./InaiEra_agent_backend
+  context: ./Pralai_agent_backend
   dockerfile: Dockerfile
   additional_contexts:
     gatewayauth: ${GATEWAYAUTH_DIR:-./devedition/vendor/gateway-auth}
 
 x-workspace-build: &workspace-build
-  context: ./InaiEra_workspace_backend
+  context: ./Pralai_workspace_backend
   dockerfile: docker/Dockerfile
   additional_contexts:
     gatewayauth: ${GATEWAYAUTH_DIR:-./devedition/vendor/gateway-auth}
 
 x-dagster-build: &dagster-build
-  context: ./InaiEra-dbt-runner-dagster
+  context: ./Pralai-dbt-runner-dagster
   dockerfile: docker/dagster/Dockerfile.dagster
 
 services:
@@ -169,7 +169,7 @@ services:
     profiles: [data]
     <<: [*restart, *logging]
     build:
-      context: ./InaiEra_DataConnect_Backend/infra
+      context: ./Pralai_DataConnect_Backend/infra
       dockerfile: kafka-connect.Dockerfile
       args: { POOL: all }
     image: inaiera-de/kafka-connect:local
@@ -268,7 +268,7 @@ services:
     <<: [*restart, *logging]
     # Started with the Data edition; the edition manager then restarts the gateway so it loads the Data Quality token.
     profiles: [data]
-    build: ./InaiEra_workspace_backend/docker/jwks
+    build: ./Pralai_workspace_backend/docker/jwks
     image: inaiera-de/jwks:local
     environment:
       MALLOC_ARENA_MAX: "2"          # fewer glibc malloc arenas: much less idle memory per Python service
@@ -291,7 +291,7 @@ services:
     profiles: [data]
     <<: [*restart, *logging]
     build:
-      context: ./InaiEra_DataConnect_Backend
+      context: ./Pralai_DataConnect_Backend
       dockerfile: Dockerfile
       additional_contexts:
         gatewayauth: ${GATEWAYAUTH_DIR:-./devedition/vendor/gateway-auth}
@@ -335,7 +335,7 @@ services:
   dataconnect-web:
     profiles: [data]
     <<: [*restart, *logging]
-    build: ./InaiEra_DataConnect_Frontend
+    build: ./Pralai_DataConnect_Frontend
     image: inaiera-de/dataconnect-web:local
     init: true
     environment:
@@ -412,7 +412,7 @@ services:
       MALLOC_ARENA_MAX: "2"          # fewer glibc malloc arenas: much less idle memory per Python service
       LAKEHOUSE_PG_DSN: postgresql://workspace:${DE_DB_PASSWORD}@postgres:5432/workspace
     volumes:
-      - ./InaiEra_workspace_backend/docker/lakehouse_stub.py:/app/lakehouse_stub.py:ro
+      - ./Pralai_workspace_backend/docker/lakehouse_stub.py:/app/lakehouse_stub.py:ro
     command: ["uvicorn", "lakehouse_stub:app", "--host", "0.0.0.0", "--port", "8080"]
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8080/healthz',timeout=3).status==200 else 1)"]
@@ -423,7 +423,7 @@ services:
   workspace-web:
     profiles: [data]
     <<: [*restart, *logging]
-    build: ./InaiEra_workspace_frontend
+    build: ./Pralai_workspace_frontend
     image: inaiera-de/workspace-web:local
 
   # ═══════════════════════════ Data Quality and runners ══════════════════════════
@@ -431,7 +431,7 @@ services:
     profiles: [data]
     <<: [*restart, *logging]
     build:
-      context: ./InaiEra_dataquality_backend
+      context: ./Pralai_dataquality_backend
       dockerfile: docker/Dockerfile
     image: inaiera-de/dataquality:local
     depends_on:
@@ -473,7 +473,7 @@ services:
     profiles: [data]
     <<: [*restart, *logging]
     build:
-      context: ./InaiEra_workspace_runners/inaiera-dbt-runner
+      context: ./Pralai_workspace_runners/pralai-dbt-runner
       dockerfile: docker/Dockerfile
     image: inaiera-de/dbtrunner:local
     depends_on:
@@ -510,7 +510,7 @@ services:
     profiles: [data]
     <<: [*restart, *logging]
     build:
-      context: ./InaiEra_workspace_runners/inaiera-flinksql-runner
+      context: ./Pralai_workspace_runners/pralai-flinksql-runner
       dockerfile: docker/Dockerfile
     image: inaiera-de/flinksql-runner:local
     depends_on:
@@ -569,9 +569,9 @@ services:
       DBT_RUNNER_BASE_URL: http://dbtrunner:8080
       SCHEDULER_JWT_SECRET: ${DBTRUNNER_SCHEDULER_JWT_SECRET}
       ORG_ID: local-dev
-    command: ["python", "-m", "inaiera_dbt_runner_dags.location_manager"]
+    command: ["python", "-m", "pralai_dbt_runner_dags.location_manager"]
     volumes:
-      - ./InaiEra-dbt-runner-dagster/docker/dagster/dagster.yaml:/dagster-config/dagster.yaml:ro
+      - ./Pralai-dbt-runner-dagster/docker/dagster/dagster.yaml:/dagster-config/dagster.yaml:ro
       - dagster-workspace:/dagster-config/generated
       - dagster-compute-logs:/var/lib/dagster/compute-logs
       - dagster-artifacts:/var/lib/dagster/artifacts
@@ -591,7 +591,7 @@ services:
     environment: *dagster-env
     command: ["dagster-daemon", "run", "-w", "/dagster-config/generated/workspace.yaml"]
     volumes: &dagster-ro-volumes
-      - ./InaiEra-dbt-runner-dagster/docker/dagster/dagster.yaml:/dagster-config/dagster.yaml:ro
+      - ./Pralai-dbt-runner-dagster/docker/dagster/dagster.yaml:/dagster-config/dagster.yaml:ro
       - dagster-workspace:/dagster-config/generated:ro
       - dagster-compute-logs:/var/lib/dagster/compute-logs
       - dagster-artifacts:/var/lib/dagster/artifacts
@@ -691,7 +691,7 @@ services:
     profiles: [agent]
     <<: [*restart, *logging]
     build:
-      context: ./InaiEra_Agent_frontend
+      context: ./Pralai_Agent_frontend
       args: { VITE_UCS_ENABLED: "false" }   # no Unified Catalog: hides the publish dialog's UCS Access step
     image: inaiera-de/agents-web:local
 
@@ -700,7 +700,7 @@ services:
     profiles: [agent]
     <<: [*restart, *logging]
     build:
-      context: ./InaiEra_AIMLStudio_backend
+      context: ./Pralai_AIMLStudio_backend
       dockerfile: Dockerfile               # CPU image; Dockerfile.cuda is the GPU worker only
       additional_contexts:                 # gateway-auth npm package built locally: no GitHub token
         gatewayauth: ${GATEWAYAUTH_DIR:-./devedition/vendor/gateway-auth}
@@ -734,7 +734,7 @@ services:
     profiles: [agent]
     <<: [*restart, *logging]
     build:
-      context: ./InaiEra_AIMLStudio_frontend
+      context: ./Pralai_AIMLStudio_frontend
       args: { VITE_UCS_ENABLED: "false" }   # no Unified Catalog: hides the model Lineage tab
     image: inaiera-de/mlstudio-web:local
 

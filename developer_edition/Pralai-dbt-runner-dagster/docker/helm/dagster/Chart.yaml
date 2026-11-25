@@ -1,0 +1,17 @@
+apiVersion: v2
+name: dagster-dbt-runner
+description: |
+  Dagster orchestration layer for pralai-dbt-runner.
+  Deploys: code-server, daemon, webserver, and (optional) a dedicated
+  Postgres metadata database. Designed to run in the same namespace as
+  the pralai-dbt-runner Helm release.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - dagster
+  - inaiera
+  - dbt
+  - orchestration
+maintainers:
+  - name: inaiera-platform

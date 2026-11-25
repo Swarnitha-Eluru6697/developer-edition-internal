@@ -46,7 +46,7 @@ What keycloak_cp still usefully holds: the Keycloak realm JSON and `deploy/ec2/r
 
 ### 2.2 `~/Downloads/ml-studio-app-v2.37.1` is not the product
 
-A separate mock application. It is not what ships, and its behaviour differs from the real ML Studio in ways that have already caused incorrect work when copied from — most notably its alias semantics, where it treats `challenger` as "deployed, canarying traffic". In the real system `challenger` is a **promotion candidate that has never served a request**. The product is `InaiEra_AIMLStudio_backend` + `InaiEra_AIMLStudio_frontend`. Do not consult the mock for behaviour.
+A separate mock application. It is not what ships, and its behaviour differs from the real ML Studio in ways that have already caused incorrect work when copied from — most notably its alias semantics, where it treats `challenger` as "deployed, canarying traffic". In the real system `challenger` is a **promotion candidate that has never served a request**. The product is `Pralai_AIMLStudio_backend` + `Pralai_AIMLStudio_frontend`. Do not consult the mock for behaviour.
 
 ---
 
@@ -104,7 +104,7 @@ The Control Portal bakes its remote and API URLs into the bundle at build time (
 | Legacy path | Points at | Why it exists | Retire by |
 |---|---|---|---|
 | `/ucs/` | `ucs_catalog` | The host passes `apiBase=/control_plane/api/dataplane/ucs` | Rebuilding `InaiEra_control_plane_frontend` with `apiBase=.../catalog-api` |
-| `/api/v1/dataconnect` | `dataconnect_backend` (no rewrite) | The backend serves this prefix natively and the MFE calls it directly | Rebuilding `InaiEra_DataConnect_Frontend` to route through `apiUrl()` with `/dataconnect-api` |
+| `/api/v1/dataconnect` | `dataconnect_backend` (no rewrite) | The backend serves this prefix natively and the MFE calls it directly | Rebuilding `Pralai_DataConnect_Frontend` to route through `apiUrl()` with `/dataconnect-api` |
 
 Both are in the config today so nothing breaks during the migration. Delete each one in the same change that rebuilds its frontend — not before, and not long after. An alias left in place becomes a second supported path nobody remembers to test.
 

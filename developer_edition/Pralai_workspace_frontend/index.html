@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pralai Workspace</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Cpath d='M16 12 Q16 8 20 8 H31 Q35 8 35 12 V84 Q35 88 31 88 H20 Q16 88 16 84 Z' fill='%230B3B2E'/%3E%3Cpath d='M30 8 H54 C76 8 88 21 88 39 C88 59 75 70 54 70 H30 V52 H53 C63 52 69 47 69 39 C69 31 63 26 53 26 H30 Z' fill='%2312B886'/%3E%3Cpath d='M36 35 H63 V43 H36 Z' fill='%23F2B134'/%3E%3C/svg%3E" />
+    <!-- Tabler icons (ti-*) are bundled: App.tsx imports @tabler/icons-webfont -->
+    <style>
+      /* Same design tokens as InAiEra Agents / Unified Catalog / ML Studio:
+         white/gray surfaces, gray text, orange as the one accent. */
+      :root {
+        --disp: Inter, system-ui, sans-serif;
+        --body: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      html,
+      body,
+      #root {
+        margin: 0;
+        height: 100%;
+        background: #F8FAF9;
+      }
+      /* The app is one fixed-size shell with its own scrolling panes: the window never scrolls (src/app/lockHiddenScroll.ts keeps a
+         drag to the edge from moving it anyway). The full-page error screens scroll themselves. */
+      html,
+      body {
+        overflow: hidden;
+      }
+      /* No component sets a base font, so without this everything fell back
+         to the browser default serif. Form controls don't inherit by default. */
+      body {
+        font-family: var(--body);
+        color: #14201B;
+        font-size: 14px;
+        -webkit-font-smoothing: antialiased;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font-family: inherit;
+      }
+      ::selection { background: #FDEBDD; }
+      :focus-visible { outline: 2px solid #0A7D5A; outline-offset: 2px; border-radius: 4px; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

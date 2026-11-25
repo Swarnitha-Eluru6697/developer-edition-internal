@@ -1,0 +1,14 @@
+/* Icon-only row/card action — the same rules as .icon-action in the Agents app
+   (InaiEra_UI_Style_Spec.md §3), so view / edit / delete / close look identical
+   across InAiEra apps. Tabler glyphs (ti-*) stand in for the Agents SVG sprite. */
+.icon-action{width:30px;height:30px;display:inline-grid;place-items:center;padding:0;border:1px solid #E3E8E2;border-radius:8px;background:#fff;color:#5B6D62;cursor:pointer;transition:background .12s,color .12s,border-color .12s;flex:none;vertical-align:middle}
+.icon-action i{font-size:15px;line-height:1}
+.icon-action:hover:not(:disabled){background:#F8FAF9;color:#14201B;border-color:#CFD8D1}
+.icon-action.danger:hover:not(:disabled){background:#FBE9E9;color:#B23B3B;border-color:#FECACA}
+.icon-action.on{background:#E3F6EA;color:#086347;border-color:#B7E0CB}
+.icon-action:disabled{opacity:.45;cursor:not-allowed}
+.icon-action.sm{width:24px;height:24px;border-radius:6px}
+.icon-action.sm i{font-size:13px}
+/* The refresh arrow blinks once per click, like the browser's reload button reacts once. */
+@keyframes icon-action-blink{0%{opacity:1}35%{opacity:.15}100%{opacity:1}}
+.icon-action-blink{animation:icon-action-blink .3s ease-out 1}

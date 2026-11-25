@@ -1,0 +1,88 @@
+{
+  "name": "inaiera.dq.quality-results",
+  "version": "2.0",
+  "owners": ["inaiera-data-quality (producer: FlinkSQL quality job renderer)",
+             "pralai-flinksql-runner (consumer: quality_consumer)"],
+  "note": "THIS FILE MUST BE BYTE-IDENTICAL in Pralai_dataquality_backend/app/contracts/ and pralai-flinksql-runner/app/contracts/. Bump `version` (major) for any incompatible change to a topic name or a record field.",
+  "topics": {
+    "results": "dq.quality.results.v2",
+    "gate": "dq.quality.gate.v2",
+    "quarantine": "dq.quality.quarantine.v2"
+  },
+  "kafka_sink_options": {
+    "connector": "kafka",
+    "format": "json",
+    "json.timestamp-format.standard": "ISO-8601",
+    "json.encode.decimal-as-plain-number": "true"
+  },
+  "records": {
+    "window_result": {
+      "topic": "results",
+      "description": "One row per (binding, check, processing-time window) whether or not anything violated.",
+      "fields": [
+        {"name": "contract_version", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "record_type", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "org_id", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "ucs_fqn", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "binding_id", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "artifact_version_id", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "check_id", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "rule_id", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "rule_name", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "rule_version", "flink_type": "INT", "json_type": "integer", "required": true},
+        {"name": "dimension", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "severity", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "enforcement_mode", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "breach_status", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "threshold", "flink_type": "DOUBLE", "json_type": "number", "required": true},
+        {"name": "column_name", "flink_type": "STRING", "json_type": "string", "required": false},
+        {"name": "window_start", "flink_type": "TIMESTAMP(3)", "json_type": "timestamp", "required": true},
+        {"name": "window_end", "flink_type": "TIMESTAMP(3)", "json_type": "timestamp", "required": true},
+        {"name": "window_seconds", "flink_type": "INT", "json_type": "integer", "required": true},
+        {"name": "evaluated_rows", "flink_type": "BIGINT", "json_type": "integer", "required": true},
+        {"name": "violation_count", "flink_type": "BIGINT", "json_type": "integer", "required": true},
+        {"name": "sample_values", "flink_type": "ARRAY<STRING>", "json_type": "array", "required": false},
+        {"name": "run_ref", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "parent_job_id", "flink_type": "STRING", "json_type": "string", "required": false},
+        {"name": "emitted_at", "flink_type": "TIMESTAMP(3)", "json_type": "timestamp", "required": true}
+      ]
+    },
+    "gate_event": {
+      "topic": "gate",
+      "description": "Blocking bindings only: one row per window whose violation rate breached the threshold. action=fail_stop only when the binding explicitly opted in.",
+      "extends": "window_result",
+      "fields": [
+        {"name": "action", "flink_type": "STRING", "json_type": "string", "required": true}
+      ]
+    },
+    "quarantine_record": {
+      "topic": "quarantine",
+      "description": "Blocking bindings only: each violating source row, serialized, for downstream quarantine handling.",
+      "fields": [
+        {"name": "contract_version", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "record_type", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "org_id", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "ucs_fqn", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "binding_id", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "artifact_version_id", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "check_id", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "rule_name", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "run_ref", "flink_type": "STRING", "json_type": "string", "required": true},
+        {"name": "parent_job_id", "flink_type": "STRING", "json_type": "string", "required": false},
+        {"name": "detected_at", "flink_type": "TIMESTAMP(3)", "json_type": "timestamp", "required": true},
+        {"name": "row_json", "flink_type": "STRING", "json_type": "string", "required": true}
+      ]
+    }
+  },
+  "enums": {
+    "breach_status": ["fail", "warn"],
+    "gate_action": ["quarantine", "fail_stop"],
+    "quality_run_status": ["started", "completed_pass", "completed_fail", "completed_warn", "unknown", "stale"]
+  },
+  "quality_run": {
+    "aggregation_key": ["org_id", "ucs_fqn", "check_id", "window_start", "window_end", "run_ref"],
+    "max_samples": 5,
+    "max_sample_chars": 256,
+    "stale_after_windows": 3
+  }
+}

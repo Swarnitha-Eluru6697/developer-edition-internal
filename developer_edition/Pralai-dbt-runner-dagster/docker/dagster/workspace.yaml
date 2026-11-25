@@ -1,0 +1,16 @@
+# NOT USED by docker-compose any more.
+#
+# The compose stack generates its workspace file at runtime (docker volume
+# `dagster-workspace`, file generated/workspace.yaml): one code location per Git repo, written
+# by the dagster-code container (python -m pralai_dbt_runner_dags.location_manager).
+#
+# This file shows the static single-location form, for running the generic code server on its own
+# (dagster api grpc --module-name pralai_dbt_runner_dags.definitions --attribute defs --port 4000).
+
+load_from:
+  - grpc_server:
+      host:
+        env: DAGSTER_CODE_SERVER_HOST
+      port:
+        env: DAGSTER_CODE_SERVER_PORT
+      location_name: "pralai-dbt-runner-dags"

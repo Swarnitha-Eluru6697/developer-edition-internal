@@ -1,0 +1,84 @@
+{{- include "dagster-dbt-runner.validateDatabase" . -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "dagster-dbt-runner.fullname" . }}-config
+  labels:
+    {{- include "dagster-dbt-runner.labels" . | nindent 4 }}
+data:
+  dagster.yaml: |
+    storage:
+      postgres:
+        postgres_db:
+          username:
+            env: DAGSTER_PG_USER
+          password:
+            env: DAGSTER_PG_PASSWORD
+          hostname:
+            env: DAGSTER_PG_HOST
+          db_name:
+            env: DAGSTER_PG_DB
+          port:
+            env: DAGSTER_PG_PORT
+
+    run_launcher:
+      module: dagster.core.launcher
+      class: DefaultRunLauncher
+
+    run_coordinator:
+      module: dagster.core.run_coordinator
+      class: QueuedRunCoordinator
+      config:
+        max_concurrent_runs: 10
+
+    {{- if eq .Values.persistence.computeLogs.mode "s3" }}
+    {{- $s3 := .Values.persistence.computeLogs.s3 }}
+    # DG-019: object storage is the shared store; the local dir is only staging.
+    compute_logs:
+      module: dagster_aws.s3.compute_log_manager
+      class: S3ComputeLogManager
+      config:
+        bucket: {{ $s3.bucket | quote }}
+        prefix: {{ $s3.prefix | quote }}
+        local_dir: {{ .Values.storage.computeLogsDir | quote }}
+        use_ssl: {{ $s3.useSsl }}
+        {{- if $s3.region }}
+        region: {{ $s3.region | quote }}
+        {{- end }}
+        {{- if $s3.endpointUrl }}
+        endpoint_url: {{ $s3.endpointUrl | quote }}
+        {{- end }}
+    {{- else }}
+    compute_logs:
+      module: dagster.core.storage.local_compute_log_manager
+      class: LocalComputeLogManager
+      config:
+        base_dir:
+          env: DAGSTER_COMPUTE_LOGS_DIR
+    {{- end }}
+
+    local_artifact_storage:
+      module: dagster.core.storage.root
+      class: LocalArtifactStorage
+      config:
+        base_dir:
+          env: DAGSTER_ARTIFACTS_DIR
+
+    sensors:
+      use_threads: true
+      num_workers: 4
+
+    retention:
+      schedule:
+        purge_after_days: 30
+      sensor:
+        purge_after_days: 30
+
+  workspace.yaml: |
+    load_from:
+      - grpc_server:
+          host:
+            env: DAGSTER_CODE_SERVER_HOST
+          port:
+            env: DAGSTER_CODE_SERVER_PORT
+          location_name: "pralai-dbt-runner-dags"

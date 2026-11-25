@@ -1,0 +1,48 @@
+# Dagster code server image for pralai-dbt-runner Phase 2.
+#
+# What this image contains:
+#   * pralai_dbt_runner_dags Dagster package (sensors, ops, resources)
+#   * the code-location manager (one gRPC code server per Git repo)
+#
+# It does NOT contain the dbt Runner app (app.*) — the Dagster package
+# talks to the dbt Runner over its HTTP API, not by importing app modules.
+# This keeps the image small (no dbt, no asyncpg, no k8s SDK).
+#
+# Build:
+#   docker build -f docker/dagster/Dockerfile.dagster \
+#     -t registry.inaiera.com/products/dbt-runner-dagster:0.1.0 \
+#     -f docker/dagster/Dockerfile.dagster .
+#
+# The build context is the pralai-dbt-runner repo root so that
+# the dagster/ package directory is accessible.
+
+ARG PYTHON_VERSION=3.11
+FROM python:${PYTHON_VERSION}-slim AS base
+
+# No git here (DG-009): the git sensor asks the dbt Runner for each project's current commit; the Runner holds the Git credentials.
+RUN groupadd -r dagster --gid 10002 \
+    && useradd -r -g dagster --uid 10002 --home-dir /home/dagster --shell /bin/false dagster \
+    && mkdir -p /home/dagster /dagster-config /dagster-config/generated /var/lib/dagster/compute-logs /var/lib/dagster/artifacts \
+    && chown -R dagster:dagster /dagster-config /var/lib/dagster /home/dagster
+
+WORKDIR /app
+
+# Install only the Dagster code-location package (lightweight)
+COPY dagster/pyproject.toml ./dagster/pyproject.toml
+COPY dagster/pralai_dbt_runner_dags ./dagster/pralai_dbt_runner_dags
+# dagster-aws: the S3 compute log manager the Helm chart uses with persistence.computeLogs.mode=s3 (DG-019)
+RUN pip install --no-cache-dir "dagster>=1.9,<2.0" dagster-webserver dagster-postgres dagster-aws "sqlalchemy<2.1" && \
+    pip install --no-cache-dir -e ./dagster
+
+# Dagster home — dagster.yaml and workspace.yaml are mounted here at runtime.
+ENV DAGSTER_HOME=/dagster-config \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+USER dagster
+
+# Dagster gRPC code server ports (internal)
+EXPOSE 4001-4100
+
+# Ports: 4001+ = one gRPC code server per Git repo (see location_manager.py).
+CMD ["python", "-m", "pralai_dbt_runner_dags.location_manager"]

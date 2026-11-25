@@ -430,7 +430,7 @@
   function card({ title, sub = '', body = '', submit, links = '', notice = '' }) {
     root.innerHTML = `
       <form class="auth-card" novalidate>
-        <div class="auth-brand"><span class="logo" aria-hidden="true">In</span><span>InaiEra <b>Developer Edition</b></span></div>
+        <div class="auth-brand" role="img" aria-label="Pralai Developer Edition"><svg viewBox="0 0 150 64" aria-hidden="true"><use href="#pr-lockup"/></svg><span>Developer Edition</span></div>
         <h1 id="so-title">${esc(title)}</h1>
         ${sub ? `<p class="auth-sub">${sub}</p>` : ''}
         <div class="af-note" role="status" ${notice ? '' : 'hidden'}>${esc(notice)}</div>
@@ -491,7 +491,7 @@
 
   const screens = {
     loading() {
-      root.innerHTML = `<div class="auth-card"><div class="auth-brand"><span class="logo" aria-hidden="true">In</span><span>InaiEra <b>Developer Edition</b></span></div><p class="auth-sub">Checking your license…</p></div>`;
+      root.innerHTML = `<div class="auth-card"><div class="auth-brand" role="img" aria-label="Pralai Developer Edition"><svg viewBox="0 0 150 64" aria-hidden="true"><use href="#pr-lockup"/></svg><span>Developer Edition</span></div><p class="auth-sub">Checking your license…</p></div>`;
     },
 
     starting() {

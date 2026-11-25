@@ -1,0 +1,61 @@
+{{- if .Values.migrations.enabled }}
+{{- include "pralai-flinksql-runner.validate" . }}
+# Alembic migrations, once per install/upgrade, BEFORE new pods roll out.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "pralai-flinksql-runner.fullname" . }}-migrate
+  labels:
+    {{- include "pralai-flinksql-runner.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ .Values.migrations.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.migrations.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: flinksql-runner-migrate
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      restartPolicy: Never
+      # Pre-install hooks run before the chart's ServiceAccount exists, so
+      # the Job uses the namespace default SA with no token mounted.
+      automountServiceAccountToken: false
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: migrate
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["alembic", "upgrade", "head"]
+          workingDir: /app
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          env:
+            - name: ENVIRONMENT
+              value: {{ .Values.environment | quote }}
+            - name: ORG_ID
+              value: {{ include "pralai-flinksql-runner.orgId" . | quote }}
+            {{- include "pralai-flinksql-runner.databaseEnv" . | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+{{- end }}

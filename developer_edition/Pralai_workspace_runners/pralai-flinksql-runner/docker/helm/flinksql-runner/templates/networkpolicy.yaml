@@ -1,0 +1,41 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "pralai-flinksql-runner.fullname" . }}
+  labels:
+    {{- include "pralai-flinksql-runner.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "pralai-flinksql-runner.selectorLabels" . | nindent 6 }}
+  policyTypes: ["Ingress", "Egress"]
+  ingress:
+    - from:
+        - podSelector: {}
+        {{- with .Values.networkPolicy.ingressFrom }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.service.targetPort }}
+  egress:
+    # DNS
+    - to:
+        {{- toYaml .Values.networkPolicy.dns.to | nindent 8 }}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    {{- range $name, $rule := .Values.networkPolicy.egress }}
+    # {{ $name }}
+    - to:
+        {{- toYaml (default $.Values.networkPolicy.defaultTo $rule.to) | nindent 8 }}
+      ports:
+        {{- range $rule.ports }}
+        - protocol: TCP
+          port: {{ . }}
+        {{- end }}
+    {{- end }}
+{{- end }}

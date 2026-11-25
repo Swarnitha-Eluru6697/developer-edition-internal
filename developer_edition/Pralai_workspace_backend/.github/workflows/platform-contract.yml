@@ -1,0 +1,55 @@
+name: Platform contract
+
+# X-007: the integration mismatches no single repository's CI can see — a secret one service mounts and its callee never reads, a Service
+# URL that resolves to nothing, a chart key the application ignores, two services that disagree on a role, scope or topic. This job checks
+# out the whole Workspace platform side by side and runs the cross-repo contract tests (tests/test_platform_contract.py,
+# tests/test_rbac_contract.py, ...) against the RENDERED production charts, plus the generated-contract drift checks.
+#
+# The live end-to-end scenarios (scripts/e2e, via scripts/platform_gate.sh --e2e) need a running stack; run them in the environment
+# that has one (the local compose stack, or a staging data plane) — they are not part of this job.
+#
+# Needs a repository secret PLATFORM_REPOS_TOKEN with read access to the sibling repositories.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  contracts:
+    name: Cross-repo contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: Pralai_workspace_backend
+      - uses: actions/checkout@v4
+        with:
+          repository: AadhyaAnalyticsInc/Pralai_dataquality_backend
+          path: Pralai_dataquality_backend
+          token: ${{ secrets.PLATFORM_REPOS_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          repository: AadhyaAnalyticsInc/Pralai_workspace_runners
+          path: Pralai_workspace_runners
+          token: ${{ secrets.PLATFORM_REPOS_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          repository: AadhyaAnalyticsInc/Pralai_workspace_frontend
+          path: Pralai_workspace_frontend
+          token: ${{ secrets.PLATFORM_REPOS_TOKEN }}
+      - uses: azure/setup-helm@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Workspace dev dependencies
+        working-directory: Pralai_workspace_backend
+        run: pip install ".[dev]"
+      - name: Cross-repo contract tests
+        working-directory: Pralai_workspace_backend
+        run: python -m pytest -q tests/test_platform_contract.py tests/test_rbac_contract.py tests/test_delegated_tokens.py tests/test_dq_delegation.py tests/test_helm_contract.py
+      - name: Committed contracts are current
+        working-directory: Pralai_workspace_backend
+        run: |
+          python scripts/export_rbac_contract.py --check contracts/rbac.contract.v1.json
+          python scripts/export_openapi.py --check openapi/workspace.json
