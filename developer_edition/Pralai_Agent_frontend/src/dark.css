@@ -1,0 +1,343 @@
+/*
+ * Agentic Workflow — dark theme (Pralai charcoal).
+ *
+ * Applies only under <html data-theme="dark">, which DeveloperUserMenu.tsx sets from the
+ * Developer Edition shell's theme toggle (or ?de_theme=dark / the OS setting standalone).
+ * Light mode is untouched: every rule here is scoped to :root[data-theme="dark"].
+ *
+ * 1. The app's own design tokens (styles.css :root) are remapped onto the shared --pd-*
+ *    palette (components/pralai-dark.css), so everything written against tokens follows.
+ * 2. Targeted overrides for colours that styles.css / agent-configure.css /
+ *    search-select.css hardcode.
+ * 3. A few tokens (--edge-*, --dot-*, --brand-*) that .tsx inline styles read with their
+ *    original light value as the fallback.
+ */
+
+/* ---------- 1. tokens ---------- */
+:root[data-theme="dark"]{
+  --navy:var(--pd-text); --navy-2:var(--pd-text); --navy-700:var(--pd-text-2);
+  --ink:var(--pd-text); --mute:var(--pd-muted); --faint:var(--pd-faint); --muted:var(--pd-muted);
+  --paper:var(--pd-bg); --card:var(--pd-surface); --card2:var(--pd-surface-2);
+  --line:var(--pd-line); --line-2:var(--pd-line);
+  --teal:var(--pd-accent); --teal-d:var(--pd-accent); --teal-t:var(--pd-accent-bg);
+  --purple:var(--pd-purple); --purple-t:var(--pd-purple-bg);
+  --amber:var(--pd-amber); --amber-d:var(--pd-warn); --amber-t:var(--pd-warn-bg);
+  --red:var(--pd-bad); --red-d:var(--pd-bad); --red-t:var(--pd-bad-bg);
+  --green:var(--pd-ok); --green-d:var(--pd-ok); --green-t:var(--pd-ok-bg);
+  --slate:var(--pd-neutral); --slate-t:var(--pd-neutral-bg);
+  --blue:var(--pd-info); --blue-t:var(--pd-info-bg);
+  --danger:var(--pd-bad); --amber-text:var(--pd-warn);
+  --shadow:none;
+  --shadow-lg:var(--pd-shadow);
+  --cta:var(--pd-amber); --cta-hover:var(--pd-amber-hover); --cta-ink:var(--pd-on-amber); --cta-line:var(--pd-amber);
+
+  /* read by inline styles in .tsx (light fallback lives there) */
+  --edge-default:var(--pd-faint); --edge-true:var(--pd-ok); --edge-false:var(--pd-bad);
+  --edge-body:var(--pd-accent); --edge-exit:var(--pd-neutral);
+  --dot-trigger:var(--pd-warn); --dot-tool:var(--pd-amber);
+  --brand-label:var(--pd-accent);
+  --inset-bg:var(--pd-surface-2);
+}
+
+/* ---------- 2. shell: brand bar, top bar, sidebar ---------- */
+:root[data-theme="dark"] ::selection{background:var(--pd-accent-bg)}
+:root[data-theme="dark"] .brandbar,
+:root[data-theme="dark"] .topbar,
+:root[data-theme="dark"] .sidebar{background:var(--pd-surface);border-color:var(--pd-line)}
+/* Pralai wordmark: the forest stem + "ralai" letters go white; emerald bowl and amber bar stay. */
+:root[data-theme="dark"] .brandbar svg path[fill="#0B3B2E"],
+:root[data-theme="dark"] .docs-page-header svg path[fill="#0B3B2E"],
+:root[data-theme="dark"] .runner-topbar svg path[fill="#0B3B2E"]{fill:#FFFFFF}
+:root[data-theme="dark"] .navgroup > .lbl{color:var(--pd-muted)}
+:root[data-theme="dark"] .navitem{color:var(--pd-text-2)}
+:root[data-theme="dark"] .navitem:hover{background:var(--pd-surface-2);color:var(--pd-text)}
+:root[data-theme="dark"] .navitem.active{background:var(--pd-surface-3);color:#FFFFFF;box-shadow:inset 3px 0 0 var(--pd-nav-stroke)}
+:root[data-theme="dark"] .navitem.active svg{color:var(--pd-text)}
+:root[data-theme="dark"] .navitem .count{background:var(--pd-neutral-bg);color:var(--pd-neutral)}
+:root[data-theme="dark"] .navitem .count.alert{background:var(--pd-bad-bg);color:var(--pd-bad)}
+:root[data-theme="dark"] .cmd{background:var(--pd-surface-2);border-color:var(--pd-line)}
+:root[data-theme="dark"] .cmd input::placeholder{color:var(--pd-faint)}
+:root[data-theme="dark"] .cmd kbd{background:var(--pd-surface);border-color:var(--pd-line)}
+:root[data-theme="dark"] .iconbtn:hover{background:var(--pd-surface-2)}
+/* persona segmented control */
+:root[data-theme="dark"] .seg{background:var(--pd-surface-2);border-color:var(--pd-line)}
+:root[data-theme="dark"] .seg button.on{background:var(--pd-surface-3);color:#FFFFFF;box-shadow:none}
+:root[data-theme="dark"] .seg button.on .pd{background:var(--pd-ok)}
+:root[data-theme="dark"] .eyebrow{color:var(--pd-accent)}
+:root[data-theme="dark"] .eyebrow .crumb{color:var(--pd-muted)}
+:root[data-theme="dark"] h1.title{color:var(--pd-text)}
+
+/* ---------- buttons ---------- */
+:root[data-theme="dark"] .btn.ghost{background:var(--pd-surface);color:var(--pd-text);border-color:var(--pd-line)}
+:root[data-theme="dark"] .btn.ghost:hover{background:var(--pd-surface-2)}
+:root[data-theme="dark"] .btn.danger{background:var(--pd-bad-bg);color:var(--pd-bad);border:1px solid var(--pd-bad)}
+:root[data-theme="dark"] .btn.ghost.danger{background:var(--pd-surface);color:var(--pd-bad);border-color:var(--pd-bad)}
+:root[data-theme="dark"] .btn.ghost.danger:hover{background:var(--pd-bad-bg)}
+:root[data-theme="dark"] .icon-action,
+:root[data-theme="dark"] .icon-btn,
+:root[data-theme="dark"] .studio-card-edit,
+:root[data-theme="dark"] .studio-card-delete,
+:root[data-theme="dark"] .studio-card-openapp{background:var(--pd-surface);border-color:var(--pd-line);color:var(--pd-muted)}
+:root[data-theme="dark"] .studio-card-openapp{color:var(--pd-accent)}
+:root[data-theme="dark"] .icon-action:hover:not(:disabled),
+:root[data-theme="dark"] .icon-btn:hover:not(:disabled),
+:root[data-theme="dark"] .studio-card-edit:hover:not(:disabled){background:var(--pd-surface-2);color:var(--pd-text);border-color:var(--pd-line-strong)}
+:root[data-theme="dark"] .icon-action.danger:hover:not(:disabled),
+:root[data-theme="dark"] .studio-card-delete:hover:not(:disabled){background:var(--pd-bad-bg);color:var(--pd-bad);border-color:var(--pd-bad)}
+:root[data-theme="dark"] .studio-card-openapp:hover{background:var(--pd-accent-bg);border-color:var(--pd-accent)}
+:root[data-theme="dark"] .view-toggle button.active{background:var(--pd-surface-3);color:#FFFFFF}
+:root[data-theme="dark"] .view-toggle button:hover:not(.active){background:var(--pd-surface-2)}
+:root[data-theme="dark"] .tab.on{color:var(--pd-text)}
+:root[data-theme="dark"] .tab.on:after{background:var(--pd-nav-stroke)}
+:root[data-theme="dark"] .api-subtabs .tab{background:var(--pd-surface-2)}
+
+/* ---------- form controls ---------- */
+:root[data-theme="dark"] select:not([multiple]){
+  color:var(--pd-text);background-color:var(--pd-surface-2);border-color:var(--pd-line);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A3ABB3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")}
+:root[data-theme="dark"] select:not([multiple]):hover{border-color:var(--pd-line-strong)}
+:root[data-theme="dark"] select:not([multiple]):focus{border-color:var(--pd-accent);box-shadow:0 0 0 3px var(--pd-accent-bg)}
+:root[data-theme="dark"] select:disabled{background-color:var(--pd-surface);color:var(--pd-faint)}
+:root[data-theme="dark"] select option{background:var(--pd-surface);color:var(--pd-text)}
+/* Unstyled native inputs anywhere in the app get the same dark box (:where keeps it low-specificity). */
+:root[data-theme="dark"] :where(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]),textarea){background-color:var(--pd-surface-2);color:var(--pd-text);border-color:var(--pd-line)}
+:root[data-theme="dark"] .field input,
+:root[data-theme="dark"] .field select,
+:root[data-theme="dark"] .field textarea,
+:root[data-theme="dark"] .text-input,
+:root[data-theme="dark"] .feature-input{background-color:var(--pd-surface-2);color:var(--pd-text);border-color:var(--pd-line)}
+:root[data-theme="dark"] .field select:not([multiple]):hover,
+:root[data-theme="dark"] .text-input:hover{border-color:var(--pd-line-strong)}
+:root[data-theme="dark"] .field select:not([multiple]):focus{border-color:var(--pd-accent);box-shadow:0 0 0 3px var(--pd-accent-bg)}
+:root[data-theme="dark"] .field input:disabled,
+:root[data-theme="dark"] .field textarea:disabled,
+:root[data-theme="dark"] .text-input:disabled{background-color:var(--pd-surface);color:var(--pd-faint)}
+/* inputs that sit transparently inside another box keep no fill of their own */
+:root[data-theme="dark"] .cmd input,
+:root[data-theme="dark"] .combo-search input,
+:root[data-theme="dark"] .ac-pop-search input{background:none;border:0}
+:root[data-theme="dark"] input[type=checkbox],
+:root[data-theme="dark"] input[type=radio],
+:root[data-theme="dark"] input[type=range]{accent-color:var(--pd-accent)}
+:root[data-theme="dark"] .tog:after,
+:root[data-theme="dark"] .switch span:before{background:var(--pd-text)}
+:root[data-theme="dark"] .tog,
+:root[data-theme="dark"] .switch span{background:var(--pd-line-strong)}
+:root[data-theme="dark"] .tog.on,
+:root[data-theme="dark"] .switch input:checked+span{background:var(--pd-accent)}
+:root[data-theme="dark"] .tog.on:after,
+:root[data-theme="dark"] .switch input:checked+span:before{background:var(--pd-on-amber)}
+:root[data-theme="dark"] .radio-cards .rc.on,
+:root[data-theme="dark"] .radio-card-lg.on,
+:root[data-theme="dark"] .provider-card.on{border-color:var(--pd-accent);background:var(--pd-accent-bg)}
+:root[data-theme="dark"] .steps .s.on .n{color:var(--pd-on-amber)}
+:root[data-theme="dark"] .check-box{color:var(--pd-on-amber)}
+:root[data-theme="dark"] .studio-filterbar select,
+:root[data-theme="dark"] .studio-tagtrigger,
+:root[data-theme="dark"] .field-type-select{background-color:var(--pd-surface-2);border-color:var(--pd-line);color:var(--pd-text)}
+:root[data-theme="dark"] .studio-tagtrigger:hover,
+:root[data-theme="dark"] .field-type-select:hover{border-color:var(--pd-line-strong)}
+:root[data-theme="dark"] .studio-tagtrigger[aria-expanded="true"],
+:root[data-theme="dark"] .studio-tagtrigger:focus-visible,
+:root[data-theme="dark"] .field-type-select[aria-expanded="true"],
+:root[data-theme="dark"] .combo-trigger:focus-visible{border-color:var(--pd-accent);box-shadow:0 0 0 3px var(--pd-accent-bg)}
+:root[data-theme="dark"] .studio-tagtrigger > svg,
+:root[data-theme="dark"] .field-type-select > svg:last-child,
+:root[data-theme="dark"] .combo-chev{color:var(--pd-muted)}
+/* floating menus */
+:root[data-theme="dark"] .studio-tagmenu,
+:root[data-theme="dark"] .field-type-menu,
+:root[data-theme="dark"] .node-picker{background:var(--pd-surface);border-color:var(--pd-line);box-shadow:var(--pd-shadow)}
+:root[data-theme="dark"] .studio-tagoption,
+:root[data-theme="dark"] .field-type-option,
+:root[data-theme="dark"] .node-picker-item{color:var(--pd-text)}
+:root[data-theme="dark"] .studio-tagoption:hover,
+:root[data-theme="dark"] .field-type-option:hover,
+:root[data-theme="dark"] .node-picker-item:hover{background:var(--pd-surface-2)}
+:root[data-theme="dark"] .field-type-option.sel,
+:root[data-theme="dark"] .combo-option.sel{background:var(--pd-accent-bg);color:var(--pd-accent)}
+:root[data-theme="dark"] .combo-option.active{background:var(--pd-surface-2)}
+:root[data-theme="dark"] .combo-option.sel.active{background:var(--pd-surface-3)}
+:root[data-theme="dark"] .combo-option svg{color:var(--pd-accent)}
+:root[data-theme="dark"] .combo-search,
+:root[data-theme="dark"] .combo-foot{border-color:var(--pd-line)}
+:root[data-theme="dark"] .combo-group{color:var(--pd-muted);background:var(--pd-surface)}
+:root[data-theme="dark"] .studio-tagoption input[type=checkbox]{accent-color:var(--pd-accent)}
+
+/* ---------- cards, KPIs, chips, banners ---------- */
+:root[data-theme="dark"] .card{border-color:var(--pd-line)}
+:root[data-theme="dark"] .stat .k{color:var(--pd-muted)}
+:root[data-theme="dark"] .stat .v{color:#FFFFFF}
+:root[data-theme="dark"] .stat .m{color:var(--pd-accent)}
+:root[data-theme="dark"] .stat .m.warn{color:var(--pd-warn)}
+:root[data-theme="dark"] .stat .m.bad{color:var(--pd-bad)}
+:root[data-theme="dark"] .chip.amber{color:var(--pd-warn)}
+:root[data-theme="dark"] .chip.slate{background:var(--pd-neutral-bg);color:var(--pd-neutral)}
+:root[data-theme="dark"] .chip.line{background:var(--pd-surface);border-color:var(--pd-line);color:var(--pd-muted)}
+:root[data-theme="dark"] .banner.info{background:var(--pd-info-bg);color:var(--pd-info);border:1px solid var(--pd-info-line)}
+:root[data-theme="dark"] .banner.good{border:1px solid var(--pd-ok-bg)}
+:root[data-theme="dark"] .banner.warn{color:var(--pd-warn)}
+:root[data-theme="dark"] .gauge .ring:after{background:var(--pd-surface)}
+:root[data-theme="dark"] .chain .hop{background:var(--pd-surface-2)}
+:root[data-theme="dark"] .chain .hop.agent{background:var(--pd-purple-bg)}
+:root[data-theme="dark"] .chain .hop.data{background:var(--pd-info-bg)}
+:root[data-theme="dark"] .studio-card:hover{border-color:var(--pd-accent)}
+:root[data-theme="dark"] .studio-card-title{color:var(--pd-text)}
+/* Icon tiles: their fills are status colours, which are light in dark mode, so the glyph goes dark. */
+:root[data-theme="dark"] .studio-card-icon,
+:root[data-theme="dark"] .feature-icon,
+:root[data-theme="dark"] .pal-icon,
+:root[data-theme="dark"] .cnode-icon,
+:root[data-theme="dark"] .checklist-item-icon,
+:root[data-theme="dark"] .workflow-process-icon,
+:root[data-theme="dark"] .trigger-type-row .tt-icon,
+:root[data-theme="dark"] .git-badge{color:var(--pd-on-amber)}
+:root[data-theme="dark"] .checklist-badge{color:var(--pd-on-amber)}
+
+/* ---------- tables ---------- */
+:root[data-theme="dark"] th{background:var(--pd-surface-2);color:var(--pd-muted);border-bottom-color:var(--pd-line)}
+:root[data-theme="dark"] td{border-bottom-color:var(--pd-line)}
+:root[data-theme="dark"] tbody tr.click:hover,
+:root[data-theme="dark"] .kb-record-row:hover,
+:root[data-theme="dark"] .logline.click:hover{background:var(--pd-surface-2)}
+:root[data-theme="dark"] .table-scroll thead th,
+:root[data-theme="dark"] .home-agents-scroll thead th,
+:root[data-theme="dark"] .inner-scroll .kb-docs-table thead th{background:var(--pd-surface-2)}
+:root[data-theme="dark"] .docs-table th{background:var(--pd-surface-2);color:var(--pd-text)}
+
+/* ---------- code, toasts, tooltips ---------- */
+:root[data-theme="dark"] .codeblock{background:var(--pd-code-bg);color:var(--pd-text-2);border:1px solid var(--pd-line)}
+:root[data-theme="dark"] .codeblock-copy{color:var(--pd-muted)}
+:root[data-theme="dark"] .toast{background:var(--pd-surface-3);color:var(--pd-text);border:1px solid var(--pd-line-strong)}
+:root[data-theme="dark"] .toast svg{color:var(--pd-accent)}
+:root[data-theme="dark"] .port-hint{background:var(--pd-surface-3);color:var(--pd-text)}
+:root[data-theme="dark"] [data-tip]::after{background:var(--pd-surface-3);color:var(--pd-text);border:1px solid var(--pd-line-strong)}
+:root[data-theme="dark"] .docs-page-content code{background:var(--pd-surface-2)}
+
+/* ---------- drawers / modals / panels ---------- */
+:root[data-theme="dark"] .overlay,
+:root[data-theme="dark"] .overlay-side{background:rgb(0 0 0 / .55)}
+:root[data-theme="dark"] .drawer,
+:root[data-theme="dark"] .modal,
+:root[data-theme="dark"] .tryit-modal,
+:root[data-theme="dark"] .features-panel,
+:root[data-theme="dark"] .checklist-panel{border-left:1px solid var(--pd-line)}
+:root[data-theme="dark"] .df{background:var(--pd-surface)}
+:root[data-theme="dark"] .x:hover{background:var(--pd-surface-2)}
+:root[data-theme="dark"] .feature-row,
+:root[data-theme="dark"] .mod-direction-row,
+:root[data-theme="dark"] .checklist-item,
+:root[data-theme="dark"] .input-field-row,
+:root[data-theme="dark"] .kb-option,
+:root[data-theme="dark"] .pipeline-subcard,
+:root[data-theme="dark"] .ds-browser{background:var(--pd-surface-2)}
+:root[data-theme="dark"] .checklist-item:hover,
+:root[data-theme="dark"] .input-field-row:hover{background:var(--pd-surface-3)}
+:root[data-theme="dark"] .opener-question-row,
+:root[data-theme="dark"] .prompt-preview{background:var(--pd-surface);border-color:var(--pd-line)}
+:root[data-theme="dark"] .docs-link-icon:hover,
+:root[data-theme="dark"] .pal-doc-icon:hover{background:var(--pd-surface-3)}
+:root[data-theme="dark"] .pub-copy input{background:var(--pd-surface-2);color:var(--pd-text-2)}
+:root[data-theme="dark"] .pub-hero,
+:root[data-theme="dark"] .pub-status,
+:root[data-theme="dark"] .pub-version,
+:root[data-theme="dark"] .pub-fqn,
+:root[data-theme="dark"] .pub-role{background:var(--pd-surface-2)}
+:root[data-theme="dark"] .pub-status-bad{background:var(--pd-bad-bg)}
+:root[data-theme="dark"] .pub-channel-icon{background:var(--pd-surface-3)}
+:root[data-theme="dark"] .empty .ic{background:var(--pd-surface-2)}
+
+/* ---------- builder canvas ---------- */
+:root[data-theme="dark"] .builder-shell{background:var(--pd-surface);border-color:var(--pd-line)}
+:root[data-theme="dark"] .pal{background:var(--pd-surface)}
+:root[data-theme="dark"] .pal .lbl{color:var(--pd-muted)}
+:root[data-theme="dark"] .palnode{background:var(--pd-surface-2);border-color:var(--pd-line);color:var(--pd-text);box-shadow:none}
+:root[data-theme="dark"] .palnode:hover{border-color:var(--pd-accent);box-shadow:0 0 0 2px var(--pd-accent-bg)}
+:root[data-theme="dark"] .canvas{background:
+  linear-gradient(#1F2429 1px,transparent 1px) 0 0/22px 22px,
+  linear-gradient(90deg,#1F2429 1px,transparent 1px) 0 0/22px 22px,var(--pd-bg)}
+:root[data-theme="dark"] .canvas.dropok{background-color:var(--pd-accent-bg)}
+:root[data-theme="dark"] .cnode{background:var(--pd-surface-2);color:var(--pd-text);box-shadow:none}
+:root[data-theme="dark"] .cnode.sel{box-shadow:0 0 0 3px rgb(61 220 154 / .35)}
+:root[data-theme="dark"] .cnode.trigger{border-color:var(--pd-warn);background:var(--pd-warn-bg)}
+:root[data-theme="dark"] .cnode.gov{border-color:var(--pd-line-strong);background:var(--pd-surface-2)}
+:root[data-theme="dark"] .cnode.c-amber{border-color:var(--pd-amber);background:var(--pd-warn-bg)}
+:root[data-theme="dark"] .cnode-switch{border-top-color:var(--pd-line)}
+:root[data-theme="dark"] .port{background:var(--pd-surface)}
+:root[data-theme="dark"] .port.unconnected{background:var(--pd-info);box-shadow:none}
+:root[data-theme="dark"] .port.unconnected:hover{background:var(--pd-info-line)}
+:root[data-theme="dark"] .port.unconnected:before{color:var(--pd-on-amber)}
+:root[data-theme="dark"] .port.unconnected.true{background:var(--pd-ok)}
+:root[data-theme="dark"] .port.unconnected.false{background:var(--pd-bad)}
+:root[data-theme="dark"] .port.unconnected.body{background:var(--pd-accent)}
+:root[data-theme="dark"] .port.unconnected.exit{background:var(--pd-neutral)}
+:root[data-theme="dark"] .port.unconnected.true:hover,
+:root[data-theme="dark"] .port.unconnected.false:hover,
+:root[data-theme="dark"] .port.unconnected.body:hover,
+:root[data-theme="dark"] .port.unconnected.exit:hover{filter:brightness(.85)}
+:root[data-theme="dark"] .loop-container{background:rgb(61 220 154 / .05)}
+/* Comment notes keep their pastel sticky-note fills (set inline from commentFormatting.ts),
+   so the text inside them stays dark. */
+:root[data-theme="dark"] .comment-note{--navy:#14201B;--mute:#5B6D62;--blue:#1D5FBF;color:#14201B;box-shadow:none}
+:root[data-theme="dark"] .comment-note.sel{box-shadow:0 0 0 2px var(--pd-accent)}
+:root[data-theme="dark"] .comment-toolbar button:hover{background:var(--pd-surface-3)}
+:root[data-theme="dark"] .comment-toolbar button.on{background:var(--pd-surface-3)}
+:root[data-theme="dark"] .comment-color-swatch.sel{border-color:var(--pd-text)}
+:root[data-theme="dark"] .cfg{background:var(--pd-surface)}
+:root[data-theme="dark"] .trigger-type-row .tt-label{color:var(--pd-text)}
+
+/* ---------- web apps / published runner ---------- */
+:root[data-theme="dark"] .webapps-rail{background:var(--pd-surface)}
+:root[data-theme="dark"] .webapps-rail-item:hover{background:var(--pd-surface-2)}
+:root[data-theme="dark"] .webapps-rail-item.active{background:var(--pd-surface-3);box-shadow:inset 3px 0 0 var(--pd-nav-stroke)}
+:root[data-theme="dark"] .runner-topbar,
+:root[data-theme="dark"] .chat-manage-row,
+:root[data-theme="dark"] .chat-input-row{background:var(--pd-surface)}
+:root[data-theme="dark"] .chat-bubble.assistant,
+:root[data-theme="dark"] .chat-followup-chip{background:var(--pd-surface-2)}
+:root[data-theme="dark"] .chat-bubble.user{background:var(--pd-accent-bg);color:var(--pd-text);border:1px solid #2E5A44}
+:root[data-theme="dark"] .chat-step{background:var(--pd-surface-2)}
+:root[data-theme="dark"] .docs-page{background:var(--pd-bg)}
+
+/* ---------- agent-configure.css ---------- */
+:root[data-theme="dark"] .ac-badge-incompat{color:var(--pd-accent);background:var(--pd-accent-bg)}
+:root[data-theme="dark"] .ac-err{color:var(--pd-bad)}
+:root[data-theme="dark"] .ac-env-row input[aria-invalid="true"]{border-color:var(--pd-bad)}
+:root[data-theme="dark"] .ac-menu,
+:root[data-theme="dark"] .ac-pop,
+:root[data-theme="dark"] .ac-help-pop{box-shadow:var(--pd-shadow)}
+:root[data-theme="dark"] .ac-menu-item,
+:root[data-theme="dark"] .ac-pop-item{color:var(--pd-text)}
+:root[data-theme="dark"] .ac-menu-item:hover,
+:root[data-theme="dark"] .ac-pop-item:hover:not(:disabled),
+:root[data-theme="dark"] .ac-tab.on{background:var(--pd-surface-2)}
+
+/* ---------- search-select.css (literal colours there) ---------- */
+:root[data-theme="dark"] .ss-trigger{background:var(--pd-surface-2);border-color:var(--pd-line);color:var(--pd-text)}
+:root[data-theme="dark"] .ss-trigger:hover:not(:disabled){border-color:var(--pd-line-strong)}
+:root[data-theme="dark"] .ss-trigger[aria-expanded="true"],
+:root[data-theme="dark"] .ss-trigger:focus-visible{border-color:var(--pd-accent);box-shadow:0 0 0 3px var(--pd-accent-bg)}
+:root[data-theme="dark"] .ss-trigger:disabled{background:var(--pd-surface);color:var(--pd-faint)}
+:root[data-theme="dark"] .ss-value.muted,
+:root[data-theme="dark"] .ss-group,
+:root[data-theme="dark"] .ss-option.disabled,
+:root[data-theme="dark"] .ss-option-desc,
+:root[data-theme="dark"] .ss-empty,
+:root[data-theme="dark"] .ss-hint,
+:root[data-theme="dark"] .ss-search input::placeholder{color:var(--pd-faint)}
+:root[data-theme="dark"] .ss-chev{stroke:var(--pd-muted)}
+:root[data-theme="dark"] .ss-ico{stroke:var(--pd-faint)}
+:root[data-theme="dark"] .ss-chip{background:var(--pd-neutral-bg);border-color:var(--pd-line);color:var(--pd-neutral)}
+:root[data-theme="dark"] .ss-menu{background:var(--pd-surface);border-color:var(--pd-line);box-shadow:var(--pd-shadow);color:var(--pd-text)}
+:root[data-theme="dark"] .ss-search{border-bottom-color:var(--pd-line)}
+:root[data-theme="dark"] .ss-search input{background:var(--pd-surface-2);border:1px solid var(--pd-line);color:var(--pd-text);box-shadow:0 0 0 3px var(--pd-accent-bg)}
+:root[data-theme="dark"] .ss-steppers button{background:var(--pd-surface-2);border-color:var(--pd-line)}
+:root[data-theme="dark"] .ss-steppers button:hover:not(:disabled){background:var(--pd-surface-3)}
+:root[data-theme="dark"] .ss-option{color:var(--pd-text)}
+:root[data-theme="dark"] .ss-option.active{background:var(--pd-surface-2)}
+:root[data-theme="dark"] .ss-option.sel{background:var(--pd-accent-bg);color:var(--pd-accent)}
+:root[data-theme="dark"] .ss-option.sel.active{background:var(--pd-surface-3)}
+:root[data-theme="dark"] .ss-check{stroke:var(--pd-accent)}
+:root[data-theme="dark"] .ss-foot{background:var(--pd-surface-2);border-top-color:var(--pd-line);color:var(--pd-muted)}
+:root[data-theme="dark"] .docs-page-header{background:var(--pd-surface)}
+:root[data-theme="dark"] .docs-page-header .brandbar{border-right:0;border-bottom:0}

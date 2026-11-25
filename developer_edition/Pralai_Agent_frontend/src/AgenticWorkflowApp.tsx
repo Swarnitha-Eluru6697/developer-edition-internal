@@ -33,6 +33,8 @@ import { AppRoutes } from './App';
 import { setApiBase } from './api';
 import { setHostAccountMenu, setHostRoleBadges } from './host';
 import './styles.css';
+import './components/pralai-dark.css';
+import './dark.css';
 
 export interface AgenticWorkflowAppProps {
   apiBase?: string;

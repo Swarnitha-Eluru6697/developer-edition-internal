@@ -44,24 +44,24 @@ export function ChannelsTab({ channels, loading, canManage, onEdit }: Props) {
     }
   };
 
-  if (loading && !channels) return <div style={{ padding: 32, textAlign: "center", color: "#73827a", fontSize: 13 }}>Loading channels…</div>;
+  if (loading && !channels) return <div style={{ padding: 32, textAlign: "center", color: "var(--ws-subtle, #73827a)", fontSize: 13 }}>Loading channels…</div>;
   return (
     <div>
-      <p style={{ fontSize: 12.5, color: "#5b6d62", margin: "0 0 12px", lineHeight: 1.5 }}>
+      <p style={{ fontSize: 12.5, color: "var(--ws-muted, #5b6d62)", margin: "0 0 12px", lineHeight: 1.5 }}>
         Alerts are posted to the channels below. A channel limited to one job receives only that job's alerts; a severity floor keeps quieter notices out of an on-call channel.
       </p>
       {channels?.length === 0 && (
         <div style={{ padding: "40px 16px", textAlign: "center" }}>
-          <i className="ti ti-broadcast" style={{ fontSize: 30, color: "#cfd8d1", display: "block", marginBottom: 10 }} />
+          <i className="ti ti-broadcast" style={{ fontSize: 30, color: "var(--ws-faint, #cfd8d1)", display: "block", marginBottom: 10 }} />
           <div style={{ fontSize: 13.5, fontWeight: 500, marginBottom: 4 }}>No channels yet</div>
-          <div style={{ fontSize: 12.5, color: "#5b6d62" }}>Add a Slack or Microsoft Teams channel: alerts are only sent to channels, and wait here until there is one.</div>
+          <div style={{ fontSize: 12.5, color: "var(--ws-muted, #5b6d62)" }}>Add a Slack or Microsoft Teams channel: alerts are only sent to channels, and wait here until there is one.</div>
         </div>
       )}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {channels?.map((c) => {
           const status = c.last_ok === null ? { tone: "slate" as const, text: "not used yet" } : c.last_ok ? { tone: "green" as const, text: "last send ok" } : { tone: "red" as const, text: "last send failed" };
           return (
-            <div key={c.id} style={{ background: "#fff", border: "1px solid #E3E8E2", borderRadius: 12, padding: "13px 16px", opacity: c.enabled ? 1 : 0.65 }}>
+            <div key={c.id} style={{ background: "var(--ws-surface, #fff)", border: "1px solid var(--ws-line, #E3E8E2)", borderRadius: 12, padding: "13px 16px", opacity: c.enabled ? 1 : 0.65 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                 <b style={{ fontSize: 14 }}>{c.name}</b>
                 <Chip>{KIND_LABEL[c.kind]}</Chip>
@@ -70,8 +70,8 @@ export function ChannelsTab({ channels, loading, canManage, onEdit }: Props) {
                 {canManage && (
                   <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
                     <button type="button" onClick={() => sendTest(c)} disabled={testing && originalArgs === c.id} title={`Send a test message to ${c.name}`}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 30, padding: "0 11px", fontSize: 12.5, fontWeight: 600, background: "#fff",
-                        color: "#14201B", border: "1px solid #E3E8E2", borderRadius: 8, cursor: "pointer" }}>
+                      style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 30, padding: "0 11px", fontSize: 12.5, fontWeight: 600, background: "var(--ws-surface, #fff)",
+                        color: "var(--ws-text, #14201B)", border: "1px solid var(--ws-line, #E3E8E2)", borderRadius: 8, cursor: "pointer" }}>
                       <Glyph name="pi-test" size={14} />{testing && originalArgs === c.id ? "Sending…" : "Send test"}
                     </button>
                     <IconAction icon={ACTION_ICON.edit} label={`Edit ${c.name}`} onClick={() => onEdit(c)} />
@@ -79,10 +79,10 @@ export function ChannelsTab({ channels, loading, canManage, onEdit }: Props) {
                   </div>
                 )}
               </div>
-              <p style={{ fontSize: 12.5, color: "#5b6d62", margin: "8px 0 0" }}>
+              <p style={{ fontSize: 12.5, color: "var(--ws-muted, #5b6d62)", margin: "8px 0 0" }}>
                 Receives <b>{SEVERITY_FLOOR_SHORT[c.min_severity]}</b> from <b>{c.scope_job_name ?? "all jobs"}</b> · <span style={mono}>{c.url_hint}</span>
               </p>
-              <p style={{ fontSize: 12, color: "#73827a", margin: "4px 0 0" }}>
+              <p style={{ fontSize: 12, color: "var(--ws-subtle, #73827a)", margin: "4px 0 0" }}>
                 {c.last_attempt_at ? <>Last attempt {formatTs(c.last_attempt_at)} — {c.last_detail ?? ""}</> : "No messages sent yet."}
               </p>
             </div>

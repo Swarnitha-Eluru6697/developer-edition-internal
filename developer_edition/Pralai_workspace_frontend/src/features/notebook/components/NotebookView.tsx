@@ -133,14 +133,14 @@ export function NotebookView({ fileId, sessionId, initialContent, onChange, onSa
   const delCell = (id: string) => { markEdited(); setCells((cs) => (cs.length > 1 ? cs.filter((c) => c.id !== id) : cs)); };
   const runAll = async () => { for (const c of cells) await runCell(c); };
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "#f4f4f2", overflow: "hidden" }}>
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--ws-fill, #f4f4f2)", overflow: "hidden" }}>
       {/* Toolbar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", borderBottom: "0.5px solid #E3E8E2", background: "#fff", flexShrink: 0 }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: "#2E3D36" }}><i className="ti ti-notebook" style={{ marginRight: 5 }} />Notebook</span>
-        <button onClick={runAll} style={btn("#0A7D5A", "#fff")}><i className="ti ti-player-play" style={{ fontSize: 12 }} /> Run all</button>
-        <button onClick={() => addCell()} style={btn("#fff", "#2E3D36", true)}><i className="ti ti-plus" style={{ fontSize: 12 }} /> Add cell</button>
-        <button onClick={onSave} title="Save (⌘S)" style={btn("#fff", "#2E3D36", true)}><i className="ti ti-device-floppy" style={{ fontSize: 12 }} /> Save</button>
-        <span style={{ marginLeft: "auto", fontSize: 11, color: "#73827a" }}>Python runs in the notebook kernel</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", borderBottom: "0.5px solid var(--ws-line, #E3E8E2)", background: "var(--ws-surface, #fff)", flexShrink: 0 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ws-text-2, #2E3D36)" }}><i className="ti ti-notebook" style={{ marginRight: 5 }} />Notebook</span>
+        <button onClick={runAll} style={btn("var(--ws-primary, #0A7D5A)", "var(--ws-on-primary, #fff)")}><i className="ti ti-player-play" style={{ fontSize: 12 }} /> Run all</button>
+        <button onClick={() => addCell()} style={btn("var(--ws-surface, #fff)", "var(--ws-text-2, #2E3D36)", true)}><i className="ti ti-plus" style={{ fontSize: 12 }} /> Add cell</button>
+        <button onClick={onSave} title="Save (⌘S)" style={btn("var(--ws-surface, #fff)", "var(--ws-text-2, #2E3D36)", true)}><i className="ti ti-device-floppy" style={{ fontSize: 12 }} /> Save</button>
+        <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--ws-subtle, #73827a)" }}>Python runs in the notebook kernel</span>
       </div>
 
       {/* Cells */}
@@ -148,13 +148,13 @@ export function NotebookView({ fileId, sessionId, initialContent, onChange, onSa
         {cells.map((cell, i) => {
           const accent = "#f59e0b";
           return (
-          <div key={cell.id} style={{ marginBottom: 14, border: "0.5px solid #E3E8E2", borderRadius: 8, background: "#fff", overflow: "hidden" }}>
+          <div key={cell.id} style={{ marginBottom: 14, border: "0.5px solid var(--ws-line, #E3E8E2)", borderRadius: 8, background: "var(--ws-surface, #fff)", overflow: "hidden" }}>
             <div style={{ display: "flex", alignItems: "stretch" }}>
-              <div style={{ width: 46, flexShrink: 0, background: "#fafafa", borderRight: "0.5px solid #eee", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 6, gap: 5 }}>
+              <div style={{ width: 46, flexShrink: 0, background: "var(--ws-fill, #fafafa)", borderRight: "0.5px solid var(--ws-line, #eee)", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 6, gap: 5 }}>
                 <button onClick={() => runCell(cell)} title="Run cell (⌘/Ctrl+Enter)" style={{ background: "none", border: "none", cursor: "pointer", color: accent, fontSize: 16 }}>
                   <i className={`ti ${cell.running ? "ti-loader-2" : "ti-player-play"}`} />
                 </button>
-                <span style={{ fontSize: 9.5, color: "#73827a", fontFamily: "monospace" }}>[{i + 1}]</span>
+                <span style={{ fontSize: 9.5, color: "var(--ws-subtle, #73827a)", fontFamily: "monospace" }}>[{i + 1}]</span>
               </div>
               <textarea
                 value={cell.source}
@@ -163,24 +163,24 @@ export function NotebookView({ fileId, sessionId, initialContent, onChange, onSa
                 spellCheck={false}
                 placeholder="# Python for this cell (⌘/Ctrl+Enter to run)"
                 rows={Math.max(2, cell.source.split("\n").length)}
-                style={{ flex: 1, border: "none", outline: "none", resize: "vertical", padding: "8px 10px", fontFamily: '"JetBrains Mono", Menlo, monospace', fontSize: 12.5, lineHeight: 1.5, color: "#14201B" }}
+                style={{ flex: 1, border: "none", outline: "none", resize: "vertical", padding: "8px 10px", fontFamily: '"JetBrains Mono", Menlo, monospace', fontSize: 12.5, lineHeight: 1.5, color: "var(--ws-text, #14201B)" }}
               />
               <IconAction size="sm" icon={ACTION_ICON.delete} label="Delete cell" danger
                 style={{ margin: "6px 8px", alignSelf: "flex-start" }} onClick={() => delCell(cell.id)} />
             </div>
             {/* Output */}
             {cell.status && cell.status !== "running" && (
-              <div style={{ borderTop: "0.5px solid #eee", background: "#F8FAF9" }}>
-                <div style={{ display: "flex", gap: 8, padding: "3px 10px", fontSize: 11, color: cell.status === "failed" ? "#b23b3b" : "#2f6b14" }}>
+              <div style={{ borderTop: "0.5px solid var(--ws-line, #eee)", background: "var(--ws-bg, #F8FAF9)" }}>
+                <div style={{ display: "flex", gap: 8, padding: "3px 10px", fontSize: 11, color: cell.status === "failed" ? "var(--ws-bad, #b23b3b)" : "var(--ws-ok, #2f6b14)" }}>
                   {cell.status === "failed" ? "error" : cell.status === "timeout" ? "timed out" : "success"}
-                  {cell.status === "completed" && cell.ms && <span style={{ color: "#73827a" }}>{cell.ms}ms</span>}
+                  {cell.status === "completed" && cell.ms && <span style={{ color: "var(--ws-subtle, #73827a)" }}>{cell.ms}ms</span>}
                 </div>
                 <PythonOutputs outputs={cell.outputs} error={cell.error} />
               </div>
             )}
           </div>
         );})}
-        <button onClick={() => addCell()} style={{ ...btn("#fff", "#5b6d62", true), width: "100%", justifyContent: "center", marginTop: 2 }}>
+        <button onClick={() => addCell()} style={{ ...btn("var(--ws-surface, #fff)", "var(--ws-muted, #5b6d62)", true), width: "100%", justifyContent: "center", marginTop: 2 }}>
           <i className="ti ti-plus" style={{ fontSize: 12 }} /> Add cell
         </button>
       </div>
@@ -189,5 +189,5 @@ export function NotebookView({ fileId, sessionId, initialContent, onChange, onSa
 }
 
 function btn(bg: string, color: string, bordered = false): CSSProperties {
-  return { height: 26, padding: "0 10px", fontSize: 11.5, background: bg, color, border: bordered ? "0.5px solid #cfd8d1" : "none", borderRadius: 6, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 };
+  return { height: 26, padding: "0 10px", fontSize: 11.5, background: bg, color, border: bordered ? "0.5px solid var(--ws-line-strong, #cfd8d1)" : "none", borderRadius: 6, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 };
 }

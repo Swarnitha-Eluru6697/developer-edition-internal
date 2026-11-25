@@ -124,7 +124,7 @@ export function HeaderSearch({ workspaces, activeWs, onSelectWorkspace }: Props)
 
   return (
     <div ref={boxRef} style={{ position: "relative", flex: "0 1 520px", minWidth: 0 }}>
-      <div style={{ height: 38, display: "flex", alignItems: "center", gap: 9, background: "#F8FAF9", border: "1px solid #E3E8E2", borderRadius: 9, padding: "0 12px", color: "#5B6D62" }}>
+      <div style={{ height: 38, display: "flex", alignItems: "center", gap: 9, background: "var(--ws-bg, #F8FAF9)", border: "1px solid var(--ws-line, #E3E8E2)", borderRadius: 9, padding: "0 12px", color: "var(--ws-muted, #5B6D62)" }}>
         <i className="ti ti-search" style={{ fontSize: 15 }} />
         <input
           ref={inputRef}
@@ -134,27 +134,27 @@ export function HeaderSearch({ workspaces, activeWs, onSelectWorkspace }: Props)
           onChange={(e) => { setQ(e.target.value); setHighlight(0); setOpen(true); }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          style={{ flex: 1, minWidth: 0, border: 0, background: "none", outline: "none", fontSize: 13.5, color: "#14201B" }}
+          style={{ flex: 1, minWidth: 0, border: 0, background: "none", outline: "none", fontSize: 13.5, color: "var(--ws-text, #14201B)" }}
         />
-        <kbd style={{ fontFamily: "var(--mono)", fontSize: 11, background: "#fff", border: "1px solid #E3E8E2", borderRadius: 5, padding: "1px 6px", color: "#73827A" }}>/</kbd>
+        <kbd style={{ fontFamily: "var(--mono)", fontSize: 11, background: "var(--ws-surface, #fff)", border: "1px solid var(--ws-line, #E3E8E2)", borderRadius: 5, padding: "1px 6px", color: "var(--ws-subtle, #73827A)" }}>/</kbd>
       </div>
 
       {open && q.trim() && (
-        <div style={{ position: "absolute", top: 44, left: 0, right: 0, background: "#fff", border: "1px solid #E3E8E2", borderRadius: 10, boxShadow: "0 12px 40px rgba(11,59,46,.18)", zIndex: 220, padding: "4px 0", maxHeight: 380, overflow: "auto" }}>
-          {results.length === 0 && <div style={{ padding: "10px 14px", fontSize: 12.5, color: "#73827A" }}>No matches for “{q.trim()}”</div>}
+        <div style={{ position: "absolute", top: 44, left: 0, right: 0, background: "var(--ws-surface, #fff)", border: "1px solid var(--ws-line, #E3E8E2)", borderRadius: 10, boxShadow: "0 12px 40px rgba(11,59,46,.18)", zIndex: 220, padding: "4px 0", maxHeight: 380, overflow: "auto" }}>
+          {results.length === 0 && <div style={{ padding: "10px 14px", fontSize: 12.5, color: "var(--ws-subtle, #73827A)" }}>No matches for “{q.trim()}”</div>}
           {results.map((r, i) => (
             <div key={r.key}>
               {(i === 0 || results[i - 1].group !== r.group) && (
-                <div style={{ fontSize: 10.5, fontWeight: 600, color: "#73827A", textTransform: "uppercase", letterSpacing: ".12em", padding: "8px 14px 4px" }}>{r.group}</div>
+                <div style={{ fontSize: 10.5, fontWeight: 600, color: "var(--ws-subtle, #73827A)", textTransform: "uppercase", letterSpacing: ".12em", padding: "8px 14px 4px" }}>{r.group}</div>
               )}
               <div
                 onMouseDown={(e) => { e.preventDefault(); choose(r); }}
                 onMouseEnter={() => setHighlight(i)}
-                style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 14px", cursor: "pointer", fontSize: 13, background: i === highlight ? "#E3F6EA" : "transparent", color: i === highlight ? "#086347" : "#14201B" }}
+                style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 14px", cursor: "pointer", fontSize: 13, background: i === highlight ? "var(--ws-accent-bg, #E3F6EA)" : "transparent", color: i === highlight ? "var(--ws-accent, #086347)" : "var(--ws-text, #14201B)" }}
               >
-                <Glyph name={r.icon} size={15} style={{ color: "#0A7D5A" }} />
+                <Glyph name={r.icon} size={15} style={{ color: "var(--ws-accent, #0A7D5A)" }} />
                 <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.label}</span>
-                {r.detail && <span style={{ marginLeft: "auto", fontSize: 11.5, color: "#73827A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "50%" }}>{r.detail}</span>}
+                {r.detail && <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--ws-subtle, #73827A)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "50%" }}>{r.detail}</span>}
               </div>
             </div>
           ))}

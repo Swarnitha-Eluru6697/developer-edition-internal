@@ -104,7 +104,7 @@ function bezierPath(x1: number, y1: number, x2: number, y2: number) {
   return `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
 }
 
-const EDGE_COLOR: Record<string, string> = { '': '#8A97A8', true: '#1E8E6A', false: '#C0392B', body: '#0B6459', exit: '#5A6478' };
+const EDGE_COLOR: Record<string, string> = { '': 'var(--edge-default, #8A97A8)', true: 'var(--edge-true, #1E8E6A)', false: 'var(--edge-false, #C0392B)', body: 'var(--edge-body, #0B6459)', exit: 'var(--edge-exit, #5A6478)' };
 
 interface Connecting { sourceId: string; handle: string | null; x: number; y: number; startX: number; startY: number }
 
@@ -510,7 +510,7 @@ export default function Builder() {
           <svg className="canvas-svg">
             <defs>
               <marker id="arrow-default" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#8A97A8" />
+                <path d="M 0 0 L 10 5 L 0 10 z" style={{ fill: 'var(--edge-default, #8A97A8)' }} />
               </marker>
             </defs>
             {edges.map((e) => {

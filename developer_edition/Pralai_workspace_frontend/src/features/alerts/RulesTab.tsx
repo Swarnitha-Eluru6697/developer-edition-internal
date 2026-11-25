@@ -44,24 +44,24 @@ export function RulesTab({ rules, loading, kinds, canManage, onEdit }: Props) {
 
   return (
     <div>
-      <p style={{ fontSize: 12.5, color: "#5b6d62", margin: "0 0 12px", lineHeight: 1.5 }}>
+      <p style={{ fontSize: 12.5, color: "var(--ws-muted, #5b6d62)", margin: "0 0 12px", lineHeight: 1.5 }}>
         Configure what raises an alert — stored as data and checked every minute against the runs, Flink jobs and Dagster refusals the Workspace has seen.
         A rule limited to one job holds that job to a tighter bar than the rest.
       </p>
-      <div style={{ border: "1px solid #E3E8E2", borderRadius: 12, overflow: "hidden", background: "#fff" }}>
-        <div style={{ ...row, padding: "8px 16px", fontSize: 10.5, color: "#73827a", textTransform: "uppercase", letterSpacing: ".06em", background: "#F8FAF9", borderBottom: "0.5px solid #E3E8E2" }}>
+      <div style={{ border: "1px solid var(--ws-line, #E3E8E2)", borderRadius: 12, overflow: "hidden", background: "var(--ws-surface, #fff)" }}>
+        <div style={{ ...row, padding: "8px 16px", fontSize: 10.5, color: "var(--ws-subtle, #73827a)", textTransform: "uppercase", letterSpacing: ".06em", background: "var(--ws-thead, #F8FAF9)", borderBottom: "0.5px solid var(--ws-line, #E3E8E2)" }}>
           <div>Rule</div><div>Kind</div><div>Fires when</div><div>Job</div><div />
         </div>
-        {loading && !rules && <div style={{ padding: 24, textAlign: "center", color: "#73827a", fontSize: 13 }}>Loading rules…</div>}
-        {rules?.length === 0 && <div style={{ padding: 24, textAlign: "center", color: "#73827a", fontSize: 13 }}>No rules: nothing will raise an alert.</div>}
+        {loading && !rules && <div style={{ padding: 24, textAlign: "center", color: "var(--ws-subtle, #73827a)", fontSize: 13 }}>Loading rules…</div>}
+        {rules?.length === 0 && <div style={{ padding: 24, textAlign: "center", color: "var(--ws-subtle, #73827a)", fontSize: 13 }}>No rules: nothing will raise an alert.</div>}
         {rules?.map((r) => (
-          <div key={r.id} style={{ ...row, borderBottom: "0.5px solid #eef2ed", opacity: r.enabled ? 1 : 0.55 }}>
+          <div key={r.id} style={{ ...row, borderBottom: "0.5px solid var(--ws-line, #eef2ed)", opacity: r.enabled ? 1 : 0.55 }}>
             <b style={{ ...mono, fontSize: 12.5, overflowWrap: "anywhere" }}>{r.name}</b>
             <div><Chip>{label(r.kind)}</Chip></div>
-            <div style={{ fontSize: 12.5, color: "#5b6d62", display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+            <div style={{ fontSize: 12.5, color: "var(--ws-muted, #5b6d62)", display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
               <SeverityChip severity={r.severity} />{describeRule(r)}
             </div>
-            <div style={{ fontSize: 12.5 }}>{r.scope_job_name ?? <span style={{ color: "#73827a" }}>all jobs</span>}</div>
+            <div style={{ fontSize: 12.5 }}>{r.scope_job_name ?? <span style={{ color: "var(--ws-subtle, #73827a)" }}>all jobs</span>}</div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
               <Toggle checked={r.enabled} onChange={(on) => toggle(r, on)} disabled={!canManage} label={`${r.enabled ? "Disable" : "Enable"} ${r.name}`} />
               {canManage && <IconAction icon={ACTION_ICON.edit} label={`Edit ${r.name}`} onClick={() => onEdit(r)} />}

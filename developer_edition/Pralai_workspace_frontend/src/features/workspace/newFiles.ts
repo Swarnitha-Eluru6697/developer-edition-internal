@@ -19,11 +19,11 @@ export interface NewFileOption {
 }
 
 export const NEW_FILE_OPTIONS: NewFileOption[] = [
-  { label: "SQL file", hint: ".sql · runs against the lakehouse", icon: "ti-file-type-sql", color: "#0A7D5A", kind: "sql" },
-  { label: "Python file", hint: ".py · runs on a notebook kernel", icon: "ti-brand-python", color: "#0A7D5A", kind: "py", permission: "workspace:notebooks:run" },
-  { label: "FlinkSQL file", hint: ".flink.sql · streaming job definition", icon: "ti-wave-sine", color: "#0A7D5A", kind: "flinksql", permission: "workspace:flink:edit" },
-  { label: "Notebook", hint: ".ipynb · cells with rich output", icon: "ti-notebook", color: "#0A7D5A", kind: "ipynb", permission: "workspace:notebooks:run" },
-  { label: "dbt project", hint: "scaffolds the standard dbt folders", icon: "ti-brand-databricks", color: "#0A7D5A", kind: "dbt", permission: "workspace:dbt:edit" },
+  { label: "SQL file", hint: ".sql · runs against the lakehouse", icon: "ti-file-type-sql", color: "var(--ws-accent, #0A7D5A)", kind: "sql" },
+  { label: "Python file", hint: ".py · runs on a notebook kernel", icon: "ti-brand-python", color: "var(--ws-accent, #0A7D5A)", kind: "py", permission: "workspace:notebooks:run" },
+  { label: "FlinkSQL file", hint: ".flink.sql · streaming job definition", icon: "ti-wave-sine", color: "var(--ws-accent, #0A7D5A)", kind: "flinksql", permission: "workspace:flink:edit" },
+  { label: "Notebook", hint: ".ipynb · cells with rich output", icon: "ti-notebook", color: "var(--ws-accent, #0A7D5A)", kind: "ipynb", permission: "workspace:notebooks:run" },
+  { label: "dbt project", hint: "scaffolds the standard dbt folders", icon: "ti-brand-databricks", color: "var(--ws-accent, #0A7D5A)", kind: "dbt", permission: "workspace:dbt:edit" },
 ];
 
 const EXTENSIONS: Record<NewFileLanguage, string> = {

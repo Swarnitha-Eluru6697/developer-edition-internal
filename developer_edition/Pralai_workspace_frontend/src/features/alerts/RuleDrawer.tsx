@@ -46,7 +46,7 @@ export function RuleDrawer({ rule, kinds, jobs, onClose }: Props) {
   const blocked = busy || !name.trim() || thresholdBad || minBad;
   const scopeJob = jobs.find((j) => j.key === scope);
   const field = (f: string) => (error?.field === f ? error.message : null);
-  const errorLine = (f: string) => field(f) && <div role="alert" style={{ fontSize: 11.5, color: "#B23B3B", marginTop: 4 }}>{field(f)}</div>;
+  const errorLine = (f: string) => field(f) && <div role="alert" style={{ fontSize: 11.5, color: "var(--ws-bad, #B23B3B)", marginTop: 4 }}>{field(f)}</div>;
 
   const pickKind = (k: AlertRuleKind) => {
     setKind(k);
@@ -92,7 +92,7 @@ export function RuleDrawer({ rule, kinds, jobs, onClose }: Props) {
         </>
       )}
     >
-      <p style={{ fontSize: 12, color: "#5b6d62", margin: "0 0 14px", lineHeight: 1.5 }}>
+      <p style={{ fontSize: 12, color: "var(--ws-muted, #5b6d62)", margin: "0 0 14px", lineHeight: 1.5 }}>
         Rules are checked every minute against the runs the Workspace has seen. A rule limited to one job holds that job to a tighter bar than the rest.
       </p>
 
@@ -111,13 +111,13 @@ export function RuleDrawer({ rule, kinds, jobs, onClose }: Props) {
             options={SEVERITIES.map((s) => ({ value: s, label: s }))} />
         </Field>
       </div>
-      {info && <p style={{ fontSize: 11.5, color: "#5b6d62", margin: "-4px 0 12px", lineHeight: 1.5 }}>{info.description}</p>}
+      {info && <p style={{ fontSize: 11.5, color: "var(--ws-muted, #5b6d62)", margin: "-4px 0 12px", lineHeight: 1.5 }}>{info.description}</p>}
 
       <div style={{ display: "grid", gridTemplateColumns: uses.window ? "1fr 1fr" : "1fr", gap: 10 }}>
         <Field label="Threshold" hint={info?.threshold_hint}>
           <input aria-label="Threshold" inputMode="numeric" value={threshold} onChange={(e) => setThreshold(e.target.value)} disabled={kind === "flink_job_failed"}
             style={{ ...inp, ...(thresholdBad ? { border: "0.5px solid #b23b3b" } : {}) }} />
-          {thresholdBad && <div role="alert" style={{ fontSize: 11.5, color: "#B23B3B", marginTop: 4 }}>Enter a whole number from 1 to {uses.maxThreshold}.</div>}
+          {thresholdBad && <div role="alert" style={{ fontSize: 11.5, color: "var(--ws-bad, #B23B3B)", marginTop: 4 }}>Enter a whole number from 1 to {uses.maxThreshold}.</div>}
         </Field>
         {uses.window && (
           <Field label="Window" hint="How far back each check looks.">
@@ -131,7 +131,7 @@ export function RuleDrawer({ rule, kinds, jobs, onClose }: Props) {
         <Field label="Minimum runs" hint="How much data before the rule may fire. 100% of two runs is noise; over eighty it is an outage.">
           <input aria-label="Minimum runs" inputMode="numeric" value={minRuns} onChange={(e) => setMinRuns(e.target.value)}
             style={{ ...inp, ...(minBad ? { border: "0.5px solid #b23b3b" } : {}) }} />
-          {minBad && <div role="alert" style={{ fontSize: 11.5, color: "#B23B3B", marginTop: 4 }}>Enter a whole number, at least 1.</div>}
+          {minBad && <div role="alert" style={{ fontSize: 11.5, color: "var(--ws-bad, #B23B3B)", marginTop: 4 }}>Enter a whole number, at least 1.</div>}
         </Field>
       )}
 
@@ -139,7 +139,7 @@ export function RuleDrawer({ rule, kinds, jobs, onClose }: Props) {
         <SearchSelect ariaLabel="For job" noun="job" value={scope} onChange={setScope}
           options={[{ value: "", label: "All jobs" }, ...jobs.map((j) => ({ value: j.key, label: j.name, hint: JOB_KIND_LABEL[j.kind] }))]} />
       </Field>
-      {error && !error.field && <div role="alert" style={{ fontSize: 12, color: "#B23B3B", marginTop: 12 }}>{error.message}</div>}
+      {error && !error.field && <div role="alert" style={{ fontSize: 12, color: "var(--ws-bad, #B23B3B)", marginTop: 12 }}>{error.message}</div>}
     </Drawer>
   );
 }

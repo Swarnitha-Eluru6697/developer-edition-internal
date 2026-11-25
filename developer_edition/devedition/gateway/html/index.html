@@ -1,9 +1,17 @@
 <!doctype html>
-<!-- Always light, like the five products it hosts (none has a dark theme): data-theme="light"
-     switches off every prefers-color-scheme: dark rule below. Remove it to follow the OS again. -->
-<html lang="en" data-theme="light" style="color-scheme: light">
+<!-- Light or dark: the theme toggle in the header stores the choice (localStorage "de-theme");
+     with no stored choice the OS setting decides. Set before first paint so there is no flash. -->
+<html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8">
+<script>
+  (function () {
+    var t = null;
+    try { t = localStorage.getItem('de-theme'); } catch (e) { /* storage blocked */ }
+    if (t !== 'light' && t !== 'dark') t = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Pralai</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><path d='M16 12 Q16 8 20 8 H31 Q35 8 35 12 V84 Q35 88 31 88 H20 Q16 88 16 84 Z' fill='%230B3B2E'/><path d='M30 8 H54 C76 8 88 21 88 39 C88 59 75 70 54 70 H30 V52 H53 C63 52 69 47 69 39 C69 31 63 26 53 26 H30 Z' fill='%2312B886'/><path d='M36 35 H63 V43 H36 Z' fill='%23F2B134'/></svg>">
@@ -23,15 +31,23 @@
     --accent-50: #E3F6EA;        /* selected / hover tint */
     --amber-tint: #FDF3DC; --amber-text: #8A5A00; --amber-line: #F2D9A0;
     --tip-bg: #0B3B2E; --tip-text: #fff;
+    /* navigation (UI Style Guide: --ui-nav-hover / --ui-nav-active) and logo ink */
+    --nav-hover: #EFF8F3; --nav-active: #E3F6EA; --rail-ic: #3F6B57; --rail-ic-on: #0B3B2E;
+    --logo-ink: #0B3B2E; --label: #2E7D5B;
+    color-scheme: light;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #072A21; --surface: #0F4B3B; --line: #1C5242;
-      --text: #F6F1E7; --text-2: #F6F1E7; --muted: #CFE8DD; --faint: #8FB5A6;
-      --accent: #3DDC9A; --accent-50: #196247; --amber-tint: #3A2E10; --amber-text: #F2B134; --amber-line: #5A4612;
-      --tip-bg: #F6F1E7; --tip-text: #0B3B2E;
-    }
+  /* Dark theme: the Pralai charcoal dark shared by every product (see devedition/shared/pralai-dark.css). */
+  :root[data-theme="dark"] {
+    --bg: #121518; --surface: #1A1E22; --line: #2C3238;
+    --text: #E8EAED; --text-2: #E8EAED; --muted: #A3ABB3; --faint: #7C858D;
+    --accent: #3DDC9A; --accent-50: #1E3329; --amber-tint: #33290F; --amber-text: #F2B134; --amber-line: #5A4612;
+    --tip-bg: #E8EAED; --tip-text: #121518;
+    --nav-hover: #22272C; --nav-active: #2A2F34; --rail-ic: #A3ABB3; --rail-ic-on: #F6F7F8;
+    --logo-ink: #FFFFFF; --label: #3DDC9A;
+    color-scheme: dark;
   }
+  :root[data-theme="dark"] .rail { background: #15181B; }
+  :root[data-theme="dark"] .rail-btn[aria-current="page"]::before { background: var(--amber); }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
   body {
@@ -45,30 +61,45 @@
   /* ── icon rail ── */
   .rail { width: 64px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--line);
           display: flex; flex-direction: column; align-items: center; }
-  .logo-wrap { position: relative; padding: 12px 0; width: 100%; display: flex; justify-content: center;
-               border-bottom: 1px solid var(--line); }
+  /* Same height as the header, so the rail's P and the header's lockup share one line. */
+  .logo-wrap { position: relative; height: 68px; width: 100%; display: flex; align-items: center; justify-content: center;
+               border-bottom: 1px solid var(--line); flex-shrink: 0; }
   .logo { width: 40px; height: 40px; padding: 0; background: transparent; border: 0; border-radius: 8px;
-          cursor: pointer; display: grid; place-items: center; }
+          cursor: pointer; display: grid; place-items: center; color: var(--logo-ink); }
   .logo svg { width: 40px; height: 40px; display: block; }
-  .rail nav { flex: 1; width: 100%; padding-top: 16px; display: flex; flex-direction: column; gap: 8px; }
-  .rail-btn { position: relative; width: 100%; padding: 12px 0; border: 0; background: transparent; cursor: pointer;
-              color: var(--faint); display: flex; justify-content: center; transition: color .2s; }
-  .rail-btn:hover { color: var(--muted); }
-  .rail-btn[aria-current="page"] { color: var(--forest); }
-  .rail-btn[aria-current="page"]::before { content: ""; position: absolute; left: 0; top: 4px; bottom: 4px; width: 4px;
-              background: var(--emerald); border-radius: 0 9999px 9999px 0; }
-  .avatar { width: 36px; height: 36px; border-radius: 9999px; background: var(--forest); color: #fff;
-            display: grid; place-items: center; font-weight: 600; font-size: 15px; flex-shrink: 0; }
+  /* Rail items: full-width rows; the active one is tinted with an emerald stroke on its left edge. */
+  .rail nav { flex: 1; width: 100%; padding-top: 12px; display: flex; flex-direction: column; gap: 4px; }
+  .rail-btn { position: relative; width: 100%; padding: 16px 0; border: 0; background: transparent; cursor: pointer;
+              color: var(--rail-ic); display: flex; justify-content: center; transition: background .15s, color .15s; }
+  .rail-btn svg.i { width: 24px; height: 24px; stroke-width: 1.9; }
+  .rail-btn:hover { background: var(--nav-hover); color: var(--rail-ic-on); }
+  .rail-btn[aria-current="page"] { background: var(--nav-active); color: var(--rail-ic-on); }
+  .rail-btn[aria-current="page"]::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+              background: var(--emerald); }
+  /* Avatar: initials in a quiet tint, as in Agent Studio's top bar. */
+  .avatar { width: 32px; height: 32px; border-radius: 9999px; background: var(--accent-50); color: var(--accent);
+            display: grid; place-items: center; font-weight: 700; font-size: 12px; letter-spacing: .02em; flex-shrink: 0;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 
   /* top-right: notifications + user menu (as in the Control Portal header) */
   .head-left { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
-  .head-right { display: flex; align-items: center; gap: 12px; }
-  .icon-btn { border: 0; background: transparent; padding: 8px; color: var(--faint); cursor: pointer; display: grid; }
-  .icon-btn:hover { color: var(--muted); }
-  .icon-btn svg.bell { width: 20px; height: 20px; }
+  .icon-btn { width: 36px; height: 36px; border: 0; border-radius: 9px; background: transparent; color: var(--muted);
+              cursor: pointer; display: grid; place-items: center; }
+  .icon-btn:hover { background: var(--nav-hover); color: var(--text); }
+  .icon-btn svg.i { width: 19px; height: 19px; }
   .user { position: relative; }
   .user-btn { display: flex; align-items: center; gap: 8px; border: 0; background: transparent; cursor: pointer;
-              padding: 0; font: inherit; color: var(--muted); }
+              padding: 4px 6px 4px 4px; border-radius: 999px; font: inherit; color: var(--muted); }
+  .user-btn:hover, .user-btn[aria-expanded="true"] { background: var(--nav-hover); }
+  .user-btn .who { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2; }
+  .user-btn .role { font-size: 11.5px; color: var(--muted); }
+  .menu-head { display: flex; gap: 10px; align-items: center; }
+  .menu-head .avatar { width: 36px; height: 36px; font-size: 13px; }
+  .menu-theme { justify-content: space-between; }
+  .seg { display: inline-flex; padding: 2px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+  .seg button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 12px; font-weight: 600;
+                padding: 3px 9px; border-radius: 6px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgb(0 0 0 / .08); }
   .user-btn .hi { font-size: 14px; font-weight: 500; color: var(--text-2); }
   .user-btn svg.chev { width: 16px; height: 16px; color: var(--faint); transition: transform .15s; }
   .user-btn[aria-expanded="true"] svg.chev { transform: rotate(180deg); }
@@ -85,13 +116,44 @@
   .menu-item { width: 100%; border: 0; background: transparent; font: inherit; text-align: left; cursor: pointer; }
   .menu-item:hover, .menu-item:focus-visible { background: var(--bg); outline: none; }
   .menu-item.danger, .menu-item.danger svg.i { color: #B23B3B; }
+  /* ── rail footer: theme, notifications, account ── */
+  .rail { position: relative; z-index: 70; }
+  .rail-foot { width: 100%; border-top: 1px solid var(--line); padding: 12px 0 14px; display: flex; flex-direction: column;
+               align-items: center; gap: 10px; }
+  .rail-ic { position: relative; width: 40px; height: 40px; border: 0; border-radius: 10px; background: transparent;
+             color: var(--rail-ic); cursor: pointer; display: grid; place-items: center; }
+  .rail-ic:hover, .rail-ic[aria-expanded="true"] { background: var(--nav-hover); color: var(--rail-ic-on); }
+  .rail-ic svg.i { width: 22px; height: 22px; }
+  .rail-ic .sun { display: none; }
+  :root[data-theme="dark"] .rail-ic .sun { display: block; }
+  :root[data-theme="dark"] .rail-ic .moon { display: none; }
+  .badge { position: absolute; top: 2px; right: 0; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+           background: var(--amber); color: #14201B; font-size: 11px; font-weight: 800; line-height: 18px; text-align: center;
+           box-shadow: 0 0 0 2px var(--surface); }
+  .badge[hidden] { display: none; }
+  .rail-avatar { border: 0; background: transparent; padding: 0; cursor: pointer; border-radius: 999px; }
+  .rail-avatar .avatar { width: 38px; height: 38px; font-size: 13px; background: var(--nav-active); color: var(--text); }
+  .rail-avatar:hover .avatar, .rail-avatar[aria-expanded="true"] .avatar { box-shadow: 0 0 0 2px var(--emerald); }
+  .pop-wrap { position: relative; }
+  /* Pop-overs open to the right of the rail, anchored to the bottom. */
+  .menu.pop { right: auto; top: auto; left: calc(100% + 14px); bottom: 0; }
+  .notif-pop { width: 340px; max-height: 70vh; overflow: auto; }
+  .pop-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 10px 16px;
+              border-bottom: 1px solid var(--line); font-size: 14px; color: var(--text); }
+  .pop-head .muted { font-size: 12px; }
+  .nt { display: flex; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--row); font-size: 13px; color: var(--text); }
+  .nt:last-child { border-bottom: 0; }
+  .nt .dot { margin-top: 5px; }
+  .nt .d { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .nt-empty { padding: 18px 16px; font-size: 13px; color: var(--muted); text-align: center; }
+  @media (max-width: 640px) { .notif-pop { width: min(340px, calc(100vw - 80px)); } }
   /* sign-up / sign-in screens (auth.js) */
   .signed-out { position: fixed; inset: 0; z-index: 100; background: var(--bg); display: grid; place-items: center;
                 padding: 24px 16px; overflow-y: auto; }
   .signed-out[hidden] { display: none; }
   .auth-card { width: min(100%, 440px); background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
                padding: 24px; display: flex; flex-direction: column; gap: 14px; margin: auto; }
-  .auth-brand { display: flex; flex-direction: column; align-items: flex-start; gap: 0; line-height: 1; }
+  .auth-brand { color: var(--logo-ink); display: flex; flex-direction: column; align-items: flex-start; gap: 0; line-height: 1; }
   .auth-brand svg { width: 170px; height: 72px; display: block; margin-left: -6px; }
   .auth-brand span { font: 700 10px/1 Inter, system-ui, sans-serif; letter-spacing: .16em; text-transform: uppercase;
                      color: var(--accent); margin: -8px 0 0 54px; }
@@ -133,20 +195,16 @@
   .auth-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; font-size: 13px; color: var(--muted); }
   .link { border: 0; background: none; padding: 0; font: inherit; color: var(--accent); font-weight: 600; cursor: pointer; }
   .link:hover { text-decoration: underline; }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .af-alert { background: #2a1414; color: #fca5a5; border-color: #5b2121; }
-    :root:not([data-theme="light"]) .af-note { border-color: #5a3413; }
-  }
+      :root[data-theme="dark"] .af-alert { background: #2a1414; color: #fca5a5; border-color: #5b2121; }
+    :root[data-theme="dark"] .af-note { border-color: #5a3413; }
   /* Primary action: amber with forest text (UI Style Guide .ui-btn-primary) */
   .so-btn { margin-top: 8px; width: 100%; min-height: 40px; border: 1px solid #E5A82C; border-radius: 6px; background: var(--amber);
             color: var(--forest); font: inherit; font-size: 14px; font-weight: 750; cursor: pointer; }
   .so-btn:hover { background: var(--amber-600); }
   .so-btn:disabled { opacity: .52; cursor: not-allowed; }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .user-btn .hi, :root:not([data-theme="light"]) .menu-row { color: var(--text-2); }
-  }
-  @media (max-width: 640px) { .user-btn .hi, .edition { display: none; } }
+      :root[data-theme="dark"] .user-btn .hi, :root[data-theme="dark"] .menu-row { color: var(--text-2); }
+  @media (max-width: 640px) { .user-btn .who, .edition, .de-note { display: none; } }
 
   /* tooltips (rail) */
   [data-tip] { position: relative; }
@@ -159,9 +217,17 @@
 
   /* ── main column ── */
   .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-  header { height: 64px; flex-shrink: 0; background: var(--surface); border-bottom: 1px solid var(--line);
-           box-shadow: 0 1px 2px rgb(0 0 0 / .04); display: flex; align-items: center; justify-content: space-between;
-           gap: 16px; padding: 0 24px; }
+  header { height: 68px; flex-shrink: 0; background: var(--surface); border-bottom: 1px solid var(--line);
+           display: flex; align-items: center; justify-content: space-between;
+           gap: 16px; padding: 0 24px 0 40px; }
+  /* Brand lockup: the P + "ralai" master with the product descriptor under it (Logo Guidelines §05). */
+  .brand { display: flex; flex-direction: column; align-items: flex-start; line-height: 1; color: var(--logo-ink);
+           text-decoration: none; min-width: 0; border: 0; background: none; padding: 0; cursor: pointer; font: inherit; }
+  .brand svg { width: 150px; height: 46px; display: block; margin: -6px 0 0 -10px; }
+  .brand .product-label { font: 700 10.5px/1 Inter, system-ui, sans-serif; letter-spacing: .2em; text-transform: uppercase;
+           color: var(--label); margin: -6px 0 0 36px; white-space: nowrap; }
+  .head-left { display: flex; align-items: center; gap: 18px; min-width: 0; }
+  @media (max-width: 760px) { .brand .product-label { letter-spacing: .1em; font-size: 9.5px; } header { padding-left: 20px; } }
   header[hidden] { display: none; }
   header .title { font-size: 15px; font-weight: 600; color: var(--text-2); }
   header .edition { font-size: 12px; color: var(--faint); }
@@ -180,14 +246,12 @@
     --idle-bg: #ECF1EE; --idle-fg: #53665B; --idle-dot: #73827A;
     --banner-bg: var(--amber-tint); --banner-fg: var(--amber-text); --banner-line: var(--amber-line);
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --row: #15513F; --btn-line: #1C5242; --text-3: #CFE8DD;
-      --ok-bg: #12301f; --ok-fg: #86efac; --ok-dot: #22c55e;
-      --warn-bg: #3a2a0c; --warn-fg: #fcd34d; --warn-dot: #f59e0b;
-      --bad-bg: #3b1414; --bad-fg: #fca5a5; --bad-dot: #ef4444;
-      --idle-bg: #15513F; --idle-fg: #CFE8DD; --idle-dot: #8FB5A6;
-    }
+  :root[data-theme="dark"] {
+    --row: #262B30; --btn-line: #343A41; --text-3: #A3ABB3;
+    --ok-bg: #16301F; --ok-fg: #6EE7A0; --ok-dot: #22C55E;
+    --warn-bg: #33270C; --warn-fg: #FCD34D; --warn-dot: #F59E0B;
+    --bad-bg: #3A1C1C; --bad-fg: #FCA5A5; --bad-dot: #EF4444;
+    --idle-bg: #262B30; --idle-fg: #A3ABB3; --idle-dot: #7C858D;
   }
   /* Watermark in the header: "Developer Edition" badge + the usage notice beside it. */
   .de-mark { display: flex; align-items: center; gap: 10px; min-width: 0; }
@@ -319,8 +383,10 @@
 <!-- lucide icons (same set as the Control Portal: lucide-react) -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <!-- Pralai master artwork (single P symbol; P + "ralai" lockup). Do not retype or recolor. -->
-  <symbol id="pr-symbol" viewBox="0 0 96 96"><path d="M16 12 Q16 8 20 8 H31 Q35 8 35 12 V84 Q35 88 31 88 H20 Q16 88 16 84 Z" fill="#0B3B2E"/><path d="M30 8 H54 C76 8 88 21 88 39 C88 59 75 70 54 70 H30 V52 H53 C63 52 69 47 69 39 C69 31 63 26 53 26 H30 Z" fill="#12B886"/><path d="M36 35 H63 V43 H36 Z" fill="#F2B134"/></symbol>
-  <symbol id="pr-lockup" viewBox="0 0 150 64"><g transform="translate(-6.96 5.12) scale(0.56)"><path d="M16 12 Q16 8 20 8 H31 Q35 8 35 12 V84 Q35 88 31 88 H20 Q16 88 16 84 Z" fill="#0B3B2E"/><path d="M30 8 H54 C76 8 88 21 88 39 C88 59 75 70 54 70 H30 V52 H53 C63 52 69 47 69 39 C69 31 63 26 53 26 H30 Z" fill="#12B886"/><path d="M36 35 H63 V43 H36 Z" fill="#F2B134"/></g><g transform="translate(26 43.88)"><path d="M29.606328125 0.0H36.051640625000005V-13.6640625C36.051640625000005 -16.650390625 38.221562500000005 -18.69140625 41.186406250000005 -18.69140625C42.131718750000005 -18.69140625 43.399296875000005 -18.541015625 43.979375000000005 -18.369140625V-24.126953125C43.399296875000005 -24.255859375 42.561406250000005 -24.341796875 41.895390625000005 -24.341796875C39.188359375000005 -24.341796875 36.975468750000005 -22.794921875 36.094609375000005 -19.830078125H35.836796875000005V-24.01953125H29.606328125Z M53.347421875 0.47265625C56.89234375 0.47265625 59.21265625 -1.095703125 60.3728125 -3.330078125H60.58765625V0.0H66.68921875000001V-16.177734375C66.68921875000001 -22.0 61.661875 -24.3203125 56.505625 -24.3203125C51.13453125 -24.3203125 47.26734375 -21.935546875 46.042734375 -17.767578125L51.9509375 -16.779296875C52.4665625 -18.326171875 53.991953125 -19.55078125 56.484140625 -19.55078125C58.890390625 -19.55078125 60.24390625 -18.390625 60.24390625 -16.349609375V-16.2421875C60.24390625 -14.673828125 58.546640625 -14.501953125 54.421640625 -14.09375C49.695078125 -13.642578125 45.355234375 -12.095703125 45.355234375 -6.724609375C45.355234375 -1.9765625 48.77125 0.47265625 53.347421875 0.47265625ZM55.17359375 -4.060546875C53.046640625 -4.060546875 51.542734375 -5.02734375 51.542734375 -6.896484375C51.542734375 -8.830078125 53.132578125 -9.75390625 55.51734375 -10.09765625C56.9353125 -10.291015625 59.491953125 -10.634765625 60.286875 -11.193359375V-8.59375C60.286875 -6.05859375 58.18140625 -4.060546875 55.17359375 -4.060546875Z M77.75453125 -32.01171875H71.30921875V0.0H77.75453125Z M89.056171875 0.47265625C92.60109375 0.47265625 94.92140625 -1.095703125 96.0815625 -3.330078125H96.29640625V0.0H102.39796875V-16.177734375C102.39796875 -22.0 97.370625 -24.3203125 92.214375 -24.3203125C86.84328125 -24.3203125 82.97609375 -21.935546875 81.751484375 -17.767578125L87.6596875 -16.779296875C88.1753125 -18.326171875 89.700703125 -19.55078125 92.192890625 -19.55078125C94.599140625 -19.55078125 95.95265625 -18.390625 95.95265625 -16.349609375V-16.2421875C95.95265625 -14.673828125 94.255390625 -14.501953125 90.130390625 -14.09375C85.403828125 -13.642578125 81.063984375 -12.095703125 81.063984375 -6.724609375C81.063984375 -1.9765625 84.48 0.47265625 89.056171875 0.47265625ZM90.88234375 -4.060546875C88.755390625 -4.060546875 87.251484375 -5.02734375 87.251484375 -6.896484375C87.251484375 -8.830078125 88.841328125 -9.75390625 91.22609375 -10.09765625C92.6440625 -10.291015625 95.200703125 -10.634765625 95.995625 -11.193359375V-8.59375C95.995625 -6.05859375 93.89015625 -4.060546875 90.88234375 -4.060546875Z M107.01796875000001 0.0H113.46328125000001V-24.01953125H107.01796875000001Z" fill="#0B3B2E"/></g><circle cx="136.24" cy="13.42" r="3.53" fill="#F2B134"/></symbol>
+  <symbol id="pr-symbol" viewBox="0 0 96 96"><path d="M16 12 Q16 8 20 8 H31 Q35 8 35 12 V84 Q35 88 31 88 H20 Q16 88 16 84 Z" fill="currentColor"/><path d="M30 8 H54 C76 8 88 21 88 39 C88 59 75 70 54 70 H30 V52 H53 C63 52 69 47 69 39 C69 31 63 26 53 26 H30 Z" fill="#12B886"/><path d="M36 35 H63 V43 H36 Z" fill="#F2B134"/></symbol>
+  <symbol id="pr-lockup" viewBox="0 0 150 64"><g transform="translate(-6.96 5.12) scale(0.56)"><path d="M16 12 Q16 8 20 8 H31 Q35 8 35 12 V84 Q35 88 31 88 H20 Q16 88 16 84 Z" fill="currentColor"/><path d="M30 8 H54 C76 8 88 21 88 39 C88 59 75 70 54 70 H30 V52 H53 C63 52 69 47 69 39 C69 31 63 26 53 26 H30 Z" fill="#12B886"/><path d="M36 35 H63 V43 H36 Z" fill="#F2B134"/></g><g transform="translate(26 43.88)"><path d="M29.606328125 0.0H36.051640625000005V-13.6640625C36.051640625000005 -16.650390625 38.221562500000005 -18.69140625 41.186406250000005 -18.69140625C42.131718750000005 -18.69140625 43.399296875000005 -18.541015625 43.979375000000005 -18.369140625V-24.126953125C43.399296875000005 -24.255859375 42.561406250000005 -24.341796875 41.895390625000005 -24.341796875C39.188359375000005 -24.341796875 36.975468750000005 -22.794921875 36.094609375000005 -19.830078125H35.836796875000005V-24.01953125H29.606328125Z M53.347421875 0.47265625C56.89234375 0.47265625 59.21265625 -1.095703125 60.3728125 -3.330078125H60.58765625V0.0H66.68921875000001V-16.177734375C66.68921875000001 -22.0 61.661875 -24.3203125 56.505625 -24.3203125C51.13453125 -24.3203125 47.26734375 -21.935546875 46.042734375 -17.767578125L51.9509375 -16.779296875C52.4665625 -18.326171875 53.991953125 -19.55078125 56.484140625 -19.55078125C58.890390625 -19.55078125 60.24390625 -18.390625 60.24390625 -16.349609375V-16.2421875C60.24390625 -14.673828125 58.546640625 -14.501953125 54.421640625 -14.09375C49.695078125 -13.642578125 45.355234375 -12.095703125 45.355234375 -6.724609375C45.355234375 -1.9765625 48.77125 0.47265625 53.347421875 0.47265625ZM55.17359375 -4.060546875C53.046640625 -4.060546875 51.542734375 -5.02734375 51.542734375 -6.896484375C51.542734375 -8.830078125 53.132578125 -9.75390625 55.51734375 -10.09765625C56.9353125 -10.291015625 59.491953125 -10.634765625 60.286875 -11.193359375V-8.59375C60.286875 -6.05859375 58.18140625 -4.060546875 55.17359375 -4.060546875Z M77.75453125 -32.01171875H71.30921875V0.0H77.75453125Z M89.056171875 0.47265625C92.60109375 0.47265625 94.92140625 -1.095703125 96.0815625 -3.330078125H96.29640625V0.0H102.39796875V-16.177734375C102.39796875 -22.0 97.370625 -24.3203125 92.214375 -24.3203125C86.84328125 -24.3203125 82.97609375 -21.935546875 81.751484375 -17.767578125L87.6596875 -16.779296875C88.1753125 -18.326171875 89.700703125 -19.55078125 92.192890625 -19.55078125C94.599140625 -19.55078125 95.95265625 -18.390625 95.95265625 -16.349609375V-16.2421875C95.95265625 -14.673828125 94.255390625 -14.501953125 90.130390625 -14.09375C85.403828125 -13.642578125 81.063984375 -12.095703125 81.063984375 -6.724609375C81.063984375 -1.9765625 84.48 0.47265625 89.056171875 0.47265625ZM90.88234375 -4.060546875C88.755390625 -4.060546875 87.251484375 -5.02734375 87.251484375 -6.896484375C87.251484375 -8.830078125 88.841328125 -9.75390625 91.22609375 -10.09765625C92.6440625 -10.291015625 95.200703125 -10.634765625 95.995625 -11.193359375V-8.59375C95.995625 -6.05859375 93.89015625 -4.060546875 90.88234375 -4.060546875Z M107.01796875000001 0.0H113.46328125000001V-24.01953125H107.01796875000001Z" fill="currentColor"/></g><circle cx="136.24" cy="13.42" r="3.53" fill="#F2B134"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
   <symbol id="i-dashboard" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></symbol>
   <symbol id="i-cable" viewBox="0 0 24 24"><path d="M4 9a2 2 0 0 1-2-2V5h6v2a2 2 0 0 1-2 2Z"/><path d="M3 5V3"/><path d="M7 5V3"/><path d="M19 15V6.5a3.5 3.5 0 0 0-7 0v11a3.5 3.5 0 0 1-7 0V9"/><path d="M17 21v-2"/><path d="M21 21v-2"/><path d="M22 19h-6v-2a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2Z"/></symbol>
   <symbol id="i-boxes" viewBox="0 0 24 24"><path d="M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-5-3-4.03 2.42Z"/><path d="m7 16.5-4.74-2.85"/><path d="m7 16.5 5-3"/><path d="M7 16.5v5.17"/><path d="M12 13.5V19l3.97 2.38a2 2 0 0 0 2.06 0l3-1.8a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L17 10.5l-5 3Z"/><path d="m17 16.5-5-3"/><path d="m17 16.5 4.74-2.85"/><path d="M17 16.5v5.17"/><path d="M7.97 4.42A2 2 0 0 0 7 6.13v4.37l5 3 5-3V6.13a2 2 0 0 0-.97-1.71l-3-1.8a2 2 0 0 0-2.06 0l-3 1.8Z"/><path d="M12 8 7.26 5.15"/><path d="m12 8 4.74-2.85"/><path d="M12 13.5V8"/></symbol>
@@ -356,34 +422,50 @@
       <button class="logo" data-route="" data-tip="Pralai&#10;Back to the dashboard" aria-label="Pralai: back to the dashboard"><svg viewBox="0 0 96 96" aria-hidden="true"><use href="#pr-symbol"/></svg></button>
     </div>
     <nav id="rail"></nav>
-  </aside>
-
-  <div class="main">
-    <header id="topbar">
-      <div class="de-mark" title="Developer Edition: for personal development and evaluation only. Not for production use.">
-        <span class="de-badge" id="de-badge">Developer Edition</span>
-        <span class="de-note">For personal development and evaluation only · Not for production use</span>
+    <!-- Bottom of the rail: theme, notifications and the account menu (reachable from inside every app too). -->
+    <div class="rail-foot">
+      <button class="rail-ic" id="theme-btn" type="button" data-tip="Switch to dark mode" aria-label="Switch to dark mode">
+        <svg class="i moon"><use href="#i-moon"/></svg><svg class="i sun"><use href="#i-sun"/></svg>
+      </button>
+      <div class="pop-wrap" id="notif">
+        <button class="rail-ic" id="notif-btn" type="button" data-tip="Notifications" aria-label="Notifications" aria-haspopup="dialog" aria-expanded="false">
+          <svg class="i"><use href="#i-bell"/></svg><span class="badge" id="notif-count" hidden>0</span>
+        </button>
+        <div class="menu pop notif-pop" id="notif-pop" role="dialog" aria-label="Notifications" hidden>
+          <div class="pop-head"><b>Notifications</b><span class="muted" id="notif-sum">All clear</span></div>
+          <div id="notif-list"></div>
+        </div>
       </div>
-      <div class="head-right">
-        <button class="icon-btn" title="Notifications" aria-label="Notifications"><svg class="i bell"><use href="#i-bell"/></svg></button>
-        <div class="user" id="user">
-          <button class="user-btn" id="user-btn" aria-haspopup="menu" aria-expanded="false">
-            <span class="avatar" id="avatar">D</span>
-            <span class="hi" id="hi">Hi</span>
-            <svg class="i chev"><use href="#i-chevron-down"/></svg>
-          </button>
-          <div class="menu" id="user-menu" role="menu" hidden>
+      <div class="pop-wrap user" id="user">
+        <button class="rail-avatar" id="user-btn" type="button" aria-haspopup="menu" aria-expanded="false" data-tip="Account">
+          <span class="avatar" id="avatar">D</span>
+        </button>
+          <div class="menu pop" id="user-menu" role="menu" hidden>
             <div class="menu-head">
-              <div class="m-name" id="m-name"></div>
-              <div class="m-email" id="m-email"></div>
+              <span class="avatar" id="m-avatar">D</span>
+              <div style="min-width:0"><div class="m-name" id="m-name"></div><div class="m-email" id="m-email"></div></div>
             </div>
             <div class="menu-row"><svg class="i"><use href="#i-shield-check"/></svg><span id="m-edition">Developer Edition / Developer</span></div>
+            <div class="menu-row menu-theme"><span style="display:flex;align-items:center;gap:8px"><svg class="i"><use href="#i-moon"/></svg>Theme</span>
+              <span class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></span></div>
+            <div class="menu-sep"></div>
             <button class="menu-row menu-item" id="change-edition" type="button" role="menuitem"><svg class="i"><use href="#i-boxes"/></svg>Change edition</button>
             <div class="menu-sep"></div>
             <button class="menu-row menu-item danger" id="sign-out" type="button" role="menuitem"><svg class="i"><use href="#i-logout"/></svg>Sign out</button>
           </div>
-        </div>
       </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header id="topbar">
+      <div class="head-left">
+        <button class="brand" type="button" data-route="" aria-label="Pralai: back to the dashboard">
+          <svg viewBox="0 0 150 64" aria-hidden="true"><use href="#pr-lockup"/></svg>
+          <span class="product-label" id="product-label">Agent &amp; Model Developer Edition</span>
+        </button>
+      </div>
+      <span class="de-note" title="Developer Edition: for personal development and evaluation only. Not for production use.">For personal development and evaluation only · Not for production use</span>
     </header>
     <div class="content" id="content">
       <section class="view" id="view-dashboard">
@@ -456,7 +538,7 @@
     { key: 'agents',       ed: 'agent', title: 'Agentic Workflow', desc: 'Build, run and monitor AI agents and workflows', icon: 'workflow',     url: port(8104) },
   ].filter((a) => HAS[a.ed]);
   const hasApp = (key) => APPS.some((a) => a.key === key);
-  document.getElementById('de-badge').textContent = EDITION_NAME;
+  document.getElementById('product-label').textContent = EDITION_NAME;
   const icon = (id, cls = 'i') => `<svg class="${cls}"><use href="#i-${id}"/></svg>`;
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -556,6 +638,17 @@
   }
 
 
+  function renderNotes(notes) {
+    const badge = $('notif-count');
+    badge.textContent = String(notes.length);
+    badge.hidden = notes.length === 0;
+    $('notif-btn').dataset.tip = notes.length ? `Notifications (${notes.length})` : 'Notifications';
+    $('notif-sum').textContent = notes.length ? plural(notes.length, 'item') : 'All clear';
+    $('notif-list').innerHTML = notes.length
+      ? notes.map((n) => `<div class="nt"><span class="dot ${n.sev}"></span><div><div>${esc(n.t)}</div><div class="d">${esc(n.d)}</div></div></div>`).join('')
+      : '<div class="nt-empty">Everything is running and within its limits.</div>';
+  }
+
   let busy = false;
   async function refresh() {
     if (busy) return;
@@ -642,6 +735,23 @@
     const published = al ? al.filter((a) => a.status === 'published').length : null;
     setUsage('deployments', published === null && !dl ? null : (published || 0) + (dl ? dl.length : 0));
 
+    // Notifications (rail bell): what needs attention right now, from the same live checks.
+    const notes = [];
+    APPS.forEach((a, i) => {
+      const [cls, text] = productState(probes[i]);
+      if (cls !== 'ok') notes.push({ sev: cls, t: `${a.title}: ${text}`, d: 'The product is not answering its health check.' });
+    });
+    infra.forEach(([n, , s2]) => { if (s2 === 'bad') notes.push({ sev: 'bad', t: `${n} is down`, d: 'Infrastructure service in the Docker Compose stack.' }); });
+    USAGE.forEach((u) => {
+      const c = $(`uc-${u.id}`)?.textContent.match(/^(\d+) of (\d+)/);
+      if (!c) return;
+      const n = Number(c[1]), lim = Number(c[2]);
+      if (n > lim) notes.push({ sev: 'bad', t: `${u.label}: ${n} of ${lim}`, d: 'Over the Developer Edition limit. Remove some, or talk to us about Enterprise Edition.' });
+      else if (n === lim) notes.push({ sev: 'warn', t: `${u.label}: limit reached (${n} of ${lim})`, d: 'You cannot add more in Developer Edition.' });
+      else if (n >= lim * 0.8) notes.push({ sev: 'warn', t: `${u.label}: ${n} of ${lim}`, d: 'Close to the Developer Edition limit.' });
+    });
+    renderNotes(notes);
+
     // Amber when the stack's APIs stopped answering; green again on the next good poll.
     $('live').classList.toggle('off', !probes.some((r) => r.ok));
     $('live').textContent = probes.some((r) => r.ok) ? 'Live' : 'Reconnecting…';
@@ -654,7 +764,9 @@
   // Updates itself: every 10 s while the dashboard is on screen, and at once when you come back to it
   // (from an app inside the shell, or from another browser tab). Nothing polls while it is hidden.
   const onDashboard = () => !$('view-dashboard').hidden && !document.hidden && $('signed-out').hidden;
-  setInterval(() => { if (onDashboard()) refresh(); }, 10000);
+  // Every 10 s while signed in and the tab is visible: the dashboard and the rail's notifications stay current
+  // inside an app too.
+  setInterval(() => { if (!document.hidden && $('signed-out').hidden) refresh(); }, 10000);
   document.addEventListener('visibilitychange', () => { if (onDashboard()) refresh(); });
   window.addEventListener('hashchange', () => setTimeout(() => { if (onDashboard()) refresh(); }));
 
@@ -670,7 +782,7 @@
         sec.className = 'view';
         // Each product is another origin (its own port), so the browser blocks clipboard access inside
         // the frame unless it is delegated here: without it every "Copy" button in a product fails.
-        sec.innerHTML = `<iframe class="product" title="${esc(app.title)}" src="${app.url}"
+        sec.innerHTML = `<iframe class="product" title="${esc(app.title)}" src="${app.url}?de_theme=${currentTheme()}"
           allow="clipboard-read; clipboard-write"></iframe>`;
         document.getElementById('content').appendChild(sec);
         frames[app.key] = sec;
@@ -700,22 +812,60 @@
   // Who is signed in: the Registration service account (auth.js); DE_USER_* in .env is the fallback.
   function showUser(u = {}) {
     const name = u.name || me.name || 'Developer';
-    $('avatar').textContent = (name[0] || 'D').toUpperCase();
-    $('hi').textContent = `Hi ${name.split(' ')[0]}`;
+    const initials = name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || 'D';
+    $('avatar').textContent = initials;
+    $('m-avatar').textContent = initials;
+    $('user-btn').dataset.tip = `${name}\nAccount and sign out`;
     $('m-name').textContent = name;
     $('m-email').textContent = u.email || me.email || '';
     $('m-edition').textContent = `${u.company || me.organization || 'Developer Edition'} / ${u.role || me.role || 'Developer'}`;
   }
+
+  // Light / dark theme: header toggle and the Light/Dark switch in the user menu. The choice is kept
+  // in localStorage; without one the OS setting is followed (see the script in <head>).
+  // Every open product follows the shell's theme (inaiera:theme, handled by DeveloperUserMenu in each app).
+  function currentTheme() { return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; }
+  function broadcastTheme(t) {
+    Object.values(frames).forEach((sec) => {
+      const f = sec.querySelector('iframe');
+      try { f?.contentWindow?.postMessage({ type: 'inaiera:theme', theme: t }, new URL(f.src).origin); } catch { /* not loaded yet */ }
+    });
+  }
+  function setTheme(t, save) {
+    document.documentElement.setAttribute('data-theme', t);
+    broadcastTheme(t);
+    if (save) { try { localStorage.setItem('de-theme', t); } catch { /* storage blocked */ } }
+    const next = t === 'dark' ? 'light' : 'dark';
+    $('theme-btn').dataset.tip = `Switch to ${next} mode`;
+    $('theme-btn').setAttribute('aria-label', `Switch to ${next} mode`);
+    document.querySelectorAll('[data-theme-set]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.themeSet === t)));
+  }
+  setTheme(document.documentElement.getAttribute('data-theme') || 'light', false);
+  $('theme-btn').addEventListener('click', () =>
+    setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark', true));
+  document.querySelectorAll('[data-theme-set]').forEach((b) =>
+    b.addEventListener('click', (e) => { e.stopPropagation(); setTheme(b.dataset.themeSet, true); }));
+  // Follow the OS while nothing is stored.
+  window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change', (e) => {
+    let stored = null; try { stored = localStorage.getItem('de-theme'); } catch { /* ignore */ }
+    if (!stored) setTheme(e.matches ? 'dark' : 'light', false);
+  });
   fetch('/me.json').then((r) => r.json()).then((data) => { me = data; }).catch(() => {})
     .finally(() => { renderHelp(); showUser(DEAuth.user() || {}); });
 
   // User menu (top right).
   const userBtn = document.getElementById('user-btn');
   const userMenu = document.getElementById('user-menu');
+  const notifBtn = $('notif-btn'), notifPop = $('notif-pop');
+  const setNotif = (open) => { notifPop.hidden = !open; notifBtn.setAttribute('aria-expanded', String(open)); };
   const setMenu = (open) => { userMenu.hidden = !open; userBtn.setAttribute('aria-expanded', String(open)); };
-  userBtn.addEventListener('click', (e) => { e.stopPropagation(); setMenu(userMenu.hidden); });
-  document.addEventListener('click', (e) => { if (!e.target.closest('#user')) setMenu(false); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setMenu(false); });
+  userBtn.addEventListener('click', (e) => { e.stopPropagation(); setNotif(false); setMenu(userMenu.hidden); });
+  notifBtn.addEventListener('click', (e) => { e.stopPropagation(); setMenu(false); setNotif(notifPop.hidden); });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#user')) setMenu(false);
+    if (!e.target.closest('#notif')) setNotif(false);
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { setMenu(false); setNotif(false); } });
 
   // Sign-up, sign-in and sign-out go through the hosted Registration service (auth.js). Signing out
   // closes every open app (its page and in-memory state are dropped).
@@ -737,8 +887,10 @@
   const userFor = (u) => u && { name: u.name, email: u.email, company: u.company, role: u.role };
   window.addEventListener('message', (e) => {
     if (!APP_ORIGINS.has(e.origin) || !e.data || typeof e.data !== 'object') return;
-    if (e.data.type === 'inaiera:hello' && DEAuth.user()) {
-      e.source?.postMessage({ type: 'inaiera:user', user: userFor(DEAuth.user()) }, e.origin);
+    if (e.data.type === 'inaiera:hello') {
+      // Theme first (also before sign-in), then who is signed in.
+      e.source?.postMessage({ type: 'inaiera:theme', theme: currentTheme() }, e.origin);
+      if (DEAuth.user()) e.source?.postMessage({ type: 'inaiera:user', user: userFor(DEAuth.user()) }, e.origin);
     } else if (e.data.type === 'inaiera:sign-out' && DEAuth.user()) {
       setMenu(false);
       DEAuth.signOut();

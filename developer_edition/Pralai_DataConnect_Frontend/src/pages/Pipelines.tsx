@@ -1494,7 +1494,7 @@ export default function Pipelines({ go, focus, clearFocus }: { go?: (id: "mon") 
                   <div className="tdm" role="cell">{p.mode}</div>
                   <div className="td" role="cell" style={{ flexDirection: "column", alignItems: "center", gap: 0 }}>
                     <span style={{ fontWeight: 500 }}>{records} <span className="tdm" style={{ padding: 0 }}>({P}%)</span></span>
-                    <ProgressBar pct={P} color={live === "failed" ? "#ef4444" : "#22c55e"} />
+                    <ProgressBar pct={P} color={live === "failed" ? "var(--dc-bad, #ef4444)" : "var(--dc-ok, #22c55e)"} />
                   </div>
                   <div className="acts" role="cell" style={{ justifyContent: "center" }}>
                     {/* All of a row's actions live behind the three dots, one line each. FE-BUG-19: viewing the detail is no longer gated on

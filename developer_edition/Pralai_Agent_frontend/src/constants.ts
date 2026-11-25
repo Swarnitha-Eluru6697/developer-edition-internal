@@ -12,7 +12,7 @@ export interface NodeTypeDef {
 }
 
 export const NODE_TYPES: Record<string, NodeTypeDef> = {
-  trigger: { label: 'TRIGGER', sub: 'user input', cls: 'trigger', locked: true, icon: 'i-user', dot: '#8A6D3B' },
+  trigger: { label: 'TRIGGER', sub: 'user input', cls: 'trigger', locked: true, icon: 'i-user', dot: 'var(--dot-trigger, #8A6D3B)' },
   // Not in the palette — it is added and removed with the UCS check
   // toggle above the canvas, so there is exactly one or none. But no
   // longer `locked`: a node you chose to add has to be positionable.
@@ -39,13 +39,13 @@ export const NODE_TYPES: Record<string, NodeTypeDef> = {
   aggregator: { label: 'VARIABLE AGGREGATOR', sub: 'merge variables', cls: 'c-blue', pal: 'Variable Aggregator', dot: 'var(--blue)', group: 'Transform', icon: 'i-braces' },
   docextractor: { label: 'DOC EXTRACTOR', sub: 'parse file to text', cls: 'c-green', pal: 'Doc Extractor', dot: 'var(--green)', group: 'Transform', icon: 'i-file' },
   list_operator: { label: 'LIST OPERATOR', sub: 'filter, sort, select', cls: 'c-blue', pal: 'List Operator', dot: 'var(--blue)', group: 'Transform', icon: 'i-bars' },
-  tool: { label: 'TOOL', sub: 'UCS-catalog connector', cls: 'c-amber', pal: 'Tool / Connector', dot: '#B5650A', group: 'Connect', icon: 'i-plug' },
+  tool: { label: 'TOOL', sub: 'UCS-catalog connector', cls: 'c-amber', pal: 'Tool / Connector', dot: 'var(--dot-tool, #B5650A)', group: 'Connect', icon: 'i-plug' },
   http: { label: 'HTTP REQUEST', sub: 'raw HTTP call', cls: 'c-purple', pal: 'HTTP Request', dot: 'var(--purple)', group: 'Connect', icon: 'i-globe' },
   subagent: { label: 'SUB-AGENT', sub: 'invoke platform agent', cls: 'c-slate', pal: 'Sub-Agent', dot: 'var(--slate)', group: 'Pralai platform', icon: 'i-subagent' },
   memory: { label: 'MEMORY', sub: 'state', cls: 'c-slate', pal: 'Memory / State', dot: 'var(--slate)', group: 'Pralai platform', icon: 'i-db' },
   variable_assigner: { label: 'VARIABLE ASSIGNER', sub: 'persist conversation vars', cls: 'c-slate', pal: 'Variable Assigner', dot: 'var(--slate)', group: 'Pralai platform', icon: 'i-repeat' },
   comment: { label: 'COMMENT', sub: 'note', cls: 'c-comment', pal: 'Comment', dot: '#E0A62B', group: 'Annotate', icon: 'i-comment' },
-  exit_loop: { label: 'EXIT LOOP', sub: 'stop iterating', cls: 'c-amber', pal: 'Exit Loop', dot: '#B5650A', group: 'Logic', icon: 'i-exit' },
+  exit_loop: { label: 'EXIT LOOP', sub: 'stop iterating', cls: 'c-amber', pal: 'Exit Loop', dot: 'var(--dot-tool, #B5650A)', group: 'Logic', icon: 'i-exit' },
   output: { label: 'OUTPUT VARS', sub: 'named output variables', cls: 'c-teal', pal: 'Output', dot: 'var(--teal-d)', group: 'Transform', icon: 'i-flag' },
 };
 

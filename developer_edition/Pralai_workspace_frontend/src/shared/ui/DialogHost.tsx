@@ -36,7 +36,7 @@ function SaveChangesDrawer({ req }: { req: SaveChangesRequest }) {
         <button onClick={() => finish("cancel")} style={drawerBtn(false)}>Cancel</button>
       </>}
     >
-      <div style={{ fontSize: 13, color: "#2E3D36", lineHeight: 1.55 }}>{req.message}</div>
+      <div style={{ fontSize: 13, color: "var(--ws-text-2, #2E3D36)", lineHeight: 1.55 }}>{req.message}</div>
     </Drawer>
   );
 }
@@ -102,7 +102,7 @@ function TextOrConfirmDrawer({ req }: { req: TextRequest | ConfirmRequest }) {
         </form>
       ) : (
         <form onSubmit={(e) => { e.preventDefault(); finish(true); }}>
-          <div style={{ fontSize: 13, color: "#2E3D36", lineHeight: 1.55, marginBottom: req.confirmText ? 14 : 0 }}>{req.message}</div>
+          <div style={{ fontSize: 13, color: "var(--ws-text-2, #2E3D36)", lineHeight: 1.55, marginBottom: req.confirmText ? 14 : 0 }}>{req.message}</div>
           {req.confirmText && (
             <Field label={`Type "${req.confirmText}" to confirm`}>
               <input

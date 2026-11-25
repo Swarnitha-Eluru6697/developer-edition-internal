@@ -56,7 +56,7 @@ function parseDriftLines(events: SchemaDriftEvent[] | undefined): DriftLine[] {
 }
 
 const KIND_SYMBOL: Record<DriftLine["kind"], string> = { add: "+", remove: "-", change: "~" };
-const KIND_COLOR: Record<DriftLine["kind"], string> = { add: "#16a34a", remove: "#b23b3b", change: "#d97706" };
+const KIND_COLOR: Record<DriftLine["kind"], string> = { add: "var(--dc-add, #16a34a)", remove: "var(--dc-err-text, #b23b3b)", change: "var(--dc-warn, #d97706)" };
 
 function SchemaDriftDialog({ approval, pipelineName, onClose }: { approval: SchemaDriftApproval; pipelineName?: string; onClose: () => void }) {
   const { me, ok, err } = useApp();
@@ -297,7 +297,7 @@ export default function Schemas({ focus, clearFocus }: PageFocusProps) {
           approval used to take the whole page, squeezing the schema table below to nothing. */}
       {pending.length > 0 && (
         <div className="alert alert-w">
-          <div className="at" style={{ color: "#a8470a" }}>
+          <div className="at" style={{ color: "var(--dc-warn-text, #a8470a)" }}>
             {pending.length === 1 ? "Schema change detected" : `${pending.length} schema changes detected`}
           </div>
           <div className="drift-list" role="list" aria-label="Pending schema changes">

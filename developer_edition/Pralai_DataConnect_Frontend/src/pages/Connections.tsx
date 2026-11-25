@@ -638,7 +638,7 @@ export default function Connections({ focus, clearFocus }: PageFocusProps) {
           <div className="conn-grid">
             {sourceTypes.map((st) => (
               <button className="ctile" key={st} onClick={() => openSource(st)} aria-label={`${st} — ${byType[st] || 0} connections`}>
-                <div className="ccnt" style={byType[st] ? { background: "var(--color-error)", color: "#fff" } : { background: "#cfd8d1" }}>{byType[st] || 0}</div>
+                <div className="ccnt" style={byType[st] ? { background: "var(--color-error)", color: "var(--dc-on-error, #fff)" } : { background: "var(--dc-count-empty, #cfd8d1)" }}>{byType[st] || 0}</div>
                 <div className="ccirc"><ConnectorLogo type={st} /></div>
                 <div className="clbl">{st}</div>
               </button>

@@ -23,7 +23,7 @@ export function DbtDependentsTab({ project, projects, saving, onSave }: Props) {
 
       <DbtJobLinks selfId={project.id} kind={kindOf(project)} projects={projects} value={links} onChange={setLinks} />
       <button onClick={() => onSave(links)} disabled={!changed || saving}
-        style={{ marginTop: 12, height: 32, padding: "0 18px", fontSize: 13, background: "#0A7D5A", color: "#fff", border: "none", borderRadius: 6,
+        style={{ marginTop: 12, height: 32, padding: "0 18px", fontSize: 13, background: "var(--ws-primary, #0A7D5A)", color: "var(--ws-on-primary, #fff)", border: "none", borderRadius: 6,
           cursor: !changed || saving ? "default" : "pointer", opacity: !changed || saving ? 0.55 : 1 }}>
         {saving ? "Saving…" : "Save"}
       </button>

@@ -13,12 +13,12 @@
 import type { CSSProperties } from "react";
 
 export const STATUS_COLOR: Record<string, string> = {
-  succeeded: "#2f6b14", failed: "#b23b3b", running: "#0A7D5A",
-  queued: "#a8470a", cancelling: "#a8470a", cancelled: "#73827a",
+  succeeded: "var(--ws-ok, #2f6b14)", failed: "var(--ws-bad, #b23b3b)", running: "var(--ws-accent, #0A7D5A)",
+  queued: "var(--ws-warn, #a8470a)", cancelling: "var(--ws-warn, #a8470a)", cancelled: "var(--ws-subtle, #73827a)",
 };
 export const STATUS_BG: Record<string, string> = {
-  succeeded: "#eaf3e1", failed: "#fbe9e9", running: "#E3F6EA",
-  queued: "#fdebdd", cancelling: "#fdebdd", cancelled: "#eef2ed",
+  succeeded: "var(--ws-ok-bg, #eaf3e1)", failed: "var(--ws-bad-bg, #fbe9e9)", running: "var(--ws-accent-bg, #E3F6EA)",
+  queued: "var(--ws-warn-bg, #fdebdd)", cancelling: "var(--ws-warn-bg, #fdebdd)", cancelled: "var(--ws-fill, #eef2ed)",
 };
 
 export const GUTTER = 16;
@@ -36,11 +36,11 @@ export const gridRow = (cols: string): CSSProperties => ({
 });
 
 export const HEAD_STYLE: CSSProperties = {
-  padding: HEAD_PAD, fontSize: 10.5, color: "#73827a", textTransform: "uppercase",
-  letterSpacing: ".06em", borderBottom: "0.5px solid #E3E8E2", background: "#F8FAF9",
+  padding: HEAD_PAD, fontSize: 10.5, color: "var(--ws-subtle, #73827a)", textTransform: "uppercase",
+  letterSpacing: ".06em", borderBottom: "0.5px solid var(--ws-line, #E3E8E2)", background: "var(--ws-thead, #F8FAF9)",
 };
 
 export const primaryBtn: CSSProperties = {
-  height: 28, padding: "0 11px", fontSize: 12, background: "#0A7D5A", color: "#fff",
+  height: 28, padding: "0 11px", fontSize: 12, background: "var(--ws-primary, #0A7D5A)", color: "var(--ws-on-primary, #fff)",
   border: "none", borderRadius: 6, cursor: "pointer", display: "flex", alignItems: "center", gap: 5,
 };

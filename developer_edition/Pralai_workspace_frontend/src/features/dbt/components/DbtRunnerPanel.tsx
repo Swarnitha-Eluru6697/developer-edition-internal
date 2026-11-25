@@ -156,7 +156,7 @@ export function DbtRunnerPanel({ kind = "dbt" }: { kind?: JobKind }) {
   };
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#fff" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "var(--ws-surface, #fff)" }}>
       {/* Header — the project list, or the selected project with a way back. */}
       {!selectedProject ? (
         <PageHeader
@@ -200,7 +200,7 @@ export function DbtRunnerPanel({ kind = "dbt" }: { kind?: JobKind }) {
         {selectedProject && tab === "lineage" && k.hasLineage && (
           <div style={{ padding: GUTTER }}>
             {!lineage?.edges?.length ? (
-              <div style={{ textAlign: "center", color: "#73827a", fontSize: 13, padding: EMPTY_PAD }}>
+              <div style={{ textAlign: "center", color: "var(--ws-subtle, #73827a)", fontSize: 13, padding: EMPTY_PAD }}>
                 No lineage data yet. Run the project successfully to generate it.
               </div>
             ) : (

@@ -133,7 +133,7 @@ export function IndexMethodPicker({
           ) : (
             // No dropdown supplied (or nothing to choose): show what is
             // actually configured rather than asserting what it is.
-            <div className="row-split" style={{ padding: '9px 12px', background: '#fff', border: '1px solid var(--line)', borderRadius: 8 }}>
+            <div className="row-split" style={{ padding: '9px 12px', background: 'var(--card, #fff)', border: '1px solid var(--line)', borderRadius: 8 }}>
               <span className="mono small">{embedModel}</span>
             </div>
           )}

@@ -39,9 +39,9 @@ export function CodegenChatColumn({ onResizingChange, ...panel }: Props) {
         onMouseDown={(e) => { onResizingChange(true); start(e); }}
         onDoubleClick={() => { dispatch(setChatWidth(CHAT_WIDTH_DEFAULT)); saveChatWidth(CHAT_WIDTH_DEFAULT); }}
         title="Drag to resize · double-click to reset"
-        style={{ width: 6, flexShrink: 0, cursor: "col-resize", background: resizing ? "#B7E0CB" : "#E3E8E2" }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#B7E0CB")}
-        onMouseLeave={(e) => !resizing && (e.currentTarget.style.background = "#E3E8E2")}
+        style={{ width: 6, flexShrink: 0, cursor: "col-resize", background: resizing ? "var(--ws-accent-line-fill, #B7E0CB)" : "var(--ws-line-fill, #E3E8E2)" }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--ws-accent-line-fill, #B7E0CB)")}
+        onMouseLeave={(e) => !resizing && (e.currentTarget.style.background = "var(--ws-line-fill, #E3E8E2)")}
       />
       {/* minmax(0,1fr) + minHeight:0 are load-bearing: an auto-sized row
           would let the panel grow to its content height, so its transcript

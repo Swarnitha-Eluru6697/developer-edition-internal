@@ -242,14 +242,14 @@ export function CodegenChatPanel({ workspaceId, activeFileId, activeFileContent,
       // minmax(0, 1fr): a grid's default column is as wide as its widest content, which pushed the panel's right side (the second
       // dropdown, the Send button) out of a narrow panel where it was clipped.
       display: "grid", gridTemplateRows: "auto 1fr auto", gridTemplateColumns: "minmax(0, 1fr)", height: "100%",
-      borderLeft: "1px solid #E3E8E2", background: "#fff", color: "#14201B", minWidth: 0,
+      borderLeft: "1px solid var(--ws-line, #E3E8E2)", background: "var(--ws-surface, #fff)", color: "var(--ws-text, #14201B)", minWidth: 0,
     }}>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 12px", borderBottom: "1px solid #E3E8E2", background: "#F8FAF9" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 12px", borderBottom: "1px solid var(--ws-line, #E3E8E2)", background: "var(--ws-bg, #F8FAF9)" }}>
         {/* "Generate", then the choices: side by side when the panel is wide enough for both, wrapping the engine under the target when
             it is narrow (each takes at least CHOICE_MIN_WIDTH and grows to share the row). */}
         <div style={{ height: 28, display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-          <i className="ti ti-sparkles" style={{ fontSize: 15, color: "#0A7D5A" }} />
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#5B6D62" }}>Generate</span>
+          <i className="ti ti-sparkles" style={{ fontSize: 15, color: "var(--ws-accent, #0A7D5A)" }} />
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ws-muted, #5B6D62)" }}>Generate</span>
         </div>
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexWrap: "wrap", gap: 6 }}>
           <SearchSelect
@@ -305,10 +305,10 @@ export function CodegenChatPanel({ workspaceId, activeFileId, activeFileContent,
         {showLiveTurn && (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {contextNote && (
-              <div style={{ fontSize: 11, color: "#A8470A", fontStyle: "italic" }}>{contextNote}</div>
+              <div style={{ fontSize: 11, color: "var(--ws-warn, #A8470A)", fontStyle: "italic" }}>{contextNote}</div>
             )}
             {live.toolCalls.map((tc, i) => (
-              <div key={i} style={{ fontSize: 11, color: tc.resultOk ? "#2F6B14" : "#B23B3B", fontFamily: "var(--mono)" }}>
+              <div key={i} style={{ fontSize: 11, color: tc.resultOk ? "var(--ws-ok, #2F6B14)" : "var(--ws-bad, #B23B3B)", fontFamily: "var(--mono)" }}>
                 {tc.resultOk ? "✓" : "✗"}{" "}
                 {tc.tool === "validate"
                   ? `validate (attempt ${(tc.attempt ?? i) + 1}): ${tc.validationStatus ?? (tc.resultOk ? "passed" : "failed")}`
@@ -316,7 +316,7 @@ export function CodegenChatPanel({ workspaceId, activeFileId, activeFileContent,
               </div>
             ))}
             {live.status === "thinking" && (
-              <div style={{ fontSize: 12, color: "#086347", fontStyle: "italic" }}>
+              <div style={{ fontSize: 12, color: "var(--ws-accent, #086347)", fontStyle: "italic" }}>
                 Working…{live.stage && STAGE_LABELS[live.stage] ? ` ${STAGE_LABELS[live.stage]}` : ""}
               </div>
             )}
@@ -333,7 +333,7 @@ export function CodegenChatPanel({ workspaceId, activeFileId, activeFileContent,
               />
             )}
             {live.status === "failed" && (
-              <div style={{ fontSize: 12, color: "#B23B3B", background: "#FBE9E9", border: "1px solid #FECACA", borderRadius: 8, padding: "8px 10px" }}>Generation failed: {live.error}</div>
+              <div style={{ fontSize: 12, color: "var(--ws-bad, #B23B3B)", background: "var(--ws-bad-bg, #FBE9E9)", border: "1px solid var(--ws-bad-line, #FECACA)", borderRadius: 8, padding: "8px 10px" }}>Generation failed: {live.error}</div>
             )}
           </div>
         )}
@@ -341,14 +341,14 @@ export function CodegenChatPanel({ workspaceId, activeFileId, activeFileContent,
 
       <label
         title="Send the file open in the editor with your message. Secrets and personal data are redacted, and your organization's policy can still withhold it."
-        style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px 0", fontSize: 12, color: activeFileContent ? "#2E3D36" : "#73827A", borderTop: "1px solid #E3E8E2" }}
+        style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px 0", fontSize: 12, color: activeFileContent ? "var(--ws-text-2, #2E3D36)" : "var(--ws-subtle, #73827A)", borderTop: "1px solid var(--ws-line, #E3E8E2)" }}
       >
         <input
           type="checkbox"
           checked={includeFile}
           disabled={!activeFileContent}
           onChange={(e) => toggleIncludeFile(e.target.checked)}
-          style={{ accentColor: "#0A7D5A" }}
+          style={{ accentColor: "var(--ws-accent, #0A7D5A)" }}
         />
         Include the open file
       </label>
@@ -362,15 +362,15 @@ export function CodegenChatPanel({ workspaceId, activeFileId, activeFileContent,
           placeholder={`Describe the ${TARGET_LABELS[target].toLowerCase()} you want…`}
           rows={2}
           style={{
-            flex: 1, minWidth: 0, resize: "none", background: "#fff", color: "#14201B", outline: "none",
-            border: "1px solid #E3E8E2", borderRadius: 8, fontSize: 13, padding: 8,
+            flex: 1, minWidth: 0, resize: "none", background: "var(--ws-surface, #fff)", color: "var(--ws-text, #14201B)", outline: "none",
+            border: "1px solid var(--ws-line, #E3E8E2)", borderRadius: 8, fontSize: 13, padding: 8,
           }}
         />
         <button
           onClick={handleSend}
           disabled={creatingSession || sending || !prompt.trim()}
           style={{
-            alignSelf: "flex-end", background: "#0A7D5A", color: "#fff", border: "none", fontWeight: 600,
+            alignSelf: "flex-end", background: "var(--ws-primary, #0A7D5A)", color: "var(--ws-on-primary, #fff)", border: "none", fontWeight: 600,
             borderRadius: 8, padding: "8px 14px", fontSize: 13,
             cursor: creatingSession || sending || !prompt.trim() ? "not-allowed" : "pointer",
             opacity: creatingSession || sending || !prompt.trim() ? 0.5 : 1,
@@ -432,32 +432,32 @@ function ChatBubble({
     <div style={{ alignSelf: isUser ? "flex-end" : "flex-start", maxWidth: "92%", minWidth: 0 }}>
       {prose && (
       <div style={{
-        background: isUser ? "#E3F6EA" : "#EEF2ED", color: "#14201B",
-        border: `1px solid ${isUser ? "#B7E0CB" : "#E3E8E2"}`, borderRadius: 8, padding: "8px 10px", fontSize: 13, whiteSpace: "pre-wrap", overflowWrap: "anywhere",
+        background: isUser ? "var(--ws-accent-bg, #E3F6EA)" : "var(--ws-fill, #EEF2ED)", color: "var(--ws-text, #14201B)",
+        border: `1px solid ${isUser ? "var(--ws-line-strong, #B7E0CB)" : "var(--ws-line, #E3E8E2)"}`, borderRadius: 8, padding: "8px 10px", fontSize: 13, whiteSpace: "pre-wrap", overflowWrap: "anywhere",
       }}>
         {prose}
       </div>
       )}
       {artifactCode && (
-        <div style={{ marginTop: 6, border: "1px solid #E3E8E2", borderRadius: 8, overflow: "hidden" }}>
+        <div style={{ marginTop: 6, border: "1px solid var(--ws-line, #E3E8E2)", borderRadius: 8, overflow: "hidden" }}>
           <div style={{
             display: "flex", justifyContent: "space-between", alignItems: "center",
-            padding: "5px 8px", background: "#F8FAF9", fontSize: 11, color: "#5B6D62", borderBottom: "1px solid #E3E8E2",
+            padding: "5px 8px", background: "var(--ws-bg, #F8FAF9)", fontSize: 11, color: "var(--ws-muted, #5B6D62)", borderBottom: "1px solid var(--ws-line, #E3E8E2)",
           }}>
             <span style={{ fontFamily: "var(--mono)" }}>{artifactPath ?? "generated code"}</span>
             <ValidationBadge status={validationStatus} />
           </div>
-          <pre style={{ margin: 0, padding: 10, fontSize: 12, lineHeight: 1.6, maxHeight: 360, overflow: "auto", background: "#14201B", color: "#E3E8E2", fontFamily: "var(--mono)", whiteSpace: "pre" }}>
+          <pre style={{ margin: 0, padding: 10, fontSize: 12, lineHeight: 1.6, maxHeight: 360, overflow: "auto", background: "var(--ws-code-bg, #14201B)", color: "#E3E8E2", fontFamily: "var(--mono)", whiteSpace: "pre" }}>
             {artifactCode}
           </pre>
           {(onInsert || onApply) && (
-            <div style={{ padding: 6, borderTop: "1px solid #E3E8E2", background: "#fff", display: "flex", gap: 6 }}>
+            <div style={{ padding: 6, borderTop: "1px solid var(--ws-line, #E3E8E2)", background: "var(--ws-surface, #fff)", display: "flex", gap: 6 }}>
               {onInsert && (
                 <button
                   onClick={onInsert}
                   title="Insert this code into the open editor / notebook cell"
                   style={{
-                    background: "#0A7D5A", color: "#fff", border: "none", borderRadius: 7, fontWeight: 600,
+                    background: "var(--ws-primary, #0A7D5A)", color: "var(--ws-on-primary, #fff)", border: "none", borderRadius: 7, fontWeight: 600,
                     padding: "5px 10px", fontSize: 12, cursor: "pointer",
                   }}
                 >
@@ -469,7 +469,7 @@ function ChatBubble({
                   onClick={onApply}
                   disabled={applying}
                   style={{
-                    background: "#fff", color: "#086347", border: "1px solid #B7E0CB", borderRadius: 7, fontWeight: 600,
+                    background: "var(--ws-surface, #fff)", color: "var(--ws-accent, #086347)", border: "1px solid var(--ws-line-strong, #B7E0CB)", borderRadius: 7, fontWeight: 600,
                     padding: "5px 10px", fontSize: 12, cursor: "pointer",
                   }}
                 >
@@ -486,7 +486,7 @@ function ChatBubble({
 
 function ValidationBadge({ status }: { status: string | null }) {
   if (!status) return null;
-  const [color, bg] = status === "passed" ? ["#2F6B14", "#EAF3E1"] : status === "failed" ? ["#B23B3B", "#FBE9E9"] : ["#5B6D62", "#EEF2ED"];
+  const [color, bg] = status === "passed" ? ["var(--ws-ok, #2F6B14)", "var(--ws-ok-bg, #EAF3E1)"] : status === "failed" ? ["var(--ws-bad, #B23B3B)", "var(--ws-bad-bg, #FBE9E9)"] : ["var(--ws-muted, #5B6D62)", "var(--ws-fill, #EEF2ED)"];
   return <span style={{ color, background: bg, fontWeight: 600, borderRadius: 20, padding: "1px 8px" }}>{status}</span>;
 }
 

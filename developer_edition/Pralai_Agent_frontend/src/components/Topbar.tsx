@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { SEARCH_CLEARED } from '../searchEvents';
 import Icon from './Icon';
-import { DeveloperUserMenu } from './DeveloperUserMenu';
+import { DeveloperUserMenu, inDeveloperShell } from './DeveloperUserMenu';
 import { useApp } from '../context/AppContext';
 import { hostAccountMenu, hostRoleBadges, isHosted } from '../host';
 import { AGENT_READER_PERMS, KB_READER_PERMS, P } from '../permissions';
@@ -81,7 +81,8 @@ export default function Topbar() {
           <div className="rolebadges">{hostRoleBadges()}</div>
           {hostAccountMenu()}
         </>
-      ) : (
+      ) : inDeveloperShell() ? null : (
+        /* Inside the Developer Edition dashboard its left rail carries notifications and the account menu. */
         <>
           {can(P.alertsManage) && (
             <button type="button" className="iconbtn" title="Alerts" aria-label="Alerts" onClick={() => navigate('/alerts')}>

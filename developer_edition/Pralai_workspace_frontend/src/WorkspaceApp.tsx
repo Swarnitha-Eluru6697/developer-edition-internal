@@ -56,9 +56,9 @@ const rootStyle = {
   "--body": 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
   "--mono": '"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace',
   height: "100%",
-  background: "#F8FAF9",
+  background: "var(--ws-bg, #F8FAF9)",
   fontFamily: "var(--body)",
-  color: "#14201B",
+  color: "var(--ws-text, #14201B)",
   fontSize: 14,
   WebkitFontSmoothing: "antialiased",
 } as CSSProperties;

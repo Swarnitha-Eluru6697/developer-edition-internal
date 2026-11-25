@@ -47,17 +47,17 @@ export function Drawer({ title, icon, onClose, busy, footer, children, width = 4
         aria-label={title}
         style={{
           position: "fixed", top: 0, right: 0, bottom: 0, width, maxWidth: "92vw",
-          background: "#fff", zIndex: 1201, display: "flex", flexDirection: "column",
+          background: "var(--ws-surface, #fff)", zIndex: 1201, display: "flex", flexDirection: "column",
           boxShadow: "-8px 0 30px rgba(0,0,0,0.16)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "13px 16px", borderBottom: "0.5px solid #E3E8E2", flexShrink: 0 }}>
-          <Glyph name={icon} size={16} style={{ color: "#0A7D5A" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "13px 16px", borderBottom: "0.5px solid var(--ws-line, #E3E8E2)", flexShrink: 0 }}>
+          <Glyph name={icon} size={16} style={{ color: "var(--ws-accent, #0A7D5A)" }} />
           <span style={{ fontSize: 14, fontWeight: 600 }}>{title}</span>
           <button
             onClick={onClose}
             title="Close (Esc)"
-            style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: "#73827a", fontSize: 18, lineHeight: 1, padding: 2 }}
+            style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: "var(--ws-subtle, #73827a)", fontSize: 18, lineHeight: 1, padding: 2 }}
           >
             <Glyph name="pi-x" size={16} />
           </button>
@@ -65,7 +65,7 @@ export function Drawer({ title, icon, onClose, busy, footer, children, width = 4
 
         <div data-testid="drawer-body" style={{ flex: 1, overflow: "auto", padding: "14px 16px", ...(hideScrollbar ? hiddenScrollbar : {}) }}>{children}</div>
 
-        <div style={{ display: "flex", gap: 8, padding: "12px 16px", borderTop: "0.5px solid #E3E8E2", flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 8, padding: "12px 16px", borderTop: "0.5px solid var(--ws-line, #E3E8E2)", flexShrink: 0 }}>
           {footer}
         </div>
       </div>
@@ -82,11 +82,11 @@ export function Field({ label, hint, required, children }: {
 }) {
   return (
     <div style={{ marginBottom: 12 }}>
-      <label style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: "#2E3D36", marginBottom: 4 }}>
-        {label}{required && <span style={{ color: "#b23b3b", marginLeft: 2 }}>*</span>}
+      <label style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: "var(--ws-text-2, #2E3D36)", marginBottom: 4 }}>
+        {label}{required && <span style={{ color: "var(--ws-bad, #b23b3b)", marginLeft: 2 }}>*</span>}
       </label>
       {children}
-      {hint && <div style={{ fontSize: 11, color: "#73827a", marginTop: 3, lineHeight: 1.45 }}>{hint}</div>}
+      {hint && <div style={{ fontSize: 11, color: "var(--ws-subtle, #73827a)", marginTop: 3, lineHeight: 1.45 }}>{hint}</div>}
     </div>
   );
 }

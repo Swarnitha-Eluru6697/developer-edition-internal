@@ -1,0 +1,262 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   DataConnect — dark theme (Pralai charcoal).
+
+   Active only while <html data-theme="dark"> (set by components/DeveloperUserMenu.tsx from the
+   Developer Edition shell's theme toggle). Light mode is untouched: every rule here sits under
+   :root[data-theme="dark"]. Colours come only from the shared palette in components/pralai-dark.css
+   (--pd-*). Step 1 remaps the app's own design tokens (on .dc-root); step 2 fixes what styles.css /
+   search-select.css hardcode; step 3 defines the tokens the .tsx inline styles fall back from.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Design tokens ─────────────────────────────────────────────────────── */
+:root[data-theme="dark"] .dc-root{
+  --color-background-primary:var(--pd-surface);
+  --color-background-secondary:var(--pd-bg);
+  --color-background-tertiary:var(--pd-surface-2);
+  --color-border-primary:var(--pd-line);
+  --color-border-secondary:var(--pd-line-strong);
+  --color-border-tertiary:var(--pd-line);
+  --color-text-primary:var(--pd-text);
+  --color-text-secondary:var(--pd-muted);
+  --color-text-muted:var(--pd-muted);
+  --color-primary:var(--pd-accent);
+  --color-on-primary:var(--pd-on-amber);
+  --color-primary-hover:var(--pd-accent);
+  --color-primary-light:var(--pd-accent-bg);
+  --color-primary-dark:var(--pd-accent);
+  --color-primary-text:var(--pd-accent);
+  --color-success:var(--pd-ok);
+  --color-success-light:var(--pd-ok-bg);
+  --color-success-text:var(--pd-ok);
+  --color-error:var(--pd-bad);
+  --color-error-light:var(--pd-bad-bg);
+  --color-error-text:var(--pd-bad);
+  --color-warning:var(--pd-warn);
+  --color-warning-light:var(--pd-warn-bg);
+  --color-warning-text:var(--pd-warn);
+  --color-info:var(--pd-info);
+  --color-info-light:var(--pd-info-bg);
+  --color-info-text:var(--pd-info);
+
+  /* tokens read by inline styles in the .tsx files (light fallbacks live there) */
+  --dc-icon-muted:var(--pd-muted);          /* top-bar bell */
+  --dc-on-error:var(--pd-on-amber);         /* text on a red count chip */
+  --dc-count-empty:var(--pd-surface-3);     /* Connections: zero-count chip */
+  --dc-ring-track:var(--pd-line);           /* pipeline progress donut track */
+  --dc-ok:var(--pd-ok);                     /* progress / ring: running */
+  --dc-bad:var(--pd-bad);                   /* progress / ring: failed */
+  --dc-warn:var(--pd-warn);                 /* ring: paused / restarting; drift "change" */
+  --dc-accent:var(--pd-accent);             /* ring: deployed */
+  --dc-neutral:var(--pd-muted);             /* ring: other states */
+  --dc-err-text:var(--pd-bad);              /* "Failed to load" heading, drift "remove" */
+  --dc-warn-text:var(--pd-warn);            /* Schemas warning heading */
+  --dc-add:var(--pd-ok);                    /* drift "add" */
+  --dc-ext-icon:var(--pd-on-amber);         /* external-link glyph inside an amber button */
+  --pralai-desc:var(--pd-accent);           /* logo descriptor ("DATACONNECT") */
+
+  color-scheme:dark;
+}
+
+/* Pralai wordmark: the forest letters/stem become white; emerald bowl and amber bar stay. */
+:root[data-theme="dark"] .pralai-ink{fill:#FFFFFF}
+
+/* ── 2. Shell ─────────────────────────────────────────────────────────────── */
+:root[data-theme="dark"] .dc-root .sn{color:var(--pd-text-2)}
+:root[data-theme="dark"] .dc-root .sn:hover{background:var(--pd-surface-2);color:var(--pd-text)}
+:root[data-theme="dark"] .dc-root .sn.active{background:var(--pd-surface-3);color:var(--pd-text);box-shadow:inset 3px 0 0 var(--pd-nav-stroke)}
+:root[data-theme="dark"] .dc-root .sn.active svg{color:var(--pd-text)}
+:root[data-theme="dark"] .dc-root .sb-grp{color:var(--pd-muted)}
+
+/* Header search */
+:root[data-theme="dark"] .dc-root .hs-box{background:var(--pd-surface-2);border-color:var(--pd-line);color:var(--pd-muted)}
+:root[data-theme="dark"] .dc-root .hs-box:focus-within{background:var(--pd-surface-2);border-color:var(--pd-accent)}
+:root[data-theme="dark"] .dc-root .hs-input::placeholder{color:var(--pd-faint)}
+:root[data-theme="dark"] .dc-root .hs-kbd{background:var(--pd-surface);border-color:var(--pd-line);color:var(--pd-muted)}
+:root[data-theme="dark"] .dc-root .hs-pop{background:var(--pd-surface);border-color:var(--pd-line);box-shadow:var(--pd-shadow)}
+:root[data-theme="dark"] .dc-root .hs-grp,
+:root[data-theme="dark"] .dc-root .hs-detail,
+:root[data-theme="dark"] .dc-root .hs-none{color:var(--pd-muted)}
+:root[data-theme="dark"] .dc-root .hs-opt.on{background:var(--pd-surface-3)}
+:root[data-theme="dark"] .dc-root .hs-ico{color:var(--pd-accent)}
+
+/* Page-level search boxes */
+:root[data-theme="dark"] .dc-root .srch{background:var(--pd-surface-2);border-color:var(--pd-line);color:var(--pd-muted)}
+:root[data-theme="dark"] .dc-root .srch:focus-within{background:var(--pd-surface-2);border-color:var(--pd-accent)}
+
+/* Stat (KPI) cards: big white numbers, emerald captions */
+:root[data-theme="dark"] .dc-root .sc-v{color:var(--pd-text)}
+:root[data-theme="dark"] .dc-root .sc-s{color:var(--pd-accent)}
+:root[data-theme="dark"] .dc-root .sc.bp{border-left-color:var(--pd-purple);background:var(--pd-surface);color:inherit}   /* .bp is also the purple badge (below) */
+
+/* Tables: surface-2 header row, muted uppercase headings */
+:root[data-theme="dark"] .dc-root .thead{background:var(--pd-surface-2);border-bottom-color:var(--pd-line)}
+:root[data-theme="dark"] .dc-root .th{color:var(--pd-muted);text-transform:uppercase;letter-spacing:.05em;font-size:10.5px}
+:root[data-theme="dark"] .dc-root .th.sortable:hover{color:var(--pd-text)}
+:root[data-theme="dark"] .dc-root .tr:hover{background:var(--pd-surface-2)}
+
+/* Icon actions + row menu */
+:root[data-theme="dark"] .dc-root .ai{background:var(--pd-surface);border-color:var(--pd-line);color:var(--pd-muted)}
+:root[data-theme="dark"] .dc-root .ai:hover:not(:disabled){background:var(--pd-surface-2);color:var(--pd-text);border-color:var(--pd-line-strong)}
+:root[data-theme="dark"] .dc-root .ai.danger:hover:not(:disabled){background:var(--pd-bad-bg);color:var(--pd-bad);border-color:var(--pd-bad)}
+:root[data-theme="dark"] .dc-root .ai.on{background:var(--pd-accent-bg);color:var(--pd-accent);border-color:var(--pd-accent)}
+:root[data-theme="dark"] .dc-root .rm-menu{background:var(--pd-surface);border-color:var(--pd-line);box-shadow:var(--pd-shadow)}
+:root[data-theme="dark"] .dc-root .rm-item{color:var(--pd-text)}
+:root[data-theme="dark"] .dc-root .rm-item:hover:not(.off),
+:root[data-theme="dark"] .dc-root .rm-item:focus-visible{background:var(--pd-surface-2)}
+:root[data-theme="dark"] .dc-root .rm-item .rm-ico{color:var(--pd-muted)}
+:root[data-theme="dark"] .dc-root .rm-item.danger,
+:root[data-theme="dark"] .dc-root .rm-item.danger .rm-ico{color:var(--pd-bad)}
+:root[data-theme="dark"] .dc-root .rm-item.danger:hover:not(.off),
+:root[data-theme="dark"] .dc-root .rm-item.danger:focus-visible{background:var(--pd-bad-bg)}
+
+/* Badges / tags: purple and neutral */
+:root[data-theme="dark"] .dc-root .bp,
+:root[data-theme="dark"] .dc-root .tt{background:var(--pd-purple-bg);color:var(--pd-purple)}
+:root[data-theme="dark"] .dc-root .bgr,
+:root[data-theme="dark"] .dc-root .tn{background:var(--pd-neutral-bg);color:var(--pd-neutral)}
+
+/* Buttons: amber primary with dark text; secondary on surface */
+:root[data-theme="dark"] .dc-root .btn-p{background:var(--pd-amber);color:var(--pd-on-amber);border-color:var(--pd-amber)}
+:root[data-theme="dark"] .dc-root .btn-p:hover{background:var(--pd-amber-hover)}
+:root[data-theme="dark"] .dc-root .btn-s{background:var(--pd-surface);border-color:var(--pd-line);color:var(--pd-text)}
+:root[data-theme="dark"] .dc-root .btn-s:hover{border-color:var(--pd-line-strong);background:var(--pd-surface-2)}
+:root[data-theme="dark"] .dc-root .btn-ok{border-color:var(--pd-ok);color:var(--pd-ok)}
+:root[data-theme="dark"] .dc-root .btn-no{border-color:var(--pd-bad);color:var(--pd-bad)}
+:root[data-theme="dark"] .dc-root .iconadd{background:var(--pd-amber);color:var(--pd-on-amber)}
+:root[data-theme="dark"] .dc-root .iconadd:hover{background:var(--pd-amber-hover)}
+:root[data-theme="dark"] .dc-root .pgbtn{background:var(--pd-surface);border-color:var(--pd-line);color:var(--pd-text)}
+
+/* Banners */
+:root[data-theme="dark"] .dc-root .alert-w{border-color:var(--pd-line-strong);border-left-color:var(--pd-warn)}
+:root[data-theme="dark"] .dc-root .alert-e{border-color:var(--pd-line-strong);border-left-color:var(--pd-bad)}
+:root[data-theme="dark"] .dc-root .alert-i{background:var(--pd-info-bg);border-color:var(--pd-info-line);border-left-color:var(--pd-info)}
+:root[data-theme="dark"] .dc-root .at{color:var(--pd-text)}
+:root[data-theme="dark"] .dc-root .ab{color:var(--pd-text-2)}
+:root[data-theme="dark"] .dc-root .ab code,
+:root[data-theme="dark"] .dc-root .cs code{background:var(--pd-surface-3);color:var(--pd-text)}
+
+/* Forms */
+:root[data-theme="dark"] .dc-root .fld input,
+:root[data-theme="dark"] .dc-root .fld select,
+:root[data-theme="dark"] .dc-root .fld textarea,
+:root[data-theme="dark"] .dc-root .cm-select,
+:root[data-theme="dark"] .dc-root .rail-search,
+:root[data-theme="dark"] .dc-root .al-dates input{background:var(--pd-surface-2);border-color:var(--pd-line);color:var(--pd-text)}
+:root[data-theme="dark"] .dc-root .fld input:focus,
+:root[data-theme="dark"] .dc-root .fld select:focus,
+:root[data-theme="dark"] .dc-root .fld textarea:focus,
+:root[data-theme="dark"] .dc-root .cm-select:focus{border-color:var(--pd-accent);box-shadow:0 0 0 3px var(--pd-accent-bg)}
+:root[data-theme="dark"] .dc-root .fld input[aria-invalid="true"],
+:root[data-theme="dark"] .dc-root .fld select[aria-invalid="true"],
+:root[data-theme="dark"] .dc-root .fld textarea[aria-invalid="true"]{border-color:var(--pd-bad)}
+:root[data-theme="dark"] .dc-root .fld label{color:var(--pd-muted)}
+:root[data-theme="dark"] .dc-root .al-form .fld input:disabled{background:var(--pd-surface);color:var(--pd-faint)}
+
+/* Connections tiles, transform steps */
+:root[data-theme="dark"] .dc-root .clbl{color:var(--pd-text-2)}
+/* The type circles carry each technology's own brand colour (many are dark navy / maroon), so in dark mode they sit on a light
+   disc, like app icons, to stay legible; the hover ring is emerald. */
+:root[data-theme="dark"] .dc-root .ccirc{background:var(--pd-text);border-color:var(--pd-line-strong);--color-primary:var(--pd-accent-bg)}   /* initials fallback stays dark on the disc */
+:root[data-theme="dark"] .dc-root .ctile:hover .ccirc{border-color:var(--pd-accent);background:var(--pd-text-2)}
+:root[data-theme="dark"] .dc-root .smt-cfg{background:var(--pd-accent-bg);color:var(--pd-accent)}
+
+/* Code panels */
+:root[data-theme="dark"] .dc-root .codeblk,
+:root[data-theme="dark"] .dc-root .json{background:var(--pd-code-bg);color:var(--pd-text-2);border:1px solid var(--pd-line)}
+:root[data-theme="dark"] .dc-root .json .k{color:var(--pd-accent)}
+:root[data-theme="dark"] .dc-root .json .s{color:var(--pd-ok)}
+:root[data-theme="dark"] .dc-root .json .n{color:var(--pd-info)}
+
+/* Drawers / dialogs */
+:root[data-theme="dark"] .dc-root .ov.on{background:rgb(0 0 0 / .6)}
+:root[data-theme="dark"] .dc-root .modal{background:var(--pd-surface);border-left:1px solid var(--pd-line);box-shadow:var(--pd-shadow)}
+:root[data-theme="dark"] .dc-root .ff{background:var(--pd-surface-2);border-top-color:var(--pd-line)}
+:root[data-theme="dark"] .dc-root .unsaved-guard{background:rgb(0 0 0 / .55)}
+:root[data-theme="dark"] .dc-root .unsaved-guard-box{background:var(--pd-surface);border:1px solid var(--pd-line);box-shadow:var(--pd-shadow)}
+:root[data-theme="dark"] .dc-root .mx:hover{color:var(--pd-bad)}
+
+/* Toasts + tooltips */
+:root[data-theme="dark"] .dc-root .toast{background:var(--pd-surface-3);color:var(--pd-text);border:1px solid var(--pd-line-strong);border-left:3px solid var(--pd-accent);box-shadow:var(--pd-shadow)}
+:root[data-theme="dark"] .dc-root .toast.ok{border-left-color:var(--pd-ok)}
+:root[data-theme="dark"] .dc-root .toast.err{border-left-color:var(--pd-bad)}
+:root[data-theme="dark"] .dc-root .fast-tip{background:var(--pd-surface-3);color:var(--pd-text);border:1px solid var(--pd-line-strong);box-shadow:var(--pd-shadow)}
+
+/* Templates */
+:root[data-theme="dark"] .dc-root .tplcard:hover{border-color:var(--pd-accent);box-shadow:var(--pd-shadow)}
+:root[data-theme="dark"] .dc-root .tpl-logo{background:var(--pd-accent-bg);color:var(--pd-accent);border-color:var(--pd-accent-bg)}
+:root[data-theme="dark"] .dc-root .tplcard:hover .tpl-logo{background:var(--pd-accent-bg);border-color:var(--pd-accent)}
+:root[data-theme="dark"] .dc-root .tpl-class{background:var(--pd-accent-bg);color:var(--pd-accent)}
+
+/* Lineage graph */
+:root[data-theme="dark"] .dc-root .lnode{background:var(--pd-surface-2);color:var(--pd-text);border:1px solid var(--pd-line)}
+:root[data-theme="dark"] .dc-root .lnode.ln-source,
+:root[data-theme="dark"] .dc-root .lnode.ln-connector{background:var(--pd-accent-bg)}
+:root[data-theme="dark"] .dc-root .lnode.ln-kafka_topic{background:var(--pd-info-bg)}
+:root[data-theme="dark"] .dc-root .lnode.ln-processor{background:var(--pd-warn-bg)}
+:root[data-theme="dark"] .dc-root .lnode.ln-sink{background:var(--pd-neutral-bg)}
+:root[data-theme="dark"] .dc-root .ln-n{color:var(--pd-text-2)}
+:root[data-theme="dark"] .dc-root .larrow{color:var(--pd-faint)}
+:root[data-theme="dark"] .dc-root .lexp{background:var(--pd-surface-3);color:var(--pd-text-2)}
+:root[data-theme="dark"] .dc-root .lexp:hover{background:var(--pd-line-strong)}
+
+/* Metrics charts */
+:root[data-theme="dark"] .dc-root .mt-tip{background:var(--pd-surface-3);color:var(--pd-text);border:1px solid var(--pd-line-strong)}
+:root[data-theme="dark"] .dc-root .mt-tile.big{border-color:var(--pd-info-line)}
+:root[data-theme="dark"] .dc-root .mt-area{opacity:.14}
+
+/* Monitoring rail: active connector */
+:root[data-theme="dark"] .dc-root .ri:hover{background:var(--pd-surface-2)}
+:root[data-theme="dark"] .dc-root .ri.on{background:var(--pd-surface-3);box-shadow:inset 3px 0 0 var(--pd-nav-stroke)}
+
+/* Tabs */
+:root[data-theme="dark"] .dc-root .dc-tabs button{color:var(--pd-muted)}
+:root[data-theme="dark"] .dc-root .dc-tabs button:hover{color:var(--pd-text)}
+:root[data-theme="dark"] .dc-root .dc-tabs button[aria-selected="true"]{color:var(--pd-text)}
+:root[data-theme="dark"] .dc-root .dc-tabs button[aria-selected="true"]::after{background:var(--pd-nav-stroke)}
+
+/* Filter chip + Quality filter popover */
+:root[data-theme="dark"] .dc-root .chip-x{background:var(--pd-accent-bg);border-color:var(--pd-accent);color:var(--pd-accent)}
+:root[data-theme="dark"] .dc-root .chip-x:hover{background:var(--pd-surface-3)}
+:root[data-theme="dark"] .dc-root .qfilter-pop{background:var(--pd-surface);border-color:var(--pd-line);box-shadow:var(--pd-shadow)}
+:root[data-theme="dark"] .dc-root .qfilter-h{color:var(--pd-muted)}
+:root[data-theme="dark"] .dc-root .qfilter-opt:hover{background:var(--pd-surface-2)}
+
+/* Alerts */
+:root[data-theme="dark"] .dc-root .sn-count{color:var(--pd-on-amber)}
+:root[data-theme="dark"] .dc-root .al-card,
+:root[data-theme="dark"] .dc-root .al-channel{box-shadow:none}
+:root[data-theme="dark"] .dc-root .al-card:hover{border-color:var(--pd-accent)}
+:root[data-theme="dark"] .dc-root .al-switch{background:var(--pd-line-strong)}
+:root[data-theme="dark"] .dc-root .al-switch.on{background:var(--pd-accent)}
+:root[data-theme="dark"] .dc-root .al-switch span{background:var(--pd-text)}
+:root[data-theme="dark"] .dc-root .al-kinds button{background:var(--pd-surface-2);border-color:var(--pd-line);color:var(--pd-text)}
+:root[data-theme="dark"] .dc-root .al-kinds button.on{background:var(--pd-accent-bg);color:var(--pd-accent);border-color:var(--pd-accent)}
+:root[data-theme="dark"] .dc-root .al-enabled{background:var(--pd-surface-2);border-color:var(--pd-line)}
+
+/* ── 3. SearchSelect (search-select.css hardcodes the light palette; its menu is portalled to <body>) ── */
+:root[data-theme="dark"] .ss-trigger{background:var(--pd-surface-2);border-color:var(--pd-line);color:var(--pd-text)}
+:root[data-theme="dark"] .ss-trigger:hover:not(:disabled){border-color:var(--pd-line-strong)}
+:root[data-theme="dark"] .ss-trigger[aria-expanded="true"],
+:root[data-theme="dark"] .ss-trigger:focus-visible{border-color:var(--pd-accent);box-shadow:0 0 0 3px var(--pd-accent-bg)}
+:root[data-theme="dark"] .ss-trigger:disabled{background:var(--pd-surface);color:var(--pd-faint)}
+:root[data-theme="dark"] .ss-value.muted{color:var(--pd-faint)}
+:root[data-theme="dark"] .ss-chev{stroke:var(--pd-muted)}
+:root[data-theme="dark"] .ss-chip{background:var(--pd-neutral-bg);border-color:var(--pd-line);color:var(--pd-neutral)}
+:root[data-theme="dark"] .ss-menu{background:var(--pd-surface);border-color:var(--pd-line);box-shadow:var(--pd-shadow);color:var(--pd-text)}
+:root[data-theme="dark"] .ss-search{border-bottom-color:var(--pd-line)}
+:root[data-theme="dark"] .ss-ico{stroke:var(--pd-muted)}
+:root[data-theme="dark"] .ss-search input{background:var(--pd-surface-2);border-color:var(--pd-line);color:var(--pd-text);box-shadow:0 0 0 3px var(--pd-accent-bg)}
+:root[data-theme="dark"] .ss-search input::placeholder{color:var(--pd-faint)}
+:root[data-theme="dark"] .ss-steppers button{background:var(--pd-surface-2);border-color:var(--pd-line)}
+:root[data-theme="dark"] .ss-steppers button:hover:not(:disabled){background:var(--pd-surface-3)}
+:root[data-theme="dark"] .ss-group{color:var(--pd-muted)}
+:root[data-theme="dark"] .ss-option{color:var(--pd-text)}
+:root[data-theme="dark"] .ss-option.active{background:var(--pd-surface-2)}
+:root[data-theme="dark"] .ss-option.sel{background:var(--pd-accent-bg);color:var(--pd-accent)}
+:root[data-theme="dark"] .ss-option.sel.active{background:var(--pd-surface-3)}
+:root[data-theme="dark"] .ss-option.disabled{color:var(--pd-faint)}
+:root[data-theme="dark"] .ss-option-desc,
+:root[data-theme="dark"] .ss-empty,
+:root[data-theme="dark"] .ss-hint{color:var(--pd-muted)}
+:root[data-theme="dark"] .ss-check{stroke:var(--pd-accent)}
+:root[data-theme="dark"] .ss-foot{background:var(--pd-surface-2);border-top-color:var(--pd-line);color:var(--pd-muted)}

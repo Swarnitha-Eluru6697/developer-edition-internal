@@ -57,15 +57,15 @@ export function DqRuleLibraryView({ canEdit, creating, onCloseCreate, scope, onS
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderBottom: "0.5px solid #E3E8E2", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderBottom: "0.5px solid var(--ws-line, #E3E8E2)", flexWrap: "wrap" }}>
         {(["system", "org"] as const).map((s) => (
           <button key={s} onClick={() => onScope(s)}
-            style={{ border: "0.5px solid", borderColor: scope === s ? "#0A7D5A" : "#cfd8d1", background: scope === s ? "#E3F6EA" : "#fff",
-              color: scope === s ? "#086347" : "#2E3D36", borderRadius: 999, padding: "4px 12px", fontSize: 12, cursor: "pointer" }}>
+            style={{ border: "0.5px solid", borderColor: scope === s ? "#0A7D5A" : "var(--ws-line-strong, #cfd8d1)", background: scope === s ? "var(--ws-accent-bg, #E3F6EA)" : "var(--ws-surface, #fff)",
+              color: scope === s ? "var(--ws-accent, #086347)" : "var(--ws-text-2, #2E3D36)", borderRadius: 999, padding: "4px 12px", fontSize: 12, cursor: "pointer" }}>
             {s === "system" ? `System rules (${nSystem})` : `Your rules (${rules.length - nSystem})`}
           </button>
         ))}
-        <span style={{ fontSize: 11.5, color: "#73827a", marginLeft: 4 }}>
+        <span style={{ fontSize: 11.5, color: "var(--ws-subtle, #73827a)", marginLeft: 4 }}>
           {isSystem ? "Ship with the platform: usable in any ruleset, not editable." : "Defined by you: edit or delete them here."}
         </span>
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
@@ -76,7 +76,7 @@ export function DqRuleLibraryView({ canEdit, creating, onCloseCreate, scope, onS
         </div>
       </div>
 
-      {isLoading && <div style={{ padding: 24, textAlign: "center", color: "#73827a", fontSize: 13 }}>Loading the rule library…</div>}
+      {isLoading && <div style={{ padding: 24, textAlign: "center", color: "var(--ws-subtle, #73827a)", fontSize: 13 }}>Loading the rule library…</div>}
       {error && <ErrorBox error={error} what="Could not load the rule library." />}
       {!isLoading && !error && !shown.length && (
         <Empty icon="ti-list-details"
@@ -91,15 +91,15 @@ export function DqRuleLibraryView({ canEdit, creating, onCloseCreate, scope, onS
             return (
               <Fragment key={r.id}>
                 <div onClick={() => setOpen(open === r.id ? null : r.id)}
-                  style={{ ...tableRow(COLS), cursor: "pointer", background: open === r.id ? "#fffaf5" : "transparent" }}>
+                  style={{ ...tableRow(COLS), cursor: "pointer", background: open === r.id ? "var(--ws-warn-bg, #fffaf5)" : "transparent" }}>
                   <div style={{ ...cellEllipsis, fontFamily: "monospace", fontSize: 12 }}>
-                    <i className={`ti ti-chevron-${open === r.id ? "down" : "right"}`} style={{ fontSize: 12, color: "#73827a", marginRight: 4 }} />
-                    <b>{r.name}</b>{r.display_name && r.display_name !== r.name && <span style={{ color: "#73827a" }}> · {r.display_name}</span>}
+                    <i className={`ti ti-chevron-${open === r.id ? "down" : "right"}`} style={{ fontSize: 12, color: "var(--ws-subtle, #73827a)", marginRight: 4 }} />
+                    <b>{r.name}</b>{r.display_name && r.display_name !== r.name && <span style={{ color: "var(--ws-subtle, #73827a)" }}> · {r.display_name}</span>}
                   </div>
                   <div style={{ ...cellEllipsis, fontFamily: "monospace", fontSize: 12 }}>{r.rule_type}</div>
                   <div><span style={chip(ds.fg, ds.bg)}>{r.dimension}</span></div>
                   <div><span style={chip(ss.fg, ss.bg)}>{r.severity}</span></div>
-                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{r.tags?.map((t) => <span key={t} style={chip("#4b5a53", "#eef2ed")}>{t}</span>)}</div>
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{r.tags?.map((t) => <span key={t} style={chip("var(--ws-text-2, #4b5a53)", "var(--ws-fill, #eef2ed)")}>{t}</span>)}</div>
                   <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
                     {editable && <>
                       <IconAction size="sm" icon={ACTION_ICON.edit} label="Edit rule" onClick={(e) => { e.stopPropagation(); setEditing(r); }} />
@@ -108,13 +108,13 @@ export function DqRuleLibraryView({ canEdit, creating, onCloseCreate, scope, onS
                   </div>
                 </div>
                 {open === r.id && (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, padding: "10px 16px 14px 34px", borderBottom: "0.5px solid #f0f0ed", background: "#fffdfa" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, padding: "10px 16px 14px 34px", borderBottom: "0.5px solid var(--ws-line, #f0f0ed)", background: "var(--ws-surface, #fffdfa)" }}>
                     <div>
-                      <div style={{ fontSize: 11, color: "#73827a", marginBottom: 4 }}>Description</div>
-                      <div style={{ fontSize: 12.5, color: "#2E3D36", lineHeight: 1.5 }}>{r.description || <i style={{ color: "#73827a" }}>none</i>}</div>
+                      <div style={{ fontSize: 11, color: "var(--ws-subtle, #73827a)", marginBottom: 4 }}>Description</div>
+                      <div style={{ fontSize: 12.5, color: "var(--ws-text-2, #2E3D36)", lineHeight: 1.5 }}>{r.description || <i style={{ color: "var(--ws-subtle, #73827a)" }}>none</i>}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 11, color: "#73827a", marginBottom: 4 }}>Parameters</div>
+                      <div style={{ fontSize: 11, color: "var(--ws-subtle, #73827a)", marginBottom: 4 }}>Parameters</div>
                       <pre style={codeBlock}>{JSON.stringify(r.parameters ?? {}, null, 2)}</pre>
                     </div>
                   </div>
@@ -173,7 +173,7 @@ function RuleDrawer({ rule, onClose, onCreated }: { rule?: DqRule; onClose: () =
           {busy ? "Saving…" : rule ? "Save changes" : "Create rule"}</button>
         <button onClick={onClose} style={drawerBtn(false)}>Cancel</button>
       </>}>
-      <div style={{ fontSize: 12, color: "#5b6d62", lineHeight: 1.55, marginBottom: 14 }}>
+      <div style={{ fontSize: 12, color: "var(--ws-muted, #5b6d62)", lineHeight: 1.55, marginBottom: 14 }}>
         {rule ? "Changes apply to every ruleset that includes this rule. Name, type and dimension can't change; create a new rule instead."
           : "A reusable definition. Any ruleset can include it and override its parameters per column."}
       </div>
@@ -202,7 +202,7 @@ function RuleDrawer({ rule, onClose, onCreated }: { rule?: DqRule; onClose: () =
       </Field>
       <Field label="Parameters (JSON)" hint={params ? "Defaults; a ruleset can override them per column." : "Not a valid JSON object."}>
         <textarea rows={4} value={f.parameters} placeholder='{"min": 0}'
-          style={{ ...inp, height: "auto", padding: 8, fontFamily: "monospace", borderColor: params ? "#cfd8d1" : "#b23b3b" }}
+          style={{ ...inp, height: "auto", padding: 8, fontFamily: "monospace", borderColor: params ? "var(--ws-line-strong, #cfd8d1)" : "#b23b3b" }}
           onChange={(e) => set({ parameters: e.target.value })} />
       </Field>
       <Field label="Description">

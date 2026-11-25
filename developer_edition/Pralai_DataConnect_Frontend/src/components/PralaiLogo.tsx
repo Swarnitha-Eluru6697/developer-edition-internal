@@ -20,7 +20,7 @@ const AMBER = "#F2B134";
 function PMark({ stem = FOREST }: { stem?: string }) {
   return (
     <>
-      <path d={STEM} fill={stem} />
+      <path d={STEM} fill={stem} className={stem === FOREST ? "pralai-ink" : undefined} />
       <path d={BOWL} fill={EMERALD} />
       <path d={BAR} fill={AMBER} />
     </>
@@ -45,14 +45,14 @@ export function PralaiLockup({ height = 34, label, reversed = false }: { height?
       <svg viewBox="0 0 150 64" width={width} height={height} style={{ display: "block", flex: "none", width, height, maxWidth: "none" }}>
         <title>Pralai</title>
         <g transform="translate(-6.96 5.12) scale(0.56)"><PMark stem={ink} /></g>
-        <g transform="translate(26 43.88)"><path d={RALAI} fill={ink} /></g>
+        <g transform="translate(26 43.88)"><path d={RALAI} fill={ink} className={reversed ? undefined : "pralai-ink"} /></g>
         <circle cx="136.24" cy="13.42" r="3.53" fill={AMBER} />
       </svg>
       {label && (
         <span
           style={{
             display: "block", font: "700 9px/1 Inter, system-ui, sans-serif", letterSpacing: ".16em", textTransform: "uppercase",
-            color: reversed ? "#CFE8DD" : "#0A7D5A", marginTop: -Math.round(height * 0.12), marginLeft: Math.round(width * 0.37), whiteSpace: "nowrap",
+            color: reversed ? "#CFE8DD" : "var(--pralai-desc, #0A7D5A)", marginTop: -Math.round(height * 0.12), marginLeft: Math.round(width * 0.37), whiteSpace: "nowrap",
           }}
         >
           {label}

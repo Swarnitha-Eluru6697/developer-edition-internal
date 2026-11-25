@@ -211,14 +211,14 @@ export function DatabaseConnectionModal() {
       width={460}
       footer={footer}
     >
-      <div style={{ fontSize: 11.5, color: "#888", marginBottom: 14 }}>
+      <div style={{ fontSize: 11.5, color: "var(--ws-subtle, #888)", marginBottom: 14 }}>
         Named connections are available across all workspaces in your org
       </div>
 
       {step === "testing" && (
         <div style={{ textAlign: "center", padding: "40px 0" }}>
-          <div style={{ fontSize: 14, color: "#666", marginBottom: 10 }}>Testing connection…</div>
-          <div style={{ width: 40, height: 40, border: "3px solid #E3F6EA", borderTop: "3px solid #0A7D5A", borderRadius: "50%", margin: "0 auto", animation: "spin 0.8s linear infinite" }} />
+          <div style={{ fontSize: 14, color: "var(--ws-muted, #666)", marginBottom: 10 }}>Testing connection…</div>
+          <div style={{ width: 40, height: 40, border: "3px solid var(--ws-line-strong, #E3F6EA)", borderTop: "3px solid #0A7D5A", borderRadius: "50%", margin: "0 auto", animation: "spin 0.8s linear infinite" }} />
         </div>
       )}
 
@@ -226,12 +226,12 @@ export function DatabaseConnectionModal() {
         <div style={{ textAlign: "center", padding: "32px 0" }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>{testOk ? "✅" : "❌"}</div>
           <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{testOk ? "Connection successful!" : "Connection failed"}</div>
-          <div style={{ fontSize: 12, color: "#666" }}>{testMsg}</div>
+          <div style={{ fontSize: 12, color: "var(--ws-muted, #666)" }}>{testMsg}</div>
         </div>
       )}
 
       {step === "form" && isEdit && !existing && (
-        <div style={{ fontSize: 12.5, color: "#666", padding: "24px 0", textAlign: "center" }}>
+        <div style={{ fontSize: 12.5, color: "var(--ws-muted, #666)", padding: "24px 0", textAlign: "center" }}>
           {listLoading ? "Loading connection…" : "This connection no longer exists."}
         </div>
       )}
@@ -247,14 +247,14 @@ export function DatabaseConnectionModal() {
               <div
                 key={ct.id}
                 onClick={isEdit ? undefined : () => handleTypeChange(ct.id)}
-                style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 11px", border: `1.5px solid ${type === ct.id ? "#0A7D5A" : "#ddd"}`, background: type === ct.id ? "#E3F6EA" : "#fff", borderRadius: 8, cursor: isEdit ? "default" : "pointer" }}
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 11px", border: `1.5px solid ${type === ct.id ? "#0A7D5A" : "var(--ws-line, #ddd)"}`, background: type === ct.id ? "var(--ws-accent-bg, #E3F6EA)" : "var(--ws-surface, #fff)", borderRadius: 8, cursor: isEdit ? "default" : "pointer" }}
               >
-                <i className={`ti ${ct.icon}`} style={{ fontSize: 18, color: type === ct.id ? "#0A7D5A" : "#888", width: 20 }} />
+                <i className={`ti ${ct.icon}`} style={{ fontSize: 18, color: type === ct.id ? "var(--ws-accent, #0A7D5A)" : "var(--ws-subtle, #888)", width: 20 }} />
                 <div>
                   <div style={{ fontSize: 12.5, fontWeight: 600 }}>{ct.label}</div>
-                  <div style={{ fontSize: 11, color: "#888" }}>{ct.desc}</div>
+                  <div style={{ fontSize: 11, color: "var(--ws-subtle, #888)" }}>{ct.desc}</div>
                 </div>
-                {type === ct.id && <i className={`ti ${isEdit ? "ti-lock" : "ti-check"}`} style={{ marginLeft: "auto", color: "#0A7D5A", fontSize: 15 }} />}
+                {type === ct.id && <i className={`ti ${isEdit ? "ti-lock" : "ti-check"}`} style={{ marginLeft: "auto", color: "var(--ws-accent, #0A7D5A)", fontSize: 15 }} />}
               </div>
             ))}
           </div>
@@ -323,7 +323,7 @@ export function DatabaseConnectionModal() {
           </Field>
         </div>
         {isEdit && (
-          <div style={{ fontSize: 11, color: "#73827a", marginTop: -6, marginBottom: 12, lineHeight: 1.45 }}>
+          <div style={{ fontSize: 11, color: "var(--ws-subtle, #73827a)", marginTop: -6, marginBottom: 12, lineHeight: 1.45 }}>
             Saved credentials aren't shown. Leave a field blank to keep its saved value.
           </div>
         )}
@@ -333,7 +333,7 @@ export function DatabaseConnectionModal() {
           <label htmlFor="tls" style={{ fontSize: 12, cursor: "pointer" }}>Use TLS / SSL</label>
         </div>
 
-        <div style={{ fontSize: 11, color: "#888", padding: "9px 11px", background: "#F8FAF9", borderRadius: 7 }}>
+        <div style={{ fontSize: 11, color: "var(--ws-subtle, #888)", padding: "9px 11px", background: "var(--ws-bg, #F8FAF9)", borderRadius: 7 }}>
           <i className="ti ti-shield-lock" style={{ fontSize: 13 }} /> Credentials are stored in your org's secrets vault (AWS Secrets Manager / Azure Key Vault / GCP Secret Manager) — never in the database.
         </div>
       </>}

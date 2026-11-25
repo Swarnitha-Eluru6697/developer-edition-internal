@@ -1,0 +1,202 @@
+/*
+ * ML Studio — dark theme (Pralai charcoal).
+ *
+ * Active only under <html data-theme="dark"> (set by DeveloperUserMenu.tsx from the shell's theme
+ * toggle). Light mode is untouched: every rule here is scoped to :root[data-theme="dark"].
+ * Colours come only from the shared --pd-* palette (components/pralai-dark.css).
+ *
+ * 1. Map the app's design tokens (global.css :root) onto the palette.
+ * 2. Targeted overrides for the places global.css / search-select.css hardcode colours, or use the
+ *    ink tokens as a dark FILL (log panels, toasts, tooltips) rather than as text.
+ */
+
+/* ---------- 1. Tokens ---------- */
+:root[data-theme="dark"]{
+  --brand:var(--pd-accent);
+  --brand-hi:var(--pd-accent);
+  --brand-600:var(--pd-accent);
+  --brand-strong:var(--pd-accent);
+  --hover-accent:var(--pd-accent);
+  --brand-50:var(--pd-accent-bg);
+  --brand-100:var(--pd-accent-bg);
+  --brand-gradient:linear-gradient(135deg,var(--pd-accent),var(--pd-accent));
+
+  --ink:var(--pd-text);
+  --ink-strong:var(--pd-text);
+  --ink-muted:var(--pd-text-2);
+
+  --log-pass:var(--pd-ok);
+  --log-fail:var(--pd-bad);
+
+  --amber:var(--pd-amber);
+  --amber-100:var(--pd-warn-bg);
+  --amber-700:var(--pd-warn);
+  --red:var(--pd-bad);
+  --red-100:var(--pd-bad-bg);
+  --red-700:var(--pd-bad);
+  --purple:var(--pd-purple);
+  --purple-100:var(--pd-purple-bg);
+  --green:var(--pd-ok);
+  --green-100:var(--pd-ok-bg);
+  --green-700:var(--pd-ok);
+
+  --bg:var(--pd-bg);
+  --surface:var(--pd-surface);
+  --surface-sunken:var(--pd-surface-2);
+  --border:var(--pd-line);
+  --border-strong:var(--pd-line-strong);
+
+  --text:var(--pd-text);
+  --text-dark:var(--pd-text);
+  --text-muted:var(--pd-muted);
+  --text-faint:var(--pd-faint);
+  --text-on-navy:var(--pd-muted);
+  --text-on-navy-strong:var(--pd-text);
+
+  --shadow-sm:none;
+  --shadow-md:none;
+  --shadow-lg:var(--pd-shadow);
+
+  /* Inline colours in .tsx that fall back to their light value. */
+  --pralai-logo-ink:#FFFFFF;
+  --pralai-logo-label:var(--pd-accent);
+}
+
+/* ---------- 2. Overrides ---------- */
+:root[data-theme="dark"] ::selection{background:var(--pd-surface-3);}
+
+/* Shell */
+:root[data-theme="dark"] .sidebar{background:var(--pd-surface);border-right-color:var(--pd-line);}
+:root[data-theme="dark"] .topbar{background:var(--pd-surface);border-bottom-color:var(--pd-line);}
+:root[data-theme="dark"] .nav-section-label{color:var(--pd-muted);}
+:root[data-theme="dark"] .nav-item:hover{background:var(--pd-surface-2);color:var(--pd-text);}
+:root[data-theme="dark"] .nav-item.active,
+:root[data-theme="dark"] .nav-item.active:hover{background:var(--pd-surface-3);color:#FFFFFF;box-shadow:inset 3px 0 0 var(--pd-nav-stroke);}
+:root[data-theme="dark"] .nav-item.active .ic{color:#FFFFFF;}
+:root[data-theme="dark"] .nav-item.active .nav-badge{background:var(--pd-amber);color:var(--pd-on-amber);}
+:root[data-theme="dark"] .sidebar-version{color:var(--pd-faint);}
+:root[data-theme="dark"] .search-box{background:var(--pd-surface-2);border-color:var(--pd-line);color:var(--pd-muted);}
+:root[data-theme="dark"] .search-note button:not(.icon-action):hover{background:var(--pd-accent-bg);}
+:root[data-theme="dark"] .topbar-avatar{background:var(--pd-surface-2);color:var(--pd-text-2);}
+
+/* Buttons: primary amber with dark text; fills that carried white text on --brand now carry dark text. */
+:root[data-theme="dark"] .btn-primary{background:var(--pd-amber);color:var(--pd-on-amber);border-color:var(--pd-amber);}
+:root[data-theme="dark"] .btn-primary:hover:not(:disabled){background:var(--pd-amber-hover);}
+:root[data-theme="dark"] .btn-teal{color:var(--pd-on-amber);}
+:root[data-theme="dark"] .btn-secondary{background:var(--pd-surface);color:var(--pd-text);border-color:var(--pd-line);}
+:root[data-theme="dark"] .btn-secondary:hover:not(:disabled){background:var(--pd-surface-2);}
+:root[data-theme="dark"] .btn-danger-ghost{border-color:var(--pd-bad-bg);}
+:root[data-theme="dark"] .icon-action.danger:hover:not(:disabled){border-color:var(--pd-bad);}
+:root[data-theme="dark"] .alias-champion,
+:root[data-theme="dark"] .wizard-step.done .wizard-step-num,
+:root[data-theme="dark"] .wizard-step.current .wizard-step-num,
+:root[data-theme="dark"] .notif-badge,
+:root[data-theme="dark"] .user-sim-btn,
+:root[data-theme="dark"] .avatar,
+:root[data-theme="dark"] .comment-avatar,
+:root[data-theme="dark"] .brand-mark{color:var(--pd-on-amber);}
+:root[data-theme="dark"] .wizard-step.current .wizard-step-num{background:var(--pd-amber);border-color:var(--pd-amber);}
+:root[data-theme="dark"] .alias-challenger,
+:root[data-theme="dark"] .icon-bg-navy{background:var(--pd-surface-3);color:var(--pd-text);}
+:root[data-theme="dark"] .activity-dot.navy{background:var(--pd-muted);}
+
+/* Tooltips */
+:root[data-theme="dark"] .has-tip[data-tip]::after{background:var(--pd-surface-3);color:var(--pd-text);border:1px solid var(--pd-line-strong);}
+
+/* Badges, chips, status */
+:root[data-theme="dark"] .badge-dl{background:var(--pd-info-bg);color:var(--pd-info);}
+:root[data-theme="dark"] .badge-dl .dot{background:var(--pd-info);}
+:root[data-theme="dark"] .badge-ml{background:var(--pd-neutral-bg);color:var(--pd-neutral);}
+:root[data-theme="dark"] .chip.active{border-color:var(--pd-accent);}
+:root[data-theme="dark"] .status-queued{background:var(--pd-neutral-bg);color:var(--pd-neutral);border-color:var(--pd-line);}
+:root[data-theme="dark"] .status-success{background:var(--pd-ok-bg);color:var(--pd-ok);}
+
+/* Tables */
+:root[data-theme="dark"] thead th{background:var(--pd-surface-2);color:var(--pd-muted);border-bottom-color:var(--pd-line);}
+:root[data-theme="dark"] tbody td{border-color:var(--pd-line);}
+:root[data-theme="dark"] .compact-table th{color:var(--pd-muted);}
+
+/* Callouts and banners */
+:root[data-theme="dark"] .callout-amber{background:var(--pd-warn-bg);color:var(--pd-warn);border-color:var(--pd-line-strong);}
+:root[data-theme="dark"] .callout-teal{background:var(--pd-ok-bg);color:var(--pd-ok);border-color:var(--pd-accent-bg);}
+:root[data-theme="dark"] .callout-navy{background:var(--pd-info-bg);color:var(--pd-text);border-color:var(--pd-info-line);}
+:root[data-theme="dark"] .callout-red{background:var(--pd-bad-bg);color:var(--pd-bad);border-color:var(--pd-line-strong);}
+:root[data-theme="dark"] .error-details pre{background:var(--pd-code-bg);color:var(--pd-text-2);}
+
+/* Native selects (literal colours in global.css) */
+:root[data-theme="dark"] select:not([multiple]),
+:root[data-theme="dark"] .view-body select:not([multiple]){
+  color:var(--pd-text);background-color:var(--pd-surface-2);border-color:var(--pd-line);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A3ABB3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+:root[data-theme="dark"] select:not([multiple]):hover,
+:root[data-theme="dark"] .view-body select:not([multiple]):hover{border-color:var(--pd-line-strong);}
+:root[data-theme="dark"] select:not([multiple]):focus,
+:root[data-theme="dark"] .view-body select:not([multiple]):focus{border-color:var(--pd-accent);box-shadow:0 0 0 3px var(--pd-accent-bg);}
+:root[data-theme="dark"] select:disabled,
+:root[data-theme="dark"] .view-body select:disabled{background-color:var(--pd-surface);color:var(--pd-faint);}
+:root[data-theme="dark"] option{background:var(--pd-surface);color:var(--pd-text);}
+
+/* Inputs */
+:root[data-theme="dark"] .input,
+:root[data-theme="dark"] .textarea,
+:root[data-theme="dark"] .view-body input:not([type=checkbox]):not([type=radio]):not([type=range]),
+:root[data-theme="dark"] .view-body textarea{background-color:var(--pd-surface-2);border-color:var(--pd-line);color:var(--pd-text);}
+:root[data-theme="dark"] .view-body .search-box input:not(.input):not([type=checkbox]):not([type=radio]){background:none;}
+:root[data-theme="dark"] .input:disabled,
+:root[data-theme="dark"] .textarea:disabled{background:var(--pd-surface);color:var(--pd-faint);}
+
+/* Log / code panels (used --navy-dark as a dark fill) */
+:root[data-theme="dark"] .step-log{background:var(--pd-code-bg);border:1px solid var(--pd-line);color:var(--pd-text-2);}
+:root[data-theme="dark"] .step-log .ln .t{color:var(--pd-faint);}
+:root[data-theme="dark"] .step-log .ln.err .msg{color:var(--pd-bad);}
+
+/* Toasts, overlays, menus */
+:root[data-theme="dark"] .toast{background:var(--pd-surface-3);color:var(--pd-text);border:1px solid var(--pd-line-strong);}
+:root[data-theme="dark"] .modal-overlay,
+:root[data-theme="dark"] .drawer-overlay{background:rgb(0 0 0 / .6);}
+:root[data-theme="dark"] .modal,
+:root[data-theme="dark"] .drawer,
+:root[data-theme="dark"] .dd-panel,
+:root[data-theme="dark"] .notif-menu,
+:root[data-theme="dark"] .user-sim-menu{border:1px solid var(--pd-line);box-shadow:var(--pd-shadow);}
+:root[data-theme="dark"] .user-sim-item:hover,
+:root[data-theme="dark"] .notif-item:hover{background:var(--pd-surface-2);}
+:root[data-theme="dark"] .notif-item{border-bottom-color:var(--pd-line);}
+:root[data-theme="dark"] .notif-item.unread{box-shadow:inset 3px 0 0 var(--pd-accent);}
+
+/* Cards */
+:root[data-theme="dark"] button.alert-card:hover{border-color:var(--pd-line-strong);box-shadow:none;}
+:root[data-theme="dark"] .stat-card .s-value{color:#FFFFFF;}
+:root[data-theme="dark"] .switch .slider{background:var(--pd-line-strong);}
+:root[data-theme="dark"] .switch input:checked + .slider{background:var(--pd-accent);}
+:root[data-theme="dark"] .util-fill.crit{background:var(--pd-bad);}
+
+/* ---------- SearchSelect (search-select.css uses literal colours) ---------- */
+:root[data-theme="dark"] .ss-trigger{background:var(--pd-surface-2);border-color:var(--pd-line);color:var(--pd-text);}
+:root[data-theme="dark"] .ss-trigger:hover:not(:disabled){border-color:var(--pd-line-strong);}
+:root[data-theme="dark"] .ss-trigger[aria-expanded="true"],
+:root[data-theme="dark"] .ss-trigger:focus-visible{border-color:var(--pd-accent);box-shadow:0 0 0 3px var(--pd-accent-bg);}
+:root[data-theme="dark"] .ss-trigger:disabled{background:var(--pd-surface);color:var(--pd-faint);}
+:root[data-theme="dark"] .ss-value.muted,
+:root[data-theme="dark"] .ss-group,
+:root[data-theme="dark"] .ss-empty,
+:root[data-theme="dark"] .ss-option-desc,
+:root[data-theme="dark"] .ss-hint,
+:root[data-theme="dark"] .ss-option.disabled{color:var(--pd-muted);}
+:root[data-theme="dark"] .ss-chev,
+:root[data-theme="dark"] .ss-ico{stroke:var(--pd-muted);}
+:root[data-theme="dark"] .ss-chip{background:var(--pd-surface-2);border-color:var(--pd-line);color:var(--pd-muted);}
+:root[data-theme="dark"] .ss-menu{background:var(--pd-surface);border-color:var(--pd-line);box-shadow:var(--pd-shadow);color:var(--pd-text);}
+:root[data-theme="dark"] .ss-search{border-bottom-color:var(--pd-line);}
+:root[data-theme="dark"] .ss-search input{background:var(--pd-surface-2);border-color:var(--pd-line);color:var(--pd-text);box-shadow:0 0 0 3px var(--pd-accent-bg);}
+:root[data-theme="dark"] .ss-search input::placeholder{color:var(--pd-faint);}
+:root[data-theme="dark"] .ss-steppers button{background:var(--pd-surface-2);border-color:var(--pd-line);}
+:root[data-theme="dark"] .ss-steppers button:hover:not(:disabled){background:var(--pd-surface-3);}
+:root[data-theme="dark"] .ss-option{color:var(--pd-text);}
+:root[data-theme="dark"] .ss-option.active{background:var(--pd-surface-2);}
+:root[data-theme="dark"] .ss-option.sel{background:var(--pd-accent-bg);color:var(--pd-accent);}
+:root[data-theme="dark"] .ss-option.sel.active{background:var(--pd-surface-3);}
+:root[data-theme="dark"] .ss-option.disabled{background:none;}
+:root[data-theme="dark"] .ss-check{stroke:var(--pd-accent);}
+:root[data-theme="dark"] .ss-foot{background:var(--pd-surface-2);border-top-color:var(--pd-line);color:var(--pd-muted);}

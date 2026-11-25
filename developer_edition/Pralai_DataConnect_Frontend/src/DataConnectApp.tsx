@@ -45,7 +45,7 @@ import Alerts, { ALERTS_FROM_NAV_KEY } from "./pages/Alerts";
 import { useGetAlertCountsQuery } from "./store/apiSlice";
 import { ALERT_COUNTS_POLL_MS } from "./pollingPolicy";
 import FastTooltip from "./components/FastTooltip";
-import { DeveloperUserMenu } from "./components/DeveloperUserMenu";
+import { DeveloperUserMenu, inDeveloperShell } from "./components/DeveloperUserMenu";
 
 export type PageId = "dash" | "mon" | "alrt" | "conn" | "pip" | "sch" | "qual" | "lin" | "trn" | "cat";
 
@@ -135,6 +135,8 @@ interface ShellProps { embedded?: boolean; onError?: (error: Error) => void; acc
 function Shell({ embedded, onError, accountMenu, roleBadges }: ShellProps) {
   // Hosted by the portal: its rail draws the bell and the profile, so the top bar carries neither.
   const hosted = roleBadges !== undefined;
+  // Inside the Developer Edition dashboard: its left rail carries notifications and the account menu.
+  const devShell = inDeveloperShell();
   const { cfg, me, access, accessError, can, viewingAs, refetchMe } = useApp();
   const [page, setPage] = useState<PageId>(readPersistedPage);
   // A search result picked in the top bar: switch to its page and hand the page the item to land on.
@@ -212,11 +214,11 @@ function Shell({ embedded, onError, accountMenu, roleBadges }: ShellProps) {
             {/* An older portal passes its account menu for this place; a current one keeps the profile in its rail. Standalone, the
                 user's own avatar. */}
             {/* Notifications: open alerts (sent to a channel, not yet acknowledged); opens the Alerts page. */}
-            {!hosted && !embedded && seesAlerts && (
+            {!hosted && !embedded && !devShell && seesAlerts && (
               <button
                 type="button" onClick={() => fromSidebar("alrt")} title="Notifications"
                 aria-label={openAlerts > 0 ? `Notifications: ${openAlerts} open alerts` : "Notifications"}
-                style={{ position: "relative", border: 0, background: "transparent", padding: 8, color: "#73827a", cursor: "pointer", display: "grid", marginRight: 4 }}
+                style={{ position: "relative", border: 0, background: "transparent", padding: 8, color: "var(--dc-icon-muted, #73827a)", cursor: "pointer", display: "grid", marginRight: 4 }}
               >
                 <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
@@ -228,7 +230,7 @@ function Shell({ embedded, onError, accountMenu, roleBadges }: ShellProps) {
                 )}
               </button>
             )}
-            {accountMenu ?? (!hosted && !embedded && <DeveloperUserMenu name={userName} />)}
+            {accountMenu ?? (!hosted && !embedded && !devShell && <DeveloperUserMenu name={userName} />)}
           </div>
         </div>
         {access === "loading" && <div className="ab" data-testid="dc-access-loading" style={{ margin: "13px" }}>Checking your access…</div>}

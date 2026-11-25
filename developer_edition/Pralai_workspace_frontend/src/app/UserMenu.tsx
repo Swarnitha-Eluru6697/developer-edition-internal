@@ -8,7 +8,7 @@ import { useClickOutside } from "../shared/hooks/useClickOutside";
 
 const menuRow: React.CSSProperties = { display: "flex", alignItems: "center", gap: 7, padding: "7px 12px", cursor: "pointer", fontSize: 12.5 };
 const hover = {
-  onMouseEnter: (e: React.MouseEvent<HTMLDivElement>) => (e.currentTarget.style.background = "#F8FAF9"),
+  onMouseEnter: (e: React.MouseEvent<HTMLDivElement>) => (e.currentTarget.style.background = "var(--ws-hover, #F8FAF9)"),
   onMouseLeave: (e: React.MouseEvent<HTMLDivElement>) => (e.currentTarget.style.background = "transparent"),
 };
 
@@ -41,17 +41,17 @@ export function UserMenu({ onSignOut }: { onSignOut: () => void }) {
         <div
           style={{
             position: "absolute", top: 38, right: 0, minWidth: 250,
-            background: "#fff", border: "1px solid #E3E8E2",
+            background: "var(--ws-surface, #fff)", border: "1px solid var(--ws-line, #E3E8E2)",
             borderRadius: 10, boxShadow: "0 12px 40px rgba(11,59,46,.18)",
             zIndex: 210, overflow: "hidden", padding: "4px 0",
           }}
         >
           <div style={{ padding: "10px 12px 8px" }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "#14201B" }}>{me?.display_name || "Signed in"}</div>
-            <div style={{ fontSize: 11.5, color: "#5b6d62", overflow: "hidden", textOverflow: "ellipsis" }}>{me?.email}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ws-text, #14201B)" }}>{me?.display_name || "Signed in"}</div>
+            <div style={{ fontSize: 11.5, color: "var(--ws-muted, #5b6d62)", overflow: "hidden", textOverflow: "ellipsis" }}>{me?.email}</div>
           </div>
-          <div style={{ height: 0.5, background: "#e3e8e2", margin: "4px 0" }} />
-          <div onClick={() => { setOpen(false); onSignOut(); }} style={{ ...menuRow, color: "#b23b3b" }} {...hover}>
+          <div style={{ height: 0.5, background: "var(--ws-line-fill, #e3e8e2)", margin: "4px 0" }} />
+          <div onClick={() => { setOpen(false); onSignOut(); }} style={{ ...menuRow, color: "var(--ws-bad, #b23b3b)" }} {...hover}>
             <i className="ti ti-logout" style={{ fontSize: 13 }} />Sign out
           </div>
         </div>

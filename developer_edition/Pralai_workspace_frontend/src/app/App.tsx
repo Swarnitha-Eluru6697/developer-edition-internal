@@ -118,7 +118,7 @@ export function App() {
         <div style={{ display: "grid", gridTemplateColumns: gridCols, gridTemplateRows: "minmax(0, 1fr)", flex: 1, minHeight: 0, overflow: "clip", transition: chatResizing ? "none" : "grid-template-columns 0.15s" }}>
           {isEditorView && <WorkspaceFilePanel editor={editor} />}
 
-          <div style={{ display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, overflow: "clip", background: "#fff" }}>
+          <div style={{ display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, overflow: "clip", background: "var(--ws-surface, #fff)" }}>
             {mainContent}
           </div>
 

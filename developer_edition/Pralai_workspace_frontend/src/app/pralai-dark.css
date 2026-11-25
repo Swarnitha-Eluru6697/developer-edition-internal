@@ -1,0 +1,57 @@
+/*
+ * Pralai charcoal dark: the one dark palette shared by the Developer Edition shell and every product
+ * (Data Connect, Workspace, Agentic Workflow, ML Studio).
+ *
+ * Source of truth: devedition/shared/pralai-dark.css. Each product keeps an identical copy beside its
+ * DeveloperUserMenu.tsx; after changing it, copy it again with devedition/shared/sync.sh.
+ *
+ * <html data-theme="dark"> is set by DeveloperUserMenu.tsx (from the shell's theme toggle). This file only
+ * defines the palette (--pd-*) and a few safe global defaults; each product maps its own design tokens onto
+ * these values in its own stylesheet, under :root[data-theme="dark"].
+ */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* surfaces */
+  --pd-bg: #121518;          /* page background */
+  --pd-surface: #1A1E22;     /* cards, sidebars, top bar, menus, modals */
+  --pd-surface-2: #22272C;   /* inputs, table headers, hover rows, quiet fills */
+  --pd-surface-3: #2A2F34;   /* selected nav item, pressed */
+  --pd-rail: #15181B;        /* far-left icon rail */
+  --pd-line: #2C3238;        /* borders, dividers */
+  --pd-line-strong: #3A4148;
+
+  /* text */
+  --pd-text: #E8EAED;
+  --pd-text-2: #C9CED3;
+  --pd-muted: #A3ABB3;
+  --pd-faint: #7C858D;
+
+  /* brand */
+  --pd-accent: #3DDC9A;      /* emerald: links, active icons, positive text */
+  --pd-accent-bg: #1E3329;   /* emerald tint */
+  --pd-amber: #F2B134;       /* primary buttons (forest text on amber) */
+  --pd-amber-hover: #E9A529;
+  --pd-on-amber: #14201B;
+  --pd-nav-stroke: #F2B134;  /* left stroke on the active nav item */
+
+  /* status (text on tinted chip) */
+  --pd-ok: #6EE7A0;   --pd-ok-bg: #16301F;
+  --pd-warn: #FCD34D; --pd-warn-bg: #33270C;
+  --pd-bad: #FCA5A5;  --pd-bad-bg: #3A1C1C;
+  --pd-info: #8AB4F8; --pd-info-bg: #1B2A3F; --pd-info-line: #3B6FB6;
+  --pd-purple: #C4B5FD; --pd-purple-bg: #2A2340;
+  --pd-neutral: #C9CED3; --pd-neutral-bg: #2A2F34;
+
+  --pd-shadow: 0 10px 30px rgb(0 0 0 / .45);
+  --pd-code-bg: #0E1113;
+}
+
+/* Safe global defaults: the page, native form controls and scrollbars. */
+:root[data-theme="dark"] body { background: var(--pd-bg); color: var(--pd-text); }
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea { color-scheme: dark; }
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder { color: var(--pd-faint); }
+:root[data-theme="dark"] * { scrollbar-color: #3A4148 transparent; }

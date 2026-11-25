@@ -85,28 +85,28 @@ export function CodegenAgentCard({ engine: e, onRefetchEngines }: { engine: Engi
   };
 
   return (
-    <div style={{ background: "#fff", border: "1px solid #e8eaee", borderRadius: 12, padding: "18px 20px", boxShadow: "0 1px 2px rgba(11,59,46,.04)", display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={{ background: "var(--ws-surface, #fff)", border: "1px solid var(--ws-line, #e8eaee)", borderRadius: 12, padding: "18px 20px", boxShadow: "0 1px 2px rgba(11,59,46,.04)", display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-        <div style={{ fontSize: 15, fontWeight: 600, color: "#0F1A15", flex: 1, minWidth: 0 }}>{e.name}</div>
+        <div style={{ fontSize: 15, fontWeight: 600, color: "var(--ws-text, #0F1A15)", flex: 1, minWidth: 0 }}>{e.name}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 500, color: st.text, whiteSpace: "nowrap" }}>
           <span style={{ width: 7, height: 7, borderRadius: "50%", background: st.dot }} />
           {st.label}
         </div>
       </div>
-      <div style={{ fontSize: 12.5, color: "#5b6d62", lineHeight: 1.5 }}>{e.description}</div>
+      <div style={{ fontSize: 12.5, color: "var(--ws-muted, #5b6d62)", lineHeight: 1.5 }}>{e.description}</div>
       {(e.detail || e.latency_ms != null) && (
-        <div style={{ fontSize: 12, color: "#4b5a53", display: "flex", flexDirection: "column", gap: 3 }}>
+        <div style={{ fontSize: 12, color: "var(--ws-text-2, #4b5a53)", display: "flex", flexDirection: "column", gap: 3 }}>
           {e.latency_ms != null && e.status === "connected" && <span>Responded in {e.latency_ms} ms</span>}
-          {e.detail && <span style={{ color: e.status === "unreachable" ? "#b23b3b" : "#4b5a53", wordBreak: "break-word" }}>{e.detail}</span>}
+          {e.detail && <span style={{ color: e.status === "unreachable" ? "var(--ws-bad, #b23b3b)" : "var(--ws-text-2, #4b5a53)", wordBreak: "break-word" }}>{e.detail}</span>}
         </div>
       )}
 
-      <div style={{ marginTop: 4, paddingTop: 10, borderTop: "1px solid #f1f3f5", display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ marginTop: 4, paddingTop: 10, borderTop: "1px solid var(--ws-line, #f1f3f5)", display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <label htmlFor="codegen-agent" style={{ fontSize: 12, fontWeight: 600, color: "#2E3D36" }}>Select Agent</label>
+          <label htmlFor="codegen-agent" style={{ fontSize: 12, fontWeight: 600, color: "var(--ws-text-2, #2E3D36)" }}>Select Agent</label>
           {config && (
-            <span style={{ fontSize: 11, fontWeight: 500, color: "#5b6d62" }}>
-              Active: <strong style={{ color: "#0F1A15" }}>{NAME[config.provider]}</strong>
+            <span style={{ fontSize: 11, fontWeight: 500, color: "var(--ws-muted, #5b6d62)" }}>
+              Active: <strong style={{ color: "var(--ws-text, #0F1A15)" }}>{NAME[config.provider]}</strong>
             </span>
           )}
         </div>
@@ -115,7 +115,7 @@ export function CodegenAgentCard({ engine: e, onRefetchEngines }: { engine: Engi
           options={options} noun="agent" />
 
         {config && !canEdit && (
-          <div style={{ fontSize: 11.5, color: "#5b6d62" }}>You need permission to edit Workspace settings to change the agent.</div>
+          <div style={{ fontSize: 11.5, color: "var(--ws-muted, #5b6d62)" }}>You need permission to edit Workspace settings to change the agent.</div>
         )}
 
         {canEdit && external && (
@@ -129,11 +129,11 @@ export function CodegenAgentCard({ engine: e, onRefetchEngines }: { engine: Engi
                   value={keyInput} onChange={(ev) => { setKeyInput(ev.target.value); if (outcome.kind !== "idle") setOutcome({ kind: "idle" }); }}
                   disabled={pending}
                   style={{ width: "100%", height: 34, padding: "0 32px 0 10px", fontSize: 12.5, fontFamily: showKey ? "monospace" : "inherit",
-                    color: "#0F1A15", background: "#fff", boxSizing: "border-box", outline: "none", borderRadius: 7,
-                    border: `1px solid ${outcome.kind === "error" ? "#fca5a5" : outcome.kind === "success" ? "#86efac" : "#cfd8d1"}` }}
+                    color: "var(--ws-text, #0F1A15)", background: "var(--ws-surface, #fff)", boxSizing: "border-box", outline: "none", borderRadius: 7,
+                    border: `1px solid ${outcome.kind === "error" ? "var(--ws-bad-line, #fca5a5)" : outcome.kind === "success" ? "var(--ws-ok-line, #86efac)" : "var(--ws-line-strong, #cfd8d1)"}` }}
                 />
                 <button type="button" onClick={() => setShowKey((v) => !v)} title={showKey ? "Mask key" : "Show key"}
-                  style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", padding: 4, cursor: "pointer", color: "#73827a", display: "flex" }}>
+                  style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", padding: 4, cursor: "pointer", color: "var(--ws-subtle, #73827a)", display: "flex" }}>
                   <i className={`ti ti-eye${showKey ? "-off" : ""}`} style={{ fontSize: 14 }} />
                 </button>
               </div>
@@ -143,7 +143,7 @@ export function CodegenAgentCard({ engine: e, onRefetchEngines }: { engine: Engi
                 {pending ? "Verifying…" : "OK"}
               </button>
             </div>
-            <div style={{ fontSize: 11.5, color: "#a8470a", background: "#fdebdd", border: "1px solid #fde68a", borderRadius: 6, padding: "6px 9px", lineHeight: 1.5 }}>
+            <div style={{ fontSize: 11.5, color: "var(--ws-warn, #a8470a)", background: "var(--ws-warn-bg, #fdebdd)", border: "1px solid var(--ws-warn-line, #fde68a)", borderRadius: 6, padding: "6px 9px", lineHeight: 1.5 }}>
               Your prompts and the table and column names the assistant looks up are sent to {NAME[selected!]}. The open file's content is
               still withheld unless your org's codegen policy allows it.{hasSelfHosted && " Switching back to the default removes the saved key."}
             </div>
@@ -151,8 +151,8 @@ export function CodegenAgentCard({ engine: e, onRefetchEngines }: { engine: Engi
         )}
 
         {canEdit && hasSelfHosted && selected === "codegen" && config?.provider !== "codegen" && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 7, padding: "6px 10px" }}>
-            <span style={{ fontSize: 12, color: "#64748b" }}>Switch back to the self-hosted agent</span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--ws-fill, #f8fafc)", border: "1px solid var(--ws-line, #e2e8f0)", borderRadius: 7, padding: "6px 10px" }}>
+            <span style={{ fontSize: 12, color: "var(--ws-muted, #64748b)" }}>Switch back to the self-hosted agent</span>
             <button onClick={submit} disabled={!canSubmit}
               style={{ height: 28, padding: "0 12px", fontSize: 12, fontWeight: 600, background: "#1d5fbf", color: "#fff", border: "none", borderRadius: 6, cursor: canSubmit ? "pointer" : "default" }}>
               {pending ? "Connecting…" : "OK"}
@@ -170,9 +170,9 @@ export function CodegenAgentCard({ engine: e, onRefetchEngines }: { engine: Engi
 }
 
 const TONES = {
-  info: { fg: "#1d5fbf", bg: "#e6eefa", bd: "#bfdbfe", dot: "#1d5fbf" },
-  ok: { fg: "#2f6b14", bg: "#eaf3e1", bd: "#bbf7d0", dot: "#22c55e" },
-  bad: { fg: "#b23b3b", bg: "#fbe9e9", bd: "#fecaca", dot: "#ef4444" },
+  info: { fg: "var(--ws-info, #1d5fbf)", bg: "var(--ws-info-bg, #e6eefa)", bd: "var(--ws-info-line, #bfdbfe)", dot: "var(--ws-info, #1d5fbf)" },
+  ok: { fg: "var(--ws-ok, #2f6b14)", bg: "var(--ws-ok-bg, #eaf3e1)", bd: "var(--ws-ok-line, #bbf7d0)", dot: "#22c55e" },
+  bad: { fg: "var(--ws-bad, #b23b3b)", bg: "var(--ws-bad-bg, #fbe9e9)", bd: "var(--ws-bad-line, #fecaca)", dot: "#ef4444" },
 } as const;
 
 function Banner({ tone, text }: { tone: keyof typeof TONES; text: string }) {

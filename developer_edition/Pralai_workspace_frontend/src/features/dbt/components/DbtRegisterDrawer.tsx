@@ -81,7 +81,7 @@ export function DbtRegisterDrawer({ projects, onClose, onRegistered, kind = "dbt
         <button onClick={onClose} style={drawerBtn(false)}>Cancel</button>
       </>}
     >
-      <div style={{ fontSize: 12, color: "#5b6d62", lineHeight: 1.55, marginBottom: 14 }}>
+      <div style={{ fontSize: 12, color: "var(--ws-muted, #5b6d62)", lineHeight: 1.55, marginBottom: 14 }}>
         {sql
           ? "The Runner clones this repository and runs the SQL file's statements in order against the engine. Push the file to Git first, then register it here."
           : python

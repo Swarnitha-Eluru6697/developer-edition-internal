@@ -14,16 +14,16 @@ import { Glyph } from "../shared/ui/Glyph";
 import { ACTION_ICON, IconAction } from "../shared/ui/IconAction";
 
 const KIND: Record<NotificationEntry["kind"], { icon: string; color: string; bg: string }> = {
-  success: { icon: "ti-circle-check", color: "#2F6B14", bg: "#EAF3E1" },
-  error: { icon: "ti-alert-circle", color: "#B23B3B", bg: "#FBE9E9" },
-  info: { icon: "ti-info-circle", color: "#086347", bg: "#E3F6EA" },
+  success: { icon: "ti-circle-check", color: "var(--ws-ok, #2F6B14)", bg: "var(--ws-ok-bg, #EAF3E1)" },
+  error: { icon: "ti-alert-circle", color: "var(--ws-bad, #B23B3B)", bg: "var(--ws-bad-bg, #FBE9E9)" },
+  info: { icon: "ti-info-circle", color: "var(--ws-accent, #086347)", bg: "var(--ws-accent-bg, #E3F6EA)" },
 };
 
 const PAGE_SIZE = 5;
 
 const footerButton = (danger = false, disabled = false): React.CSSProperties => ({
-  height: 26, padding: "0 10px", fontSize: 12, borderRadius: 6, background: "#fff", cursor: disabled ? "not-allowed" : "pointer",
-  border: `1px solid ${danger ? "#FECACA" : "#E3E8E2"}`, color: danger ? "#B23B3B" : "#2E3D36", opacity: disabled ? 0.45 : 1,
+  height: 26, padding: "0 10px", fontSize: 12, borderRadius: 6, background: "var(--ws-surface, #fff)", cursor: disabled ? "not-allowed" : "pointer",
+  border: `1px solid ${danger ? "var(--ws-bad-line, #FECACA)" : "var(--ws-line, #E3E8E2)"}`, color: danger ? "var(--ws-bad, #B23B3B)" : "var(--ws-text-2, #2E3D36)", opacity: disabled ? 0.45 : 1,
 });
 
 function ago(at: number, now: number): string {
@@ -58,25 +58,25 @@ export function NotificationBell({ buttonStyle }: { buttonStyle: React.CSSProper
       <button
         title="Notifications" aria-label={unread ? `Notifications (${unread} unread)` : "Notifications"} aria-expanded={open}
         onClick={toggle}
-        style={{ ...buttonStyle, position: "relative", background: open ? "#F8FAF9" : "none" }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#F8FAF9")}
+        style={{ ...buttonStyle, position: "relative", background: open ? "var(--ws-bg, #F8FAF9)" : "none" }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--ws-hover, #F8FAF9)")}
         onMouseLeave={(e) => { if (!open) e.currentTarget.style.background = "none"; }}
       >
         {/* Same bell as Agents' / Catalog's i-bell and ML Studio's bell icon. */}
         <Glyph name="pi-bell" size={16} />
         {unread > 0 && (
-          <span style={{ position: "absolute", top: 7, right: 8, width: 7, height: 7, borderRadius: "50%", background: "#0A7D5A", boxShadow: "0 0 0 2px #fff" }} />
+          <span style={{ position: "absolute", top: 7, right: 8, width: 7, height: 7, borderRadius: "50%", background: "#0A7D5A", boxShadow: "0 0 0 2px var(--ws-surface, #fff)" }} />
         )}
       </button>
 
       {open && (
-        <div style={{ position: "absolute", top: 42, right: 0, width: 340, background: "#fff", border: "1px solid #E3E8E2", borderRadius: 10, boxShadow: "0 12px 40px rgba(11,59,46,.18)", zIndex: 220, overflow: "hidden" }}>
-          <div style={{ display: "flex", alignItems: "center", padding: "10px 14px", borderBottom: "1px solid #EEF2ED" }}>
-            <span style={{ fontFamily: "var(--disp)", fontSize: 13.5, fontWeight: 600, color: "#14201B" }}>Notifications</span>
+        <div style={{ position: "absolute", top: 42, right: 0, width: 340, background: "var(--ws-surface, #fff)", border: "1px solid var(--ws-line, #E3E8E2)", borderRadius: 10, boxShadow: "0 12px 40px rgba(11,59,46,.18)", zIndex: 220, overflow: "hidden" }}>
+          <div style={{ display: "flex", alignItems: "center", padding: "10px 14px", borderBottom: "1px solid var(--ws-line, #EEF2ED)" }}>
+            <span style={{ fontFamily: "var(--disp)", fontSize: 13.5, fontWeight: 600, color: "var(--ws-text, #14201B)" }}>Notifications</span>
           </div>
           <div style={{ padding: 4 }}>
             {log.length === 0 && (
-              <div style={{ padding: "28px 14px", textAlign: "center", fontSize: 12.5, color: "#73827A" }}>
+              <div style={{ padding: "28px 14px", textAlign: "center", fontSize: 12.5, color: "var(--ws-subtle, #73827A)" }}>
                 <i className="ti ti-bell-off" style={{ fontSize: 22, display: "block", marginBottom: 6 }} />
                 No notifications yet
               </div>
@@ -85,13 +85,13 @@ export function NotificationBell({ buttonStyle }: { buttonStyle: React.CSSProper
               const k = KIND[n.kind];
               return (
                 <div key={n.id} onMouseEnter={() => setHovered(n.id)} onMouseLeave={() => setHovered((h) => (h === n.id ? null : h))}
-                  style={{ display: "flex", gap: 10, padding: "9px 10px", borderRadius: 6, alignItems: "flex-start", background: hovered === n.id ? "#F8FAF9" : "transparent" }}>
+                  style={{ display: "flex", gap: 10, padding: "9px 10px", borderRadius: 6, alignItems: "flex-start", background: hovered === n.id ? "var(--ws-hover, #F8FAF9)" : "transparent" }}>
                   <span style={{ width: 26, height: 26, borderRadius: 7, background: k.bg, color: k.color, display: "grid", placeItems: "center", flexShrink: 0 }}>
                     <i className={`ti ${k.icon}`} style={{ fontSize: 15 }} />
                   </span>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: 12.5, color: "#14201B", lineHeight: 1.45, overflowWrap: "anywhere" }}>{n.message}</div>
-                    <div style={{ fontSize: 11, color: "#73827A", marginTop: 2 }}>{ago(n.at, now)}</div>
+                    <div style={{ fontSize: 12.5, color: "var(--ws-text, #14201B)", lineHeight: 1.45, overflowWrap: "anywhere" }}>{n.message}</div>
+                    <div style={{ fontSize: 11, color: "var(--ws-subtle, #73827A)", marginTop: 2 }}>{ago(n.at, now)}</div>
                   </div>
                   {/* Shown on hover, like the file tree's; kept in layout so the text does not jump. */}
                   <IconAction size="sm" icon={ACTION_ICON.delete} label="Delete this notification" danger
@@ -102,12 +102,12 @@ export function NotificationBell({ buttonStyle }: { buttonStyle: React.CSSProper
             })}
           </div>
           {log.length > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 10px", borderTop: "1px solid #EEF2ED" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 10px", borderTop: "1px solid var(--ws-line, #EEF2ED)" }}>
               <button type="button" aria-label="Previous notifications" disabled={current === 0} style={footerButton(false, current === 0)}
                 onClick={() => setPage(current - 1)}>Prev</button>
               <button type="button" aria-label="Next notifications" disabled={current >= pages - 1} style={footerButton(false, current >= pages - 1)}
                 onClick={() => setPage(current + 1)}>Next</button>
-              <span style={{ flex: 1, textAlign: "center", fontSize: 11, color: "#73827A" }}>
+              <span style={{ flex: 1, textAlign: "center", fontSize: 11, color: "var(--ws-subtle, #73827A)" }}>
                 {current * PAGE_SIZE + 1}–{current * PAGE_SIZE + shown.length} of {log.length}
               </span>
               <button type="button" aria-label="Delete all notifications" style={footerButton(true)}

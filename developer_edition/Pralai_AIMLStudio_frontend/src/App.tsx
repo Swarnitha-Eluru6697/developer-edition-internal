@@ -20,7 +20,7 @@ import { PermissionsProvider, usePermissions } from "./context/PermissionsContex
 import { PAGE_PERMISSION, PERM } from "./permissions";
 import { PralaiLockup } from "./components/PralaiLogo";
 import NotificationsBell from "./components/NotificationsBell";
-import { DeveloperUserMenu } from "./components/DeveloperUserMenu";
+import { DeveloperUserMenu, inDeveloperShell } from "./components/DeveloperUserMenu";
 import { ToastProvider } from "./context/ToastContext";
 import { Icon } from "./components/Icons";
 import { PageSearchProvider, usePageSearchState } from "./context/PageSearchContext";
@@ -112,9 +112,10 @@ function Topbar({ roleBadges }: { roleBadges?: ReactNode }) {
       <div className="topbar-spacer" />
       {/* Display only: the portal's strip of ML Studio role names. Access still comes from /api/me. */}
       {hosted && <div className="topbar-roles">{roleBadges}</div>}
-      {!hosted && <NotificationsBell />}
+      {/* Inside the Developer Edition dashboard its left rail carries notifications and the account menu. */}
+      {!hosted && !inDeveloperShell() && <NotificationsBell />}
       {/* An older portal passes its account menu instead of roleBadges; it takes the avatar's place. */}
-      {hostAccountMenu() ?? (hosted ? null : <UserBadge />)}
+      {hostAccountMenu() ?? (hosted || inDeveloperShell() ? null : <UserBadge />)}
     </header>
   );
 }

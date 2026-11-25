@@ -48,7 +48,7 @@ const EMPTY: Record<AlertState, string> = {
   resolved: "Nothing has been resolved yet.",
 };
 
-const dateInput = { height: 30, border: "0.5px solid #cfd8d1", borderRadius: 6, padding: "0 8px", fontSize: 12.5, fontFamily: "inherit", background: "#fff" } as const;
+const dateInput = { height: 30, border: "0.5px solid var(--ws-line-strong, #cfd8d1)", borderRadius: 6, padding: "0 8px", fontSize: 12.5, fontFamily: "inherit", background: "var(--ws-surface, #fff)" } as const;
 
 export function AlertsPanel() {
   const dispatch = useDispatch<AppDispatch>();
@@ -94,7 +94,7 @@ export function AlertsPanel() {
   const noun = listing ? "alert" : tab === "rules" ? "rule" : "channel";
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#fff" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "var(--ws-surface, #fff)" }}>
       <PageHeader
         eyebrow="Operate"
         title="Alerts"
@@ -115,18 +115,18 @@ export function AlertsPanel() {
         ) : undefined}
       />
 
-      <div role="tablist" aria-label="Alert views" style={{ display: "flex", borderBottom: "0.5px solid #E3E8E2", background: "#F8FAF9", flexShrink: 0, padding: "0 12px" }}>
+      <div role="tablist" aria-label="Alert views" style={{ display: "flex", borderBottom: "0.5px solid var(--ws-line, #E3E8E2)", background: "var(--ws-bg, #F8FAF9)", flexShrink: 0, padding: "0 12px" }}>
         {TABS.map((t) => {
           const n = isAlertState(t) ? counts?.[t] : undefined;
           return (
             <button key={t} role="tab" aria-selected={tab === t} onClick={() => goTab(t)}
               style={{
                 padding: "10px 16px", fontSize: 12.5, cursor: "pointer", textTransform: "capitalize", background: "none", border: "none", fontFamily: "inherit",
-                display: "flex", alignItems: "center", gap: 6, color: tab === t ? "#14201B" : "#888", fontWeight: tab === t ? 500 : 400,
+                display: "flex", alignItems: "center", gap: 6, color: tab === t ? "var(--ws-text, #14201B)" : "var(--ws-subtle, #888)", fontWeight: tab === t ? 500 : 400,
                 borderBottom: tab === t ? "2px solid #0A7D5A" : "2px solid transparent",
               }}>
               {t}
-              {!!n && <span style={{ background: "#fdebdd", color: "#a8470a", padding: "1px 6px", borderRadius: 4, fontSize: 10.5, fontWeight: 600 }}>{n}</span>}
+              {!!n && <span style={{ background: "var(--ws-warn-bg, #fdebdd)", color: "var(--ws-warn, #a8470a)", padding: "1px 6px", borderRadius: 4, fontSize: 10.5, fontWeight: 600 }}>{n}</span>}
             </button>
           );
         })}
@@ -135,7 +135,7 @@ export function AlertsPanel() {
       <div style={{ flex: 1, overflow: "auto", padding: "16px 28px 24px" }}>
         {listing && (
           <>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap", fontSize: 12.5, color: "#5b6d62" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap", fontSize: 12.5, color: "var(--ws-muted, #5b6d62)" }}>
               <label style={{ display: "flex", alignItems: "center", gap: 6 }}>From
                 <input type="date" aria-label="From date" value={from} max={to || undefined} onChange={(e) => setDate(setFrom)(e.target.value)} style={dateInput} />
               </label>
@@ -144,12 +144,12 @@ export function AlertsPanel() {
               </label>
               {(from || to) && (
                 <button type="button" onClick={() => { setFrom(""); setTo(""); setOffset(0); }} title="Clear dates"
-                  style={{ display: "inline-flex", alignItems: "center", gap: 4, height: 28, padding: "0 9px", fontSize: 12, background: "#fff", border: "1px solid #E3E8E2", borderRadius: 6, cursor: "pointer", color: "#2E3D36" }}>
+                  style={{ display: "inline-flex", alignItems: "center", gap: 4, height: 28, padding: "0 9px", fontSize: 12, background: "var(--ws-surface, #fff)", border: "1px solid var(--ws-line, #E3E8E2)", borderRadius: 6, cursor: "pointer", color: "var(--ws-text-2, #2E3D36)" }}>
                   <Glyph name="pi-x" size={12} />Clear dates
                 </button>
               )}
             </div>
-            <p style={{ fontSize: 12.5, color: "#5b6d62", margin: "0 0 12px" }}>{INTRO[tab]}</p>
+            <p style={{ fontSize: 12.5, color: "var(--ws-muted, #5b6d62)", margin: "0 0 12px" }}>{INTRO[tab]}</p>
             {tab === "open" && <UndeliveredNote count={page?.undelivered ?? 0} onChannels={() => goTab("channels")} />}
             <AlertCards alerts={page?.items} loading={loadingAlerts} emptyText={from || to ? "No alerts in these dates." : EMPTY[tab]} onOpen={setSelected} />
           </>
@@ -162,7 +162,7 @@ export function AlertsPanel() {
         )}
 
         {listing && total > 0 && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14, fontSize: 12, color: "#73827a" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14, fontSize: 12, color: "var(--ws-subtle, #73827a)" }}>
             <span>{showing(offset, shown, total, noun)}</span>
             <div style={{ display: "flex", gap: 8 }}>
               <PagerButton label="Previous" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))} />
@@ -170,8 +170,8 @@ export function AlertsPanel() {
             </div>
           </div>
         )}
-        {tab === "rules" && rules && rules.length > 0 && <div style={{ marginTop: 14, fontSize: 12, color: "#73827a" }}>{showing(0, rules.length, rules.length, noun)}</div>}
-        {tab === "channels" && channels && channels.length > 0 && <div style={{ marginTop: 14, fontSize: 12, color: "#73827a" }}>{showing(0, channels.length, channels.length, noun)}</div>}
+        {tab === "rules" && rules && rules.length > 0 && <div style={{ marginTop: 14, fontSize: 12, color: "var(--ws-subtle, #73827a)" }}>{showing(0, rules.length, rules.length, noun)}</div>}
+        {tab === "channels" && channels && channels.length > 0 && <div style={{ marginTop: 14, fontSize: 12, color: "var(--ws-subtle, #73827a)" }}>{showing(0, channels.length, channels.length, noun)}</div>}
       </div>
 
       {selected && <AlertDetailDrawer alert={selected} canAct={canAck} onClose={() => setSelected(null)} />}
@@ -184,7 +184,7 @@ export function AlertsPanel() {
 function PagerButton({ label, disabled, onClick }: { label: string; disabled: boolean; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} disabled={disabled}
-      style={{ height: 28, padding: "0 12px", fontSize: 12, fontWeight: 600, background: "#fff", color: "#14201B", border: "1px solid #E3E8E2", borderRadius: 8,
+      style={{ height: 28, padding: "0 12px", fontSize: 12, fontWeight: 600, background: "var(--ws-surface, #fff)", color: "var(--ws-text, #14201B)", border: "1px solid var(--ws-line, #E3E8E2)", borderRadius: 8,
         cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.5 : 1 }}>
       {label}
     </button>

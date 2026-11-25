@@ -7,6 +7,11 @@ import { store } from "./store";
 import { App } from "./app/App";
 import { ErrorBoundary } from "./app/ErrorBoundary";
 import { lockHiddenScroll } from "./app/lockHiddenScroll";
+// Dark theme: DeveloperUserMenu sets <html data-theme> at module load (shell toggle / ?de_theme / OS);
+// pralai-dark.css is the shared --pd-* palette and dark.css maps the app's --ws-* tokens onto it.
+import "./app/DeveloperUserMenu";
+import "./app/pralai-dark.css";
+import "./dark.css";
 
 lockHiddenScroll();
 

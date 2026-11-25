@@ -6,7 +6,7 @@ import { setResultsOpen, toggleHistory } from "../../../store/uiSlice";
 import type { AppDispatch, RootState } from "../../../store";
 import type { UUID } from "../../../types";
 
-const smallBtn = { height: 20, fontSize: 10.5, padding: "0 7px", border: "0.5px solid #cfd8d1", borderRadius: 4, background: "#fff", cursor: "pointer", color: "#5b6d62" } as const;
+const smallBtn = { height: 20, fontSize: 10.5, padding: "0 7px", border: "0.5px solid var(--ws-line-strong, #cfd8d1)", borderRadius: 4, background: "var(--ws-surface, #fff)", cursor: "pointer", color: "var(--ws-muted, #5b6d62)" } as const;
 
 export function EditorStatusBar({ workspaceId }: { workspaceId: UUID | null }) {
   const dispatch = useDispatch<AppDispatch>();
@@ -15,7 +15,7 @@ export function EditorStatusBar({ workspaceId }: { workspaceId: UUID | null }) {
   const hasExecution = useVisibleExecution().id !== null;
 
   return (
-    <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 9, padding: "4px 12px", borderTop: "0.5px solid #E3E8E2", background: "#F8FAF9", fontSize: 11.5 }}>
+    <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 9, padding: "4px 12px", borderTop: "0.5px solid var(--ws-line, #E3E8E2)", background: "var(--ws-bg, #F8FAF9)", fontSize: 11.5 }}>
       <GitBranchStatus workspaceId={workspaceId} />
       <button style={smallBtn}>Push</button>
       {!resultsOpen && hasExecution && (
@@ -23,7 +23,7 @@ export function EditorStatusBar({ workspaceId }: { workspaceId: UUID | null }) {
           <i className="ti ti-table" style={{ fontSize: 11, marginRight: 3 }} />Results
         </button>
       )}
-      <button onClick={() => dispatch(toggleHistory())} title="Query history" style={{ height: 20, display: "flex", alignItems: "center", background: "none", border: "none", cursor: "pointer", color: historyOpen ? "#0A7D5A" : "#73827a", padding: 0 }}>
+      <button onClick={() => dispatch(toggleHistory())} title="Query history" style={{ height: 20, display: "flex", alignItems: "center", background: "none", border: "none", cursor: "pointer", color: historyOpen ? "var(--ws-accent, #0A7D5A)" : "var(--ws-subtle, #73827a)", padding: 0 }}>
         <i className="ti ti-history" style={{ fontSize: 13 }} />
       </button>
     </div>

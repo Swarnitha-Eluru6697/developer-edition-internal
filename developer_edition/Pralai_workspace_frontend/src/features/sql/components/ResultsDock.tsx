@@ -37,9 +37,9 @@ export function ResultsDock({ workspaceId, filePath, height, onHeightChange }: P
         onMouseDown={start}
         onDoubleClick={() => onHeightChange(RESULTS_HEIGHT_DEFAULT)}
         title="Drag to resize · double-click to reset"
-        style={{ height: 6, flexShrink: 0, cursor: "row-resize", background: "#E3E8E2", borderTop: "0.5px solid #E3E8E2" }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#B7E0CB")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "#E3E8E2")}
+        style={{ height: 6, flexShrink: 0, cursor: "row-resize", background: "var(--ws-line-fill, #E3E8E2)", borderTop: "0.5px solid var(--ws-line, #E3E8E2)" }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--ws-accent-line-fill, #B7E0CB)")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "var(--ws-line-fill, #E3E8E2)")}
       />
       <div style={{ height, display: "flex", overflow: "hidden", flexShrink: 0 }}>
         {resultsOpen && <ResultsPanel onDownload={() => downloadResults(filePath)} onCopy={copyResults} />}

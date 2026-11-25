@@ -7,7 +7,7 @@
 import type { CSSProperties } from "react";
 
 export const drawerInput: CSSProperties = {
-  fontSize: 12, height: 30, border: "0.5px solid #cfd8d1", borderRadius: 6,
+  fontSize: 12, height: 30, border: "0.5px solid var(--ws-line-strong, #cfd8d1)", borderRadius: 6,
   padding: "0 8px", boxSizing: "border-box", width: "100%",
 };
 
@@ -16,9 +16,9 @@ export function drawerBtn(primary: boolean): CSSProperties {
   return {
     height: 32, padding: "0 14px", fontSize: 12.5, borderRadius: 6, cursor: "pointer",
     display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-    background: primary ? "#0A7D5A" : "#fff",
-    color: primary ? "#fff" : "#2E3D36",
-    border: primary ? "none" : "0.5px solid #cfd8d1",
+    background: primary ? "var(--ws-primary, #0A7D5A)" : "var(--ws-surface, #fff)",
+    color: primary ? "var(--ws-on-primary, #fff)" : "var(--ws-text-2, #2E3D36)",
+    border: primary ? "none" : "0.5px solid var(--ws-line-strong, #cfd8d1)",
   };
 }
 

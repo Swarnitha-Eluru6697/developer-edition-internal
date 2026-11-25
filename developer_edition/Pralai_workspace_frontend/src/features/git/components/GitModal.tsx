@@ -210,7 +210,7 @@ export function GitModal() {
         <button onClick={close} disabled={creating} style={drawerBtn(false)}>Cancel</button>
       </>}
     >
-        <div style={{ fontSize: 12, color: "#888", marginBottom: 16 }}>
+        <div style={{ fontSize: 12, color: "var(--ws-subtle, #888)", marginBottom: 16 }}>
           Connect a provider to pull, edit, and push your project
         </div>
 
@@ -223,16 +223,16 @@ export function GitModal() {
                 key={p.id}
                 onClick={() => handleProviderChange(p.id)}
                 style={{
-                  flex: 1, border: `1px solid ${provider === p.id ? "#0A7D5A" : "#E3E8E2"}`,
-                  boxShadow: provider === p.id ? "0 0 0 3px #E3F6EA" : "none",
-                  background: provider === p.id ? "#E3F6EA" : "#fff",
+                  flex: 1, border: `1px solid ${provider === p.id ? "#0A7D5A" : "var(--ws-line, #E3E8E2)"}`,
+                  boxShadow: provider === p.id ? "0 0 0 3px var(--ws-accent-bg, #E3F6EA)" : "none",
+                  background: provider === p.id ? "var(--ws-accent-bg, #E3F6EA)" : "var(--ws-surface, #fff)",
                   borderRadius: 11, padding: "12px 8px", cursor: "pointer", textAlign: "center",
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>
                   <GitProviderBadge provider={p.id} size={34} />
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#14201B" }}>{p.label}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ws-text, #14201B)" }}>{p.label}</div>
               </div>
             ))}
           </div>
@@ -245,7 +245,7 @@ export function GitModal() {
             value={repoUrl}
             onChange={(e) => setRepoUrl(e.target.value)}
             placeholder={`${PROVIDER_URLS[provider]}your-org/your-repo`}
-            style={{ width: "100%", height: 34, fontSize: 12, border: "0.5px solid #ccc", borderRadius: 6, padding: "0 9px", fontFamily: "monospace" }}
+            style={{ width: "100%", height: 34, fontSize: 12, border: "0.5px solid var(--ws-line, #ccc)", borderRadius: 6, padding: "0 9px", fontFamily: "monospace" }}
           />
         </div>
 
@@ -256,18 +256,18 @@ export function GitModal() {
             value={wsName}
             onChange={(e) => { setWsName(e.target.value); setNameEdited(true); }}
             placeholder="defaults to the repository name"
-            style={{ width: "100%", height: 34, fontSize: 12, border: "0.5px solid #ccc", borderRadius: 6, padding: "0 9px" }}
+            style={{ width: "100%", height: 34, fontSize: 12, border: "0.5px solid var(--ws-line, #ccc)", borderRadius: 6, padding: "0 9px" }}
           />
         </div>
 
         {/* Branch */}
         <div style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 5 }}>Branch or tag <span style={{ fontWeight: 400, color: "#73827a" }}>(optional — empty imports the repository's default branch)</span></label>
+          <label style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 5 }}>Branch or tag <span style={{ fontWeight: 400, color: "var(--ws-subtle, #73827a)" }}>(optional — empty imports the repository's default branch)</span></label>
           <input
             placeholder="repository default"
             value={branch}
             onChange={(e) => setBranch(e.target.value)}
-            style={{ width: "100%", height: 34, fontSize: 12, border: "0.5px solid #ccc", borderRadius: 6, padding: "0 9px", fontFamily: "monospace" }}
+            style={{ width: "100%", height: 34, fontSize: 12, border: "0.5px solid var(--ws-line, #ccc)", borderRadius: 6, padding: "0 9px", fontFamily: "monospace" }}
           />
         </div>
 
@@ -284,17 +284,17 @@ export function GitModal() {
                   onClick={() => !disabled && setAuthMethod(m)}
                   title={disabled ? `OAuth isn't configured for ${providerLabel} on this deployment` : undefined}
                   style={{
-                    flex: 1, border: `1.5px solid ${selected ? "#0A7D5A" : "#ddd"}`,
-                    background: selected ? "#E3F6EA" : disabled ? "#f6f6f4" : "#fff",
+                    flex: 1, border: `1.5px solid ${selected ? "#0A7D5A" : "var(--ws-line, #ddd)"}`,
+                    background: selected ? "var(--ws-accent-bg, #E3F6EA)" : disabled ? "var(--ws-fill, #f6f6f4)" : "var(--ws-surface, #fff)",
                     borderRadius: 8, padding: "9px 10px", cursor: disabled ? "not-allowed" : "pointer",
                     opacity: disabled ? 0.55 : 1,
                   }}
                 >
                   <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 3 }}>
                     {m === "oauth" ? "OAuth 2.0" : m === "pat" ? "Personal access token" : "Public repository"}
-                    {selected && <i className="ti ti-check" style={{ color: "#0A7D5A", marginLeft: 4 }} />}
+                    {selected && <i className="ti ti-check" style={{ color: "var(--ws-accent, #0A7D5A)", marginLeft: 4 }} />}
                   </div>
-                  <div style={{ fontSize: 11, color: "#666", lineHeight: 1.4 }}>
+                  <div style={{ fontSize: 11, color: "var(--ws-muted, #666)", lineHeight: 1.4 }}>
                     {m === "oauth" ? (disabled ? "Not configured on this deployment" : `Sign in to ${providerLabel}`)
                       : m === "pat" ? "Paste a token with repo access" : "No authentication needed"}
                   </div>
@@ -306,29 +306,29 @@ export function GitModal() {
           {/* Real connection status for the selected provider (GET /git/connections). */}
           {authMethod !== "public" && (
             loadingConnections ? (
-              <div style={{ fontSize: 12, color: "#888", padding: "6px 2px" }}>Checking your {providerLabel} connection…</div>
+              <div style={{ fontSize: 12, color: "var(--ws-subtle, #888)", padding: "6px 2px" }}>Checking your {providerLabel} connection…</div>
             ) : conn?.connected ? (
               <div style={{
                 display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 7, marginBottom: 8,
-                background: conn.expired ? "#fdebdd" : "#f0f9f4",
-                border: `0.5px solid ${conn.expired ? "#fcd34d" : "#86efac"}`,
+                background: conn.expired ? "var(--ws-warn-bg, #fdebdd)" : "var(--ws-accent-bg, #f0f9f4)",
+                border: `0.5px solid ${conn.expired ? "#fcd34d" : "var(--ws-ok-line, #86efac)"}`,
               }}>
                 <i className={`ti ${conn.expired ? "ti-alert-triangle" : "ti-check"}`}
-                   style={{ color: conn.expired ? "#a8470a" : "#2f6b14", fontSize: 14 }} />
-                <span style={{ fontSize: 12, color: conn.expired ? "#a8470a" : "#2f6b14", fontWeight: 600 }}>
+                   style={{ color: conn.expired ? "var(--ws-warn, #a8470a)" : "var(--ws-ok, #2f6b14)", fontSize: 14 }} />
+                <span style={{ fontSize: 12, color: conn.expired ? "var(--ws-warn, #a8470a)" : "var(--ws-ok, #2f6b14)", fontWeight: 600 }}>
                   {conn.expired ? `${providerLabel} credential expired` : `Connected to ${providerLabel}`}
                 </span>
-                <span style={{ marginLeft: "auto", fontSize: 11, color: "#5b6d62", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--ws-muted, #5b6d62)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {conn.username ?? "saved credential"}
                 </span>
                 {conn.oauth_available && (
                   <button onClick={handleConnect} disabled={connecting}
-                    style={{ background: "none", border: "none", padding: 0, fontSize: 11, color: "#086347", cursor: "pointer", textDecoration: "underline" }}>
+                    style={{ background: "none", border: "none", padding: 0, fontSize: 11, color: "var(--ws-accent, #086347)", cursor: "pointer", textDecoration: "underline" }}>
                     {connecting ? "Redirecting…" : "Reconnect"}
                   </button>
                 )}
                 <button onClick={handleDisconnect} disabled={disconnecting}
-                  style={{ background: "none", border: "none", padding: 0, fontSize: 11, color: "#b23b3b", cursor: "pointer", textDecoration: "underline" }}>
+                  style={{ background: "none", border: "none", padding: 0, fontSize: 11, color: "var(--ws-bad, #b23b3b)", cursor: "pointer", textDecoration: "underline" }}>
                   {disconnecting ? "Disconnecting…" : "Disconnect"}
                 </button>
               </div>
@@ -339,7 +339,7 @@ export function GitModal() {
                 {connecting ? "Redirecting…" : `Connect ${providerLabel}`}
               </button>
             ) : (
-              <div style={{ fontSize: 11.5, color: "#5b6d62", marginBottom: 8 }}>
+              <div style={{ fontSize: 11.5, color: "var(--ws-muted, #5b6d62)", marginBottom: 8 }}>
                 No saved {providerLabel} credential yet — the token you paste is saved for push/pull.
               </div>
             )
@@ -351,12 +351,12 @@ export function GitModal() {
               value={pat}
               onChange={(e) => setPat(e.target.value)}
               placeholder={hasCredential ? "Leave blank to use your saved credential" : "Paste a token with repo access"}
-              style={{ width: "100%", height: 34, fontSize: 12, border: "0.5px solid #ccc", borderRadius: 6, padding: "0 9px", fontFamily: "monospace" }}
+              style={{ width: "100%", height: 34, fontSize: 12, border: "0.5px solid var(--ws-line, #ccc)", borderRadius: 6, padding: "0 9px", fontFamily: "monospace" }}
             />
           )}
         </div>
 
-        {error && <div style={{ fontSize: 12, color: "#b23b3b", marginBottom: 12, padding: "7px 10px", background: "#fbe9e9", borderRadius: 6 }}>{error}</div>}
+        {error && <div style={{ fontSize: 12, color: "var(--ws-bad, #b23b3b)", marginBottom: 12, padding: "7px 10px", background: "var(--ws-bad-bg, #fbe9e9)", borderRadius: 6 }}>{error}</div>}
     </Drawer>
   );
 }

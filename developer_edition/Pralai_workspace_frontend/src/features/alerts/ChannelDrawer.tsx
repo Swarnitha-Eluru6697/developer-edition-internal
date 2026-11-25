@@ -67,7 +67,7 @@ export function ChannelDrawer({ channel, jobs, onClose }: Props) {
     }
   };
 
-  const errorLine = (f: string) => field(f) && <div role="alert" style={{ fontSize: 11.5, color: "#B23B3B", marginTop: 4 }}>{field(f)}</div>;
+  const errorLine = (f: string) => field(f) && <div role="alert" style={{ fontSize: 11.5, color: "var(--ws-bad, #B23B3B)", marginTop: 4 }}>{field(f)}</div>;
 
   return (
     <Drawer
@@ -84,7 +84,7 @@ export function ChannelDrawer({ channel, jobs, onClose }: Props) {
         </>
       )}
     >
-      <p style={{ fontSize: 12, color: "#5b6d62", margin: "0 0 14px", lineHeight: 1.5 }}>
+      <p style={{ fontSize: 12, color: "var(--ws-muted, #5b6d62)", margin: "0 0 14px", lineHeight: 1.5 }}>
         Alerts matching the filters below are posted to this channel. Everything else is left alone.
       </p>
 
@@ -94,14 +94,14 @@ export function ChannelDrawer({ channel, jobs, onClose }: Props) {
             <button key={k.kind} type="button" aria-pressed={kind === k.kind} onClick={() => setKind(k.kind)}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 7, height: 34, borderRadius: 8, fontSize: 12.5, cursor: "pointer",
-                background: kind === k.kind ? "#E3F6EA" : "#fff", color: kind === k.kind ? "#086347" : "#2E3D36", fontWeight: kind === k.kind ? 600 : 500,
-                border: kind === k.kind ? "1px solid #0A7D5A" : "1px solid #E3E8E2",
+                background: kind === k.kind ? "var(--ws-accent-bg, #E3F6EA)" : "var(--ws-surface, #fff)", color: kind === k.kind ? "var(--ws-accent, #086347)" : "var(--ws-text-2, #2E3D36)", fontWeight: kind === k.kind ? 600 : 500,
+                border: kind === k.kind ? "1px solid #0A7D5A" : "1px solid var(--ws-line, #E3E8E2)",
               }}>
               <i className={`ti ${k.icon}`} style={{ fontSize: 15 }} />{k.label}
             </button>
           ))}
         </div>
-        <div style={{ fontSize: 11, color: "#73827a", marginTop: 5 }}>{info.hint}</div>
+        <div style={{ fontSize: 11, color: "var(--ws-subtle, #73827a)", marginTop: 5 }}>{info.hint}</div>
       </Field>
 
       <Field label="Name" required hint="How this channel is identified on this page. Must be unique.">
@@ -131,14 +131,14 @@ export function ChannelDrawer({ channel, jobs, onClose }: Props) {
           options={[{ value: "", label: "All jobs" }, ...jobs.map((j) => ({ value: j.key, label: j.name, hint: JOB_KIND_LABEL[j.kind] }))]} />
       </Field>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", border: "0.5px solid #E3E8E2", borderRadius: 8, background: "#F8FAF9" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", border: "0.5px solid var(--ws-line, #E3E8E2)", borderRadius: 8, background: "var(--ws-bg, #F8FAF9)" }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 12.5, fontWeight: 600 }}>Enabled</div>
-          <div style={{ fontSize: 11, color: "#73827a" }}>Turn off to stop delivery without losing the configuration.</div>
+          <div style={{ fontSize: 11, color: "var(--ws-subtle, #73827a)" }}>Turn off to stop delivery without losing the configuration.</div>
         </div>
         <Toggle checked={enabled} onChange={setEnabled} label="Enabled" />
       </div>
-      {error && !error.field && <div role="alert" style={{ fontSize: 12, color: "#B23B3B", marginTop: 12 }}>{error.message}</div>}
+      {error && !error.field && <div role="alert" style={{ fontSize: 12, color: "var(--ws-bad, #B23B3B)", marginTop: 12 }}>{error.message}</div>}
     </Drawer>
   );
 }

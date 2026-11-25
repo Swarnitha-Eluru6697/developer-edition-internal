@@ -88,7 +88,7 @@ export function ObjectExplorer({ onInsertTable }: Props) {
   }, [connId, dispatch]);
 
   return (
-    <div style={{ borderTop: "0.5px solid #E3E8E2", display: "flex", flexDirection: "column", height: collapsed ? "auto" : height, flexShrink: 0 }}>
+    <div style={{ borderTop: "0.5px solid var(--ws-line, #E3E8E2)", display: "flex", flexDirection: "column", height: collapsed ? "auto" : height, flexShrink: 0 }}>
       {/* Drag-to-resize handle */}
       <div
         onMouseDown={onResizeDown}
@@ -100,9 +100,9 @@ export function ObjectExplorer({ onInsertTable }: Props) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 10px 6px", flexShrink: 0 }}>
         <span
           onClick={() => setCollapsed((c) => !c)}
-          style={{ fontSize: 11.5, fontWeight: 600, color: "#5B6D62", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, userSelect: "none" }}
+          style={{ fontSize: 11.5, fontWeight: 600, color: "var(--ws-muted, #5B6D62)", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, userSelect: "none" }}
         >
-          <i className={`ti ${collapsed ? "ti-chevron-right" : "ti-chevron-down"}`} style={{ fontSize: 11, color: "#73827a" }} />
+          <i className={`ti ${collapsed ? "ti-chevron-right" : "ti-chevron-down"}`} style={{ fontSize: 11, color: "var(--ws-subtle, #73827a)" }} />
           Database Explorer
         </span>
         <div style={{ display: "flex", gap: 4 }}>
@@ -110,12 +110,12 @@ export function ObjectExplorer({ onInsertTable }: Props) {
             <button
               onClick={() => dispatch(openConnectionModal(null))}
               title="Add connection"
-              style={{ background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: 14, padding: 2 }}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ws-subtle, #888)", fontSize: 14, padding: 2 }}
             ><i className="ti ti-plus" /></button>
           )}
           <button
             onClick={() => setCollapsed((c) => !c)}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: 14, padding: 2 }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ws-subtle, #888)", fontSize: 14, padding: 2 }}
             title={collapsed ? "Expand" : "Collapse"}
           ><i className={`ti ${collapsed ? "ti-layout-bottombar-expand" : "ti-layout-bottombar-collapse"}`} /></button>
         </div>
@@ -140,24 +140,24 @@ export function ObjectExplorer({ onInsertTable }: Props) {
 
             {/* Only once the list has loaded: `connections` is undefined while loading, which is not "none". */}
             {connections !== undefined && connections.length === 0 && (
-              <div style={{ padding: "16px 8px", textAlign: "center", fontSize: 12, color: "#888" }}>
+              <div style={{ padding: "16px 8px", textAlign: "center", fontSize: 12, color: "var(--ws-subtle, #888)" }}>
                 No connections yet.
                 {canManageConnections && (<>
                   <br />
                   <button
                     onClick={() => dispatch(openConnectionModal(null))}
-                    style={{ marginTop: 8, fontSize: 11.5, color: "#086347", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+                    style={{ marginTop: 8, fontSize: 11.5, color: "var(--ws-accent, #086347)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
                   >Add a database connection</button>
                 </>)}
               </div>
             )}
 
             {nsLoading && !namespaces && (
-              <div style={{ padding: "6px 10px", fontSize: 11, color: "#73827a" }}>Loading…</div>
+              <div style={{ padding: "6px 10px", fontSize: 11, color: "var(--ws-subtle, #73827a)" }}>Loading…</div>
             )}
             {nsError && <BrowseError error={nsError} />}
             {!nsError && namespaces && namespaces.length === 0 && (
-              <div style={{ padding: "6px 10px", fontSize: 11, color: "#73827a" }}>No schemas found.</div>
+              <div style={{ padding: "6px 10px", fontSize: 11, color: "var(--ws-subtle, #73827a)" }}>No schemas found.</div>
             )}
 
             {/* Namespace tree */}
@@ -175,11 +175,11 @@ export function ObjectExplorer({ onInsertTable }: Props) {
             {/* Manage connections link — workspace:connections:manage; everyone
                 else can still see/select them above, just not edit/delete/test. */}
             {canManageConnections && connections && connections.length > 0 && (
-              <div style={{ padding: "6px 6px 2px", borderTop: "0.5px solid #EEF2ED", marginTop: 4 }}>
+              <div style={{ padding: "6px 6px 2px", borderTop: "0.5px solid var(--ws-line, #EEF2ED)", marginTop: 4 }}>
                 {connections.map((c) => (
-                  <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 5, padding: "2px 4px", fontSize: 11, color: "#888" }}>
+                  <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 5, padding: "2px 4px", fontSize: 11, color: "var(--ws-subtle, #888)" }}>
                     <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
-                    <span style={{ color: c.is_verified ? "#2f6b14" : "#f59e0b", fontSize: 10 }}>●</span>
+                    <span style={{ color: c.is_verified ? "var(--ws-ok, #2f6b14)" : "#f59e0b", fontSize: 10 }}>●</span>
                     <IconAction size="sm" icon={ACTION_ICON.edit} label={`Edit ${c.name}`} onClick={() => dispatch(openConnectionModal(c.id))} />
                     <IconAction size="sm" icon={ACTION_ICON.delete} label={`Delete ${c.name}`} danger onClick={() => handleDelete(c)} />
                   </div>
@@ -203,28 +203,28 @@ function NamespaceNode({
     <div>
       <div
         onClick={onToggle}
-        style={{ display: "flex", alignItems: "center", gap: 5, padding: "3px 5px", cursor: "pointer", borderRadius: 4, fontSize: 11, fontFamily: "monospace", color: "#5B6D62" }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#EEF2ED")}
+        style={{ display: "flex", alignItems: "center", gap: 5, padding: "3px 5px", cursor: "pointer", borderRadius: 4, fontSize: 11, fontFamily: "monospace", color: "var(--ws-muted, #5B6D62)" }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--ws-hover, #EEF2ED)")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
       >
-        <i className={`ti ${open ? "ti-chevron-down" : "ti-chevron-right"}`} style={{ fontSize: 10, color: "#999" }} />
-        <i className="ti ti-database" style={{ fontSize: 12, color: "#0A7D5A" }} />
+        <i className={`ti ${open ? "ti-chevron-down" : "ti-chevron-right"}`} style={{ fontSize: 10, color: "var(--ws-faint, #999)" }} />
+        <i className="ti ti-database" style={{ fontSize: 12, color: "var(--ws-accent, #0A7D5A)" }} />
         {namespace.toUpperCase()}
       </div>
       {open && error && <BrowseError error={error} indent />}
       {open && tables?.length === 0 && (
-        <div style={{ padding: "3px 5px 3px 22px", fontSize: 11, color: "#73827a" }}>No tables</div>
+        <div style={{ padding: "3px 5px 3px 22px", fontSize: 11, color: "var(--ws-subtle, #73827a)" }}>No tables</div>
       )}
       {open && tables?.map((t) => (
         <div
           key={t.name}
           onClick={() => onInsertTable?.(`${namespace}.${t.name}`)}
-          style={{ display: "flex", alignItems: "center", gap: 5, padding: "3px 5px 3px 22px", cursor: "pointer", fontSize: 11, fontFamily: "monospace", color: "#5B6D62", borderRadius: 4 }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "#EEF2ED")}
+          style={{ display: "flex", alignItems: "center", gap: 5, padding: "3px 5px 3px 22px", cursor: "pointer", fontSize: 11, fontFamily: "monospace", color: "var(--ws-muted, #5B6D62)", borderRadius: 4 }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--ws-hover, #EEF2ED)")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           title={`Click to insert ${namespace}.${t.name}`}
         >
-          <i className={`ti ${t.table_type === "view" ? "ti-eye" : "ti-table"}`} style={{ fontSize: 11, color: "#0A7D5A" }} />
+          <i className={`ti ${t.table_type === "view" ? "ti-eye" : "ti-table"}`} style={{ fontSize: 11, color: "var(--ws-accent, #0A7D5A)" }} />
           {t.name}
         </div>
       ))}
@@ -236,7 +236,7 @@ function NamespaceNode({
 function BrowseError({ error, indent }: { error: unknown; indent?: boolean }) {
   const message = apiErrorMessage(error, asApiError(error).error ?? "Couldn't load the catalog.", { prefer: "detail" });
   return (
-    <div style={{ margin: indent ? "2px 6px 4px 22px" : "4px 6px", padding: "6px 8px", fontSize: 11, lineHeight: 1.45, color: "#b23b3b", background: "#fbe9e9", borderRadius: 5 }}>
+    <div style={{ margin: indent ? "2px 6px 4px 22px" : "4px 6px", padding: "6px 8px", fontSize: 11, lineHeight: 1.45, color: "var(--ws-bad, #b23b3b)", background: "var(--ws-bad-bg, #fbe9e9)", borderRadius: 5 }}>
       <i className="ti ti-alert-circle" style={{ fontSize: 11 }} /> {message}
     </div>
   );

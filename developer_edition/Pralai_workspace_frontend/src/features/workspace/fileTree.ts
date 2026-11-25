@@ -24,20 +24,20 @@ export function languageFromFileName(name: string): FileLanguage {
 export interface FileIcon { icon: string; color: string }
 
 const ICON_BY_EXTENSION: Record<string, FileIcon> = {
-  sql: { icon: "ti-file-type-sql", color: "#0A7D5A" },
-  md: { icon: "ti-markdown", color: "#0A7D5A" },
-  markdown: { icon: "ti-markdown", color: "#0A7D5A" },
-  yml: { icon: "ti-file-settings", color: "#0A7D5A" },
-  yaml: { icon: "ti-file-settings", color: "#0A7D5A" },
-  py: { icon: "ti-brand-python", color: "#0A7D5A" },
-  ipynb: { icon: "ti-notebook", color: "#0A7D5A" },
-  json: { icon: "ti-braces", color: "#0A7D5A" },
-  csv: { icon: "ti-file-type-csv", color: "#0A7D5A" },
-  xml: { icon: "ti-file-type-xml", color: "#0A7D5A" },
-  txt: { icon: "ti-file-type-txt", color: "#0A7D5A" },
+  sql: { icon: "ti-file-type-sql", color: "var(--ws-accent, #0A7D5A)" },
+  md: { icon: "ti-markdown", color: "var(--ws-accent, #0A7D5A)" },
+  markdown: { icon: "ti-markdown", color: "var(--ws-accent, #0A7D5A)" },
+  yml: { icon: "ti-file-settings", color: "var(--ws-accent, #0A7D5A)" },
+  yaml: { icon: "ti-file-settings", color: "var(--ws-accent, #0A7D5A)" },
+  py: { icon: "ti-brand-python", color: "var(--ws-accent, #0A7D5A)" },
+  ipynb: { icon: "ti-notebook", color: "var(--ws-accent, #0A7D5A)" },
+  json: { icon: "ti-braces", color: "var(--ws-accent, #0A7D5A)" },
+  csv: { icon: "ti-file-type-csv", color: "var(--ws-accent, #0A7D5A)" },
+  xml: { icon: "ti-file-type-xml", color: "var(--ws-accent, #0A7D5A)" },
+  txt: { icon: "ti-file-type-txt", color: "var(--ws-accent, #0A7D5A)" },
 };
-const FLINKSQL_ICON: FileIcon = { icon: "ti-wave-sine", color: "#0A7D5A" };
-const PLAIN_ICON: FileIcon = { icon: "ti-file", color: "#0A7D5A" };
+const FLINKSQL_ICON: FileIcon = { icon: "ti-wave-sine", color: "var(--ws-accent, #0A7D5A)" };
+const PLAIN_ICON: FileIcon = { icon: "ti-file", color: "var(--ws-accent, #0A7D5A)" };
 
 export function fileIcon(name: string, language?: string | null): FileIcon {
   const lower = name.toLowerCase();

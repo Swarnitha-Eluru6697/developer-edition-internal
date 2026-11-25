@@ -119,20 +119,20 @@ export function FilePanelTabs({ workspaceId, activeFileId }: Props) {
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minHeight: 0 }}>
       {/* Tab bar */}
-      <div style={{ display: "flex", borderBottom: "0.5px solid #E3E8E2", flexShrink: 0 }}>
+      <div style={{ display: "flex", borderBottom: "0.5px solid var(--ws-line, #E3E8E2)", flexShrink: 0 }}>
         {(["files", "changes"] as const).map((t) => (
           <div
             key={t}
             onClick={() => dispatch(setFilePanelTab(t))}
             style={{
               flex: 1, textAlign: "center", padding: "6px 0", fontSize: 12, cursor: "pointer",
-              color: filePanelTab === t ? "#14201B" : "#888",
+              color: filePanelTab === t ? "var(--ws-text, #14201B)" : "var(--ws-subtle, #888)",
               borderBottom: filePanelTab === t ? "2px solid #0A7D5A" : "2px solid transparent",
               fontWeight: filePanelTab === t ? 500 : 400,
               display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
             }}
           >
-            {t === "files" ? "Files" : <>Changes {dirtyCount > 0 && <span style={{ background: "#fdebdd", color: "#a8470a", padding: "1px 5px", borderRadius: 4, fontSize: 10.5, fontWeight: 600 }}>{dirtyCount}</span>}</>}
+            {t === "files" ? "Files" : <>Changes {dirtyCount > 0 && <span style={{ background: "var(--ws-warn-bg, #fdebdd)", color: "var(--ws-warn, #a8470a)", padding: "1px 5px", borderRadius: 4, fontSize: 10.5, fontWeight: 600 }}>{dirtyCount}</span>}</>}
           </div>
         ))}
       </div>
@@ -141,7 +141,7 @@ export function FilePanelTabs({ workspaceId, activeFileId }: Props) {
       {filePanelTab === "files" && (
         <div style={{ flex: 1, overflow: "auto", padding: 6, display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 4px 6px", flexShrink: 0 }}>
-            <span style={{ fontSize: 10.5, color: "#73827a", textTransform: "uppercase", letterSpacing: ".06em", flex: 1 }}>Explorer</span>
+            <span style={{ fontSize: 10.5, color: "var(--ws-subtle, #73827a)", textTransform: "uppercase", letterSpacing: ".06em", flex: 1 }}>Explorer</span>
             {canEditFiles && (<>
               <button title="New file at root" onClick={() => handleCreateFile("")} style={hdrBtn}><i className="ti ti-file-plus" style={{ fontSize: 14 }} /></button>
               <button title="New folder at root" onClick={() => handleCreateFolder("")} style={hdrBtn}><i className="ti ti-folder-plus" style={{ fontSize: 14 }} /></button>
@@ -156,14 +156,14 @@ export function FilePanelTabs({ workspaceId, activeFileId }: Props) {
               // Quiet placeholder rows while the tree loads — not the "empty workspace" prompt.
               return (
                 <div aria-label="Loading files" style={{ display: "flex", flexDirection: "column", gap: 9, padding: "8px 8px" }}>
-                  {[70, 55, 80, 62, 48].map((w, i) => <div key={i} style={{ height: 9, width: `${w}%`, borderRadius: 4, background: "#EEF2ED" }} />)}
+                  {[70, 55, 80, 62, 48].map((w, i) => <div key={i} style={{ height: 9, width: `${w}%`, borderRadius: 4, background: "var(--ws-fill, #EEF2ED)" }} />)}
                 </div>
               );
             }
             return (
-              <div style={{ padding: "12px 8px", fontSize: 12, color: "#888", textAlign: "center" }}>
+              <div style={{ padding: "12px 8px", fontSize: 12, color: "var(--ws-subtle, #888)", textAlign: "center" }}>
                 Empty workspace.{" "}
-                <button onClick={() => dispatch(openGitModal())} style={{ background: "none", border: "none", color: "#086347", cursor: "pointer", fontSize: 12, textDecoration: "underline" }}>
+                <button onClick={() => dispatch(openGitModal())} style={{ background: "none", border: "none", color: "var(--ws-accent, #086347)", cursor: "pointer", fontSize: 12, textDecoration: "underline" }}>
                   Connect a Git repo
                 </button>
               </div>
@@ -203,16 +203,16 @@ function TreeNode({
           display: "flex", alignItems: "center", gap: 6,
           padding: `3px ${8 + depth * 12}px 3px ${6 + depth * 12}px`,
           borderRadius: 5, cursor: "pointer", fontSize: 12,
-          color: "#5B6D62",
+          color: "var(--ws-muted, #5B6D62)",
           background: "transparent",
         }}
-        onMouseEnter={(e) => { setHover(true); e.currentTarget.style.background = "#F8FAF9"; }}
+        onMouseEnter={(e) => { setHover(true); e.currentTarget.style.background = "var(--ws-hover, #F8FAF9)"; }}
         onMouseLeave={(e) => { setHover(false); e.currentTarget.style.background = "transparent"; }}
       >
         {isDir ? (
           <>
-            <i className={`ti ${open ? "ti-chevron-down" : "ti-chevron-right"}`} style={{ fontSize: 10, color: "#73827a" }} />
-            <i className="ti ti-folder" style={{ fontSize: 13, color: "#0A7D5A" }} />
+            <i className={`ti ${open ? "ti-chevron-down" : "ti-chevron-right"}`} style={{ fontSize: 10, color: "var(--ws-subtle, #73827a)" }} />
+            <i className="ti ti-folder" style={{ fontSize: 13, color: "var(--ws-accent, #0A7D5A)" }} />
           </>
         ) : (
           <>
@@ -247,6 +247,6 @@ function TreeNode({
 }
 
 const hdrBtn: CSSProperties = {
-  background: "none", border: "none", cursor: "pointer", color: "#5b6d62",
+  background: "none", border: "none", cursor: "pointer", color: "var(--ws-muted, #5b6d62)",
   padding: "2px 3px", display: "flex", alignItems: "center", borderRadius: 4,
 };

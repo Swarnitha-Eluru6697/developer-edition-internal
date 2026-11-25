@@ -16,7 +16,7 @@ import { STATUS_BG, STATUS_COLOR } from "../styles";
  */
 export function DbtLastRunCell({ run, unit = "model" }: { run: DbtLastRun | null; unit?: RunUnit }) {
   if (!run) {
-    return <div style={{ fontSize: 12, color: "#c7c7c2" }}>never run</div>;
+    return <div style={{ fontSize: 12, color: "var(--ws-faint, #c7c7c2)" }}>never run</div>;
   }
   const when = run.started_at ?? run.completed_at;
   const failed = (run.models_failed ?? 0) > 0;
@@ -28,15 +28,15 @@ export function DbtLastRunCell({ run, unit = "model" }: { run: DbtLastRun | null
     >
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <span style={{
-          background: STATUS_BG[run.status] ?? "#eef2ed",
-          color: STATUS_COLOR[run.status] ?? "#5b6d62",
+          background: STATUS_BG[run.status] ?? "var(--ws-fill, #eef2ed)",
+          color: STATUS_COLOR[run.status] ?? "var(--ws-muted, #5b6d62)",
           padding: "1px 7px", borderRadius: 4, fontSize: 11, fontWeight: 600,
         }}>{run.status}</span>
-        {when && <span style={{ fontSize: 11.5, color: "#73827a" }}>{timeAgo(when)}</span>}
+        {when && <span style={{ fontSize: 11.5, color: "var(--ws-subtle, #73827a)" }}>{timeAgo(when)}</span>}
       </div>
       {detail && (
         <div style={{
-          fontSize: 10.5, color: failed ? "#b23b3b" : "#73827a",
+          fontSize: 10.5, color: failed ? "var(--ws-bad, #b23b3b)" : "var(--ws-subtle, #73827a)",
           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>{detail}</div>
       )}

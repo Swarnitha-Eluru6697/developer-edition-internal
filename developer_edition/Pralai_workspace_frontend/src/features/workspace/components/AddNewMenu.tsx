@@ -83,10 +83,10 @@ export function AddNewMenu({ onNewFile, onNewDbtProject, openSignal = 0 }: Props
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        style={{ height: 30, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12.5, fontWeight: 600, border: `1px solid ${open ? "#0A7D5A" : "#E3E8E2"}`, boxShadow: open ? "0 0 0 3px #E3F6EA" : "none", borderRadius: 8, background: "#fff", cursor: "pointer", color: open ? "#086347" : "#2E3D36" }}
+        style={{ height: 30, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12.5, fontWeight: 600, border: `1px solid ${open ? "#0A7D5A" : "var(--ws-line, #E3E8E2)"}`, boxShadow: open ? "0 0 0 3px var(--ws-accent-bg, #E3F6EA)" : "none", borderRadius: 8, background: "var(--ws-surface, #fff)", cursor: "pointer", color: open ? "var(--ws-accent, #086347)" : "var(--ws-text-2, #2E3D36)" }}
       >
         <i className="ti ti-plus" style={{ fontSize: 13 }} />Add New
-        <i className="ti ti-chevron-down" style={{ fontSize: 11, color: "#73827A", transform: open ? "rotate(180deg)" : "none", transition: "transform .12s" }} />
+        <i className="ti ti-chevron-down" style={{ fontSize: 11, color: "var(--ws-subtle, #73827A)", transform: open ? "rotate(180deg)" : "none", transition: "transform .12s" }} />
       </button>
 
       {open && pos && createPortal(

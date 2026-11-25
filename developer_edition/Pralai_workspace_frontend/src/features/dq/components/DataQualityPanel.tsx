@@ -105,7 +105,7 @@ export function DataQualityPanel({ navItem }: { navItem?: string }) {
   };
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#fff" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "var(--ws-surface, #fff)" }}>
       {/* Header */}
       <PageHeader
         eyebrow="Govern"
@@ -138,7 +138,7 @@ export function DataQualityPanel({ navItem }: { navItem?: string }) {
       />
 
       {/* Tabs */}
-      <div style={{ display: "flex", alignItems: "center", borderBottom: "0.5px solid #E3E8E2", background: "#F8FAF9", flexShrink: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", borderBottom: "0.5px solid var(--ws-line, #E3E8E2)", background: "var(--ws-bg, #F8FAF9)", flexShrink: 0 }}>
         {DQ_TABS.map((t) => (
           <div
             key={t}
@@ -147,7 +147,7 @@ export function DataQualityPanel({ navItem }: { navItem?: string }) {
             style={{
               padding: "9px 16px", fontSize: 12.5,
               cursor: t === "render" && !selectedBinding ? "not-allowed" : "pointer",
-              color: tab === t ? "#14201B" : t === "render" && !selectedBinding ? "#c4c4c0" : "#5b6d62",
+              color: tab === t ? "var(--ws-text, #14201B)" : t === "render" && !selectedBinding ? "var(--ws-faint, #c4c4c0)" : "var(--ws-muted, #5b6d62)",
               borderBottom: tab === t ? "2px solid #0A7D5A" : "2px solid transparent",
               fontWeight: tab === t ? 500 : 400,
             }}

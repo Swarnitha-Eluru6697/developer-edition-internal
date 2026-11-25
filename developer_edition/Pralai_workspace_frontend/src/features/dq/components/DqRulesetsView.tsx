@@ -60,22 +60,22 @@ export function DqRulesetsView({ canEdit, creating, onCloseCreate }: {
 
   return (
     <div>
-      {isLoading && <div style={{ padding: 24, textAlign: "center", color: "#73827a", fontSize: 13 }}>Loading rulesets…</div>}
+      {isLoading && <div style={{ padding: 24, textAlign: "center", color: "var(--ws-subtle, #73827a)", fontSize: 13 }}>Loading rulesets…</div>}
       {error && <ErrorBox error={error} what="Could not load the rulesets." />}
       {!isLoading && !error && !rulesets?.length && (
         <Empty title="No rulesets yet"
           text="Create a ruleset, add rules from the Rule library, then bind it to a job under Job bindings." />
       )}
       {rulesets?.map((rs) => (
-        <div key={rs.id} style={{ borderBottom: "0.5px solid #E3E8E2" }}>
+        <div key={rs.id} style={{ borderBottom: "0.5px solid var(--ws-line, #E3E8E2)" }}>
           <div onClick={() => setOpen(open === rs.id ? null : rs.id)}
-            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", cursor: "pointer", background: open === rs.id ? "#fffaf5" : "transparent" }}>
-            <i className={`ti ti-chevron-${open === rs.id ? "down" : "right"}`} style={{ fontSize: 14, color: "#73827a" }} />
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", cursor: "pointer", background: open === rs.id ? "var(--ws-warn-bg, #fffaf5)" : "transparent" }}>
+            <i className={`ti ti-chevron-${open === rs.id ? "down" : "right"}`} style={{ fontSize: 14, color: "var(--ws-subtle, #73827a)" }} />
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 600, ...cellEllipsis }}>{rs.name}</div>
-              {rs.description && <div style={{ fontSize: 11.5, color: "#5b6d62", ...cellEllipsis }}>{rs.description}</div>}
+              {rs.description && <div style={{ fontSize: 11.5, color: "var(--ws-muted, #5b6d62)", ...cellEllipsis }}>{rs.description}</div>}
             </div>
-            <span style={chip("#4b5a53", "#eef2ed")}>{rs.item_count} rule{rs.item_count === 1 ? "" : "s"}</span>
+            <span style={chip("var(--ws-text-2, #4b5a53)", "var(--ws-fill, #eef2ed)")}>{rs.item_count} rule{rs.item_count === 1 ? "" : "s"}</span>
             {canEdit && <IconAction size="sm" icon={ACTION_ICON.delete} label="Delete ruleset" danger
               onClick={(e) => { e.stopPropagation(); remove(rs); }} />}
           </div>
@@ -91,7 +91,7 @@ export function DqRulesetsView({ canEdit, creating, onCloseCreate }: {
               {saving ? "Creating…" : "Create ruleset"}</button>
             <button onClick={close} style={drawerBtn(false)}>Cancel</button>
           </>}>
-          <div style={{ fontSize: 12, color: "#5b6d62", lineHeight: 1.55, marginBottom: 14 }}>
+          <div style={{ fontSize: 12, color: "var(--ws-muted, #5b6d62)", lineHeight: 1.55, marginBottom: 14 }}>
             Name it after the table it will check. Rules are added next, from the library.
           </div>
           <Field label="Name" required hint="Unique within your organisation.">
@@ -128,8 +128,8 @@ function RulesetItems({ ruleset, canEdit }: { ruleset: DqRulesetSummary; canEdit
   };
 
   return (
-    <div style={{ background: "#fff", paddingBottom: 10 }}>
-      {isLoading && <div style={{ padding: "8px 16px 8px 40px", fontSize: 12, color: "#73827a" }}>Loading rules…</div>}
+    <div style={{ background: "var(--ws-surface, #fff)", paddingBottom: 10 }}>
+      {isLoading && <div style={{ padding: "8px 16px 8px 40px", fontSize: 12, color: "var(--ws-subtle, #73827a)" }}>Loading rules…</div>}
       {items && items.length > 0 && (
         <>
           <div style={tableHead(ITEM_COLS)}>
@@ -142,13 +142,13 @@ function RulesetItems({ ruleset, canEdit }: { ruleset: DqRulesetSummary; canEdit
               <div key={it.id} style={{ ...tableRow(ITEM_COLS), opacity: it.enabled ? 1 : 0.55 }}>
                 <div style={{ ...cellEllipsis, fontFamily: "monospace", fontSize: 12, fontWeight: 600 }}>{it.rule?.name ?? it.rule_id}</div>
                 <div style={{ ...cellEllipsis, fontFamily: "monospace", fontSize: 12 }}>{it.rule?.rule_type ?? "—"}</div>
-                <div style={{ ...cellEllipsis, fontFamily: "monospace", fontSize: 12 }}>{it.column_name || <span style={{ color: "#73827a" }}>table-level</span>}</div>
+                <div style={{ ...cellEllipsis, fontFamily: "monospace", fontSize: 12 }}>{it.column_name || <span style={{ color: "var(--ws-subtle, #73827a)" }}>table-level</span>}</div>
                 <div><span style={chip(ds.fg, ds.bg)}>{it.rule?.dimension ?? "—"}</span></div>
                 <div><span style={chip(ss.fg, ss.bg)}>{it.rule?.severity ?? "—"}</span></div>
-                <div style={{ ...cellEllipsis, fontFamily: "monospace", fontSize: 11.5, color: "#5b6d62" }} title={ov}>{ov}</div>
+                <div style={{ ...cellEllipsis, fontFamily: "monospace", fontSize: 11.5, color: "var(--ws-muted, #5b6d62)" }} title={ov}>{ov}</div>
                 <div>
                   <input type="checkbox" checked={it.enabled} disabled={!canEdit} aria-label="Enabled in this ruleset"
-                    title="Enable or disable in this ruleset" onChange={() => toggle(it.id, it.enabled)} style={{ accentColor: "#0A7D5A" }} />
+                    title="Enable or disable in this ruleset" onChange={() => toggle(it.id, it.enabled)} style={{ accentColor: "var(--ws-accent, #0A7D5A)" }} />
                 </div>
                 <div style={{ display: "flex", justifyContent: "flex-end" }}>
                   {canEdit && <IconAction size="sm" icon={ACTION_ICON.delete} label="Remove from ruleset" danger onClick={() => remove(it.id)} />}
@@ -159,11 +159,11 @@ function RulesetItems({ ruleset, canEdit }: { ruleset: DqRulesetSummary; canEdit
         </>
       )}
       {items && !items.length && (
-        <div style={{ padding: "8px 16px 8px 40px", fontSize: 12.5, color: "#5b6d62" }}>This ruleset is empty. Add a rule from the library.</div>
+        <div style={{ padding: "8px 16px 8px 40px", fontSize: 12.5, color: "var(--ws-muted, #5b6d62)" }}>This ruleset is empty. Add a rule from the library.</div>
       )}
       {canEdit && (
         <button onClick={() => setAdding(true)}
-          style={{ margin: "8px 0 0 40px", background: "none", border: "0.5px solid #cfd8d1", borderRadius: 6, padding: "5px 10px", fontSize: 12, cursor: "pointer", color: "#2E3D36", display: "inline-flex", gap: 5, alignItems: "center" }}>
+          style={{ margin: "8px 0 0 40px", background: "none", border: "0.5px solid var(--ws-line-strong, #cfd8d1)", borderRadius: 6, padding: "5px 10px", fontSize: 12, cursor: "pointer", color: "var(--ws-text-2, #2E3D36)", display: "inline-flex", gap: 5, alignItems: "center" }}>
           <i className="ti ti-plus" style={{ fontSize: 13 }} />Add rule
         </button>
       )}
@@ -207,7 +207,7 @@ function AddRuleDrawer({ ruleset, onClose }: { ruleset: DqRulesetSummary; onClos
       <Field label="Parameter overrides (JSON)"
         hint={overrides ? "Merged over the rule's own parameters, for this ruleset only." : "Not a valid JSON object."}>
         <textarea rows={3} value={pick.overrides} placeholder='{"min": 0}'
-          style={{ ...inp, height: "auto", padding: 8, fontFamily: "monospace", borderColor: overrides ? "#cfd8d1" : "#b23b3b" }}
+          style={{ ...inp, height: "auto", padding: 8, fontFamily: "monospace", borderColor: overrides ? "var(--ws-line-strong, #cfd8d1)" : "#b23b3b" }}
           onChange={(e) => setPick({ ...pick, overrides: e.target.value })} />
       </Field>
     </Drawer>
@@ -217,16 +217,16 @@ function AddRuleDrawer({ ruleset, onClose }: { ruleset: DqRulesetSummary; onClos
 export function Empty({ title, text, icon = "ti-checkup-list" }: { title: string; text: string; icon?: string }) {
   return (
     <div style={{ padding: 32, textAlign: "center" }}>
-      <i className={`ti ${icon}`} style={{ fontSize: 32, color: "#cfd8d1", display: "block", marginBottom: 10 }} />
+      <i className={`ti ${icon}`} style={{ fontSize: 32, color: "var(--ws-faint, #cfd8d1)", display: "block", marginBottom: 10 }} />
       <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 5 }}>{title}</div>
-      <div style={{ fontSize: 12.5, color: "#5b6d62" }}>{text}</div>
+      <div style={{ fontSize: 12.5, color: "var(--ws-muted, #5b6d62)" }}>{text}</div>
     </div>
   );
 }
 
 export function ErrorBox({ error, what }: { error: unknown; what: string }) {
   return (
-    <div style={{ margin: 16, padding: "10px 12px", background: "#fbe9e9", border: "0.5px solid #fecaca", borderRadius: 6, fontSize: 12.5, color: "#b23b3b", lineHeight: 1.5 }}>
+    <div style={{ margin: 16, padding: "10px 12px", background: "var(--ws-bad-bg, #fbe9e9)", border: "0.5px solid var(--ws-bad-line, #fecaca)", borderRadius: 6, fontSize: 12.5, color: "var(--ws-bad, #b23b3b)", lineHeight: 1.5 }}>
       {apiErrorMessage(error, what, { prefer: "detail" })}
     </div>
   );

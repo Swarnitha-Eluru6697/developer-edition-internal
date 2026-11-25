@@ -69,23 +69,23 @@ export function AlertDetailDrawer({ alert, canAct, onClose }: Props) {
 
       <Section title="What happened">
         <p style={{ fontSize: 13.5, lineHeight: 1.55, margin: 0, overflowWrap: "anywhere" }}>{a.summary}</p>
-        <p style={{ ...mono, fontSize: 11.5, color: "#73827a", margin: "8px 0 0" }}>Raised {formatTs(a.raised_at)}</p>
+        <p style={{ ...mono, fontSize: 11.5, color: "var(--ws-subtle, #73827a)", margin: "8px 0 0" }}>Raised {formatTs(a.raised_at)}</p>
         {a.delivery !== "sent" && a.state === "open" && (
-          <p style={{ fontSize: 12, color: "#A8470A", margin: "8px 0 0" }}>
+          <p style={{ fontSize: 12, color: "var(--ws-warn, #A8470A)", margin: "8px 0 0" }}>
             {a.delivery === "failed" ? "No channel has received this yet: delivery failed." : "No channel has received this yet: none matches it."}
           </p>
         )}
       </Section>
 
       <Section title="History">
-        {a.events.length === 0 && <div style={{ fontSize: 12, color: "#73827a" }}>Loading…</div>}
+        {a.events.length === 0 && <div style={{ fontSize: 12, color: "var(--ws-subtle, #73827a)" }}>Loading…</div>}
         <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
           {a.events.map((e, i) => (
             <li key={i} style={{ display: "flex", gap: 10, padding: "5px 0", fontSize: 12.5 }}>
               <span aria-hidden style={{ width: 8, height: 8, borderRadius: "50%", background: "#0A7D5A", marginTop: 5, flexShrink: 0 }} />
               <span style={{ minWidth: 0 }}>
-                <b>{e.action}</b> by {e.actor}<span style={{ ...mono, color: "#73827a" }}> · {formatTs(e.at)}</span>
-                {e.note && <span style={{ display: "block", color: "#5b6d62", overflowWrap: "anywhere" }}>{e.note}</span>}
+                <b>{e.action}</b> by {e.actor}<span style={{ ...mono, color: "var(--ws-subtle, #73827a)" }}> · {formatTs(e.at)}</span>
+                {e.note && <span style={{ display: "block", color: "var(--ws-muted, #5b6d62)", overflowWrap: "anywhere" }}>{e.note}</span>}
               </span>
             </li>
           ))}
@@ -104,7 +104,7 @@ export function AlertDetailDrawer({ alert, canAct, onClose }: Props) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 18 }}>
-      <div style={{ fontSize: 10.5, fontWeight: 600, color: "#73827a", textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 7 }}>{title}</div>
+      <div style={{ fontSize: 10.5, fontWeight: 600, color: "var(--ws-subtle, #73827a)", textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 7 }}>{title}</div>
       {children}
     </div>
   );

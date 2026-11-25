@@ -50,7 +50,7 @@ export function DqCreateBindingDrawer({ binding, onClose }: { binding: BindingFo
         <button onClick={onClose} style={drawerBtn(false)}>Cancel</button>
       </>}
     >
-      <div style={{ fontSize: 12, color: "#5b6d62", lineHeight: 1.55, marginBottom: 14 }}>
+      <div style={{ fontSize: 12, color: "var(--ws-muted, #5b6d62)", lineHeight: 1.55, marginBottom: 14 }}>
         A binding attaches a ruleset to one table produced by one job. Rulesets are
         written under Data Quality → Rulesets.
       </div>
@@ -62,7 +62,7 @@ export function DqCreateBindingDrawer({ binding, onClose }: { binding: BindingFo
             value: rs.id, label: rs.name, hint: rs.item_count ? `${rs.item_count} rules` : undefined,
           }))} />
         {rulesets && rulesets.length === 0 && (
-          <div style={{ fontSize: 11, color: "#a8470a", marginTop: 4, lineHeight: 1.45 }}>
+          <div style={{ fontSize: 11, color: "var(--ws-warn, #a8470a)", marginTop: 4, lineHeight: 1.45 }}>
             No rulesets yet. Create one under the Rulesets tab first.
           </div>
         )}

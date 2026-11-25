@@ -130,7 +130,7 @@ export default function FeaturesPanel({ agent: initialAgent, onClose, onSaved }:
 
           <div className="feature-row">
             <div className="feature-row-h">
-              <span className="feature-icon" style={{ background: '#B5650A' }}><Icon name="i-scroll" /></span>
+              <span className="feature-icon" style={{ background: 'var(--dot-tool, #B5650A)' }}><Icon name="i-scroll" /></span>
               <div style={{ flex: 1 }}><b>Citations and Attributions</b><div className="small muted">Shows the real retrieved source chunks when a flow's retrieval node uses a registered knowledge base — nothing shown if there's no real data to cite.</div></div>
               <label className="switch"><input type="checkbox" checked={!!features.citations?.enabled} onChange={(e) => toggle('citations', e.target.checked)} /><span /></label>
             </div>

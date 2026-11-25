@@ -11,7 +11,7 @@ import { hasPortalChrome, hostAccountMenu, hostRoleBadges, isEmbedded } from "..
 import type { UUID, Workspace } from "../types";
 import { HeaderSearch } from "./HeaderSearch";
 import { NotificationBell } from "./NotificationBell";
-import { DeveloperUserMenu } from "./DeveloperUserMenu";
+import { DeveloperUserMenu, inDeveloperShell } from "./DeveloperUserMenu";
 import { useGetMeQuery } from "../features/workspace/api";
 
 interface Props {
@@ -22,7 +22,7 @@ interface Props {
 
 const iconBtn: CSSProperties = {
   width: 34, height: 34, borderRadius: 9, display: "grid", placeItems: "center",
-  border: "none", background: "none", color: "#5B6D62", cursor: "pointer", flexShrink: 0,
+  border: "none", background: "none", color: "var(--ws-muted, #5B6D62)", cursor: "pointer", flexShrink: 0,
 };
 // One line that never wraps the header: it may shrink (down to nothing) and scrolls sideways when the role names don't fit.
 const roleBadgesSlot: CSSProperties = {
@@ -32,19 +32,21 @@ const roleBadgesSlot: CSSProperties = {
 
 export function AppHeader({ workspaces, activeWs, onSelectWorkspace }: Props) {
   const portalChrome = hasPortalChrome();
+  // Inside the Developer Edition dashboard its left rail carries notifications and the account menu.
+  const devShell = inDeveloperShell();
   return (
-    <div style={{ height: 56, flexShrink: 0, display: "flex", alignItems: "center", gap: 16, padding: "0 20px", background: "#fff", borderBottom: "1px solid #E3E8E2", position: "relative", zIndex: 20 }}>
+    <div style={{ height: 56, flexShrink: 0, display: "flex", alignItems: "center", gap: 16, padding: "0 20px", background: "var(--ws-surface, #fff)", borderBottom: "1px solid var(--ws-line, #E3E8E2)", position: "relative", zIndex: 20 }}>
       <HeaderSearch workspaces={workspaces} activeWs={activeWs} onSelectWorkspace={onSelectWorkspace} />
       <div style={{ flex: 1 }} />
       {portalChrome ? (
         <div data-testid="portal-role-badges" style={roleBadgesSlot}>{hostRoleBadges()}</div>
-      ) : (
+      ) : devShell ? null : (
         <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
           <NotificationBell buttonStyle={iconBtn} />
         </div>
       )}
       {/* Inside the portal its account menu (profile, sign out) takes this place, if it still passes one (older portals). */}
-      {isEmbedded() ? hostAccountMenu() : <WorkspaceUser />}
+      {isEmbedded() ? hostAccountMenu() : devShell ? null : <WorkspaceUser />}
     </div>
   );
 }

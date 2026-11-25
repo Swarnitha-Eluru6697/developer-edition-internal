@@ -11,9 +11,9 @@ export function FlinkValidationStrip({ result, onDismiss }: { result: FlinkValid
   return (
     <div style={{
       flexShrink: 0, display: "flex", alignItems: "flex-start", gap: 8, padding: "7px 12px",
-      borderBottom: "0.5px solid #E3E8E2", fontSize: 12,
-      background: result.valid ? "#eaf3e1" : "#fbe9e9",
-      color: result.valid ? "#2f6b14" : "#b23b3b",
+      borderBottom: "0.5px solid var(--ws-line, #E3E8E2)", fontSize: 12,
+      background: result.valid ? "var(--ws-ok-bg, #eaf3e1)" : "var(--ws-bad-bg, #fbe9e9)",
+      color: result.valid ? "var(--ws-ok, #2f6b14)" : "var(--ws-bad, #b23b3b)",
     }}>
       <i className={`ti ${result.valid ? "ti-circle-check" : "ti-alert-circle"}`} style={{ fontSize: 14, marginTop: 1, flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -22,10 +22,10 @@ export function FlinkValidationStrip({ result, onDismiss }: { result: FlinkValid
             Valid FlinkSQL
             {result.statement_count != null && ` — ${result.statement_count} statement(s)`}
             {!!result.detected_sources?.length && (
-              <span style={{ color: "#5b6d62" }}> · sources: {result.detected_sources.join(", ")}</span>
+              <span style={{ color: "var(--ws-muted, #5b6d62)" }}> · sources: {result.detected_sources.join(", ")}</span>
             )}
             {!!result.detected_sinks?.length && (
-              <span style={{ color: "#5b6d62" }}> · sinks: {result.detected_sinks.join(", ")}</span>
+              <span style={{ color: "var(--ws-muted, #5b6d62)" }}> · sinks: {result.detected_sinks.join(", ")}</span>
             )}
           </>
         ) : (

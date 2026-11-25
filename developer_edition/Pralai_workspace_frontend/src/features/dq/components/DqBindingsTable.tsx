@@ -20,22 +20,22 @@ export function DqBindingsTable({ bindings, loading: loadingBindings, filtered, 
   return (
     <div>
     {loadingBindings && (
-      <div style={{ padding: 24, textAlign: "center", color: "#73827a", fontSize: 13 }}>Loading bindings…</div>
+      <div style={{ padding: 24, textAlign: "center", color: "var(--ws-subtle, #73827a)", fontSize: 13 }}>Loading bindings…</div>
     )}
     {!loadingBindings && !bindings?.length && (
       <div style={{ padding: 32, textAlign: "center" }}>
-        <i className="ti ti-checkup-list" style={{ fontSize: 32, color: "#cfd8d1", display: "block", marginBottom: 10 }} />
+        <i className="ti ti-checkup-list" style={{ fontSize: 32, color: "var(--ws-faint, #cfd8d1)", display: "block", marginBottom: 10 }} />
         <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 5 }}>
           {filtered ? "No bindings for this job type" : "No bindings yet"}
         </div>
-        <div style={{ fontSize: 12.5, color: "#5b6d62" }}>
+        <div style={{ fontSize: 12.5, color: "var(--ws-muted, #5b6d62)" }}>
           Attach a ruleset to a dbt project, FlinkSQL job or Python job to run its checks.
         </div>
       </div>
     )}
     {bindings && bindings.length > 0 && (
       <>
-        <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr 1.4fr 0.8fr 120px", gap: 12, padding: "6px 16px", fontSize: 10.5, color: "#73827a", textTransform: "uppercase", letterSpacing: ".06em", borderBottom: "0.5px solid #E3E8E2", background: "#F8FAF9" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr 1.4fr 0.8fr 120px", gap: 12, padding: "6px 16px", fontSize: 10.5, color: "var(--ws-subtle, #73827a)", textTransform: "uppercase", letterSpacing: ".06em", borderBottom: "0.5px solid var(--ws-line, #E3E8E2)", background: "var(--ws-thead, #F8FAF9)" }}>
           <div>Ruleset</div><div>Job type</div><div>Target table</div>
           <div>Dataset</div><div>Enforcement</div><div />
         </div>
@@ -50,8 +50,8 @@ export function DqBindingsTable({ bindings, loading: loadingBindings, filtered, 
               style={{
                 display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr 1.4fr 0.8fr 120px", gap: 12,
                 alignItems: "center", padding: "9px 16px", fontSize: 12.5,
-                borderBottom: "0.5px solid #f0f0ed", cursor: "pointer",
-                background: isSelected ? "#f5f9ff" : "transparent",
+                borderBottom: "0.5px solid var(--ws-line, #f0f0ed)", cursor: "pointer",
+                background: isSelected ? "var(--ws-info-bg, #f5f9ff)" : "transparent",
               }}
             >
               <div style={cellEllipsis}>{b.ruleset?.name ?? b.ruleset_id}</div>
@@ -62,11 +62,11 @@ export function DqBindingsTable({ bindings, loading: loadingBindings, filtered, 
                 </span>
               </div>
               <div style={{ ...cellEllipsis, fontFamily: "monospace", fontSize: 12 }}>{b.target_table}</div>
-              <div style={{ ...cellEllipsis, fontFamily: "monospace", fontSize: 11.5, color: "#5b6d62" }}>{b.ucs_fqn}</div>
+              <div style={{ ...cellEllipsis, fontFamily: "monospace", fontSize: 11.5, color: "var(--ws-muted, #5b6d62)" }}>{b.ucs_fqn}</div>
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                 <span style={chip(ms.fg, ms.bg)}>{b.enforcement_mode}</span>
                 {!b.resolved_at && (
-                  <span title="Not resolved against its job and dataset — apply is refused until resolved" style={chip("#a8470a", "#fdebdd")}>unresolved</span>
+                  <span title="Not resolved against its job and dataset — apply is refused until resolved" style={chip("var(--ws-warn, #a8470a)", "var(--ws-warn-bg, #fdebdd)")}>unresolved</span>
                 )}
               </div>
               <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>

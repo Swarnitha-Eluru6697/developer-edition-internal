@@ -28,7 +28,7 @@ interface Props {
 }
 
 const hover = {
-  onMouseEnter: (e: React.MouseEvent<HTMLDivElement>) => (e.currentTarget.style.background = "#F8FAF9"),
+  onMouseEnter: (e: React.MouseEvent<HTMLDivElement>) => (e.currentTarget.style.background = "var(--ws-hover, #F8FAF9)"),
   onMouseLeave: (e: React.MouseEvent<HTMLDivElement>) => (e.currentTarget.style.background = "transparent"),
 };
 
@@ -102,25 +102,25 @@ export function WorkspaceSwitcher({ workspaces, activeWs, onSelect, onNewWorkspa
         <button
           ref={triggerRef}
           onClick={() => setOpen(!open)}
-          style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 600, background: "none", border: "none", padding: 0, cursor: "pointer", color: "#14201B" }}
+          style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 600, background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--ws-text, #14201B)" }}
         >
-          <i className="ti ti-folder" style={{ fontSize: 14, color: "#0A7D5A" }} />
+          <i className="ti ti-folder" style={{ fontSize: 14, color: "var(--ws-accent, #0A7D5A)" }} />
           {(() => {
             const label = workspaceLabel(workspaces, activeWs);
             if (label.kind === "name") return label.text;
             // Loading: a quiet bar, not a made-up name. Loaded with none: say so.
             return label.kind === "loading"
-              ? <span aria-label="Loading workspace" style={{ display: "inline-block", width: 96, height: 10, borderRadius: 4, background: "#EEF2ED" }} />
-              : <span style={{ color: "#73827a", fontWeight: 400 }}>No workspace</span>;
+              ? <span aria-label="Loading workspace" style={{ display: "inline-block", width: 96, height: 10, borderRadius: 4, background: "var(--ws-fill, #EEF2ED)" }} />
+              : <span style={{ color: "var(--ws-subtle, #73827a)", fontWeight: 400 }}>No workspace</span>;
           })()}
-          <i className="ti ti-chevron-down" style={{ fontSize: 11, color: "#73827a" }} />
+          <i className="ti ti-chevron-down" style={{ fontSize: 11, color: "var(--ws-subtle, #73827a)" }} />
         </button>
         {canEditFiles && <div ref={actionsRef} style={{ position: "relative" }}>
           <IconAction size="sm" icon="ti-dots" label="Workspace actions" on={actionsOpen}
             onClick={() => { setActionsOpen((o) => !o); setOpen(false); }} />
           {actionsOpen && (
             <div role="menu" aria-label="Workspace actions"
-              style={{ position: "absolute", top: 30, right: 0, display: "flex", gap: 6, padding: 6, background: "#fff", border: "1px solid #E3E8E2", borderRadius: 10, boxShadow: "0 12px 40px rgba(11,59,46,.18)", zIndex: 120 }}>
+              style={{ position: "absolute", top: 30, right: 0, display: "flex", gap: 6, padding: 6, background: "var(--ws-surface, #fff)", border: "1px solid var(--ws-line, #E3E8E2)", borderRadius: 10, boxShadow: "0 12px 40px rgba(11,59,46,.18)", zIndex: 120 }}>
               <IconAction icon="ti-file-plus" label="Add file" disabled={!activeWs} onClick={act(onAddFile)} />
               <IconAction icon={ACTION_ICON.edit} label="Rename workspace" disabled={!activeWs} onClick={act(onRenameWorkspace)} />
               <IconAction icon={ACTION_ICON.delete} label="Delete workspace" danger disabled={!activeWs} onClick={act(onDeleteWorkspace)} />
@@ -153,20 +153,20 @@ export function WorkspaceSwitcher({ workspaces, activeWs, onSelect, onNewWorkspa
                 onMouseMove={() => setActive(i)}
                 onClick={() => pick(w.id)}
               >
-                <i className="ti ti-layout-board-split" style={{ fontSize: 14, color: "#0A7D5A" }} />
+                <i className="ti ti-layout-board-split" style={{ fontSize: 14, color: "var(--ws-accent, #0A7D5A)" }} />
                 <span className="ss-option-label">{w.name}</span>
                 {w.id === activeWs && <svg className="ss-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 5 5L20 7" /></svg>}
               </div>
             ))}
             {!shown.length && <div className="ss-empty">Nothing matches</div>}
             {canEditFiles && (<>
-            <div className="ss-group" style={{ borderTop: "1px solid #EEF2ED", marginTop: 4 }}>Create workspace</div>
+            <div className="ss-group" style={{ borderTop: "1px solid var(--ws-line, #EEF2ED)", marginTop: 4 }}>Create workspace</div>
             <div className="ss-option" onClick={() => { setOpen(false); onNewWorkspace(); }} {...hover}>
-              <i className="ti ti-plus" style={{ fontSize: 14, color: "#0A7D5A" }} />
+              <i className="ti ti-plus" style={{ fontSize: 14, color: "var(--ws-accent, #0A7D5A)" }} />
               <span className="ss-option-label">New</span>
             </div>
             <div className="ss-option" onClick={() => { dispatch(openGitModal()); setOpen(false); }} {...hover}>
-              <i className="ti ti-git-fork" style={{ fontSize: 14, color: "#0A7D5A" }} />
+              <i className="ti ti-git-fork" style={{ fontSize: 14, color: "var(--ws-accent, #0A7D5A)" }} />
               <span className="ss-option-label">From Git repository</span>
             </div>
             </>)}

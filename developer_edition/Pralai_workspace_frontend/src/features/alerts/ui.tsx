@@ -4,12 +4,12 @@ import type { AlertSeverity } from "../../types";
 
 type Tone = "red" | "amber" | "slate" | "blue" | "green" | "line";
 const TONES: Record<Tone, CSSProperties> = {
-  red: { background: "#FBE9E9", color: "#B23B3B", border: "1px solid transparent" },
-  amber: { background: "#FDEBDD", color: "#A8470A", border: "1px solid transparent" },
-  slate: { background: "#EEF2ED", color: "#4B5A53", border: "1px solid transparent" },
-  blue: { background: "#DBEAFE", color: "#1D4ED8", border: "1px solid transparent" },
-  green: { background: "#EAF3E1", color: "#2F6B14", border: "1px solid transparent" },
-  line: { background: "#fff", color: "#4B5A53", border: "1px solid #E3E8E2" },
+  red: { background: "var(--ws-bad-bg, #FBE9E9)", color: "var(--ws-bad, #B23B3B)", border: "1px solid transparent" },
+  amber: { background: "var(--ws-warn-bg, #FDEBDD)", color: "var(--ws-warn, #A8470A)", border: "1px solid transparent" },
+  slate: { background: "var(--ws-fill, #EEF2ED)", color: "var(--ws-text-2, #4B5A53)", border: "1px solid transparent" },
+  blue: { background: "var(--ws-info-bg, #DBEAFE)", color: "var(--ws-info, #1D4ED8)", border: "1px solid transparent" },
+  green: { background: "var(--ws-ok-bg, #EAF3E1)", color: "var(--ws-ok, #2F6B14)", border: "1px solid transparent" },
+  line: { background: "var(--ws-surface, #fff)", color: "var(--ws-text-2, #4B5A53)", border: "1px solid var(--ws-line, #E3E8E2)" },
 };
 
 export function Chip({ tone = "line", children, title }: { tone?: Tone; children: ReactNode; title?: string }) {
@@ -33,10 +33,10 @@ export function Toggle({ checked, onChange, label, disabled }: { checked: boolea
       onClick={() => onChange(!checked)}
       style={{
         width: 34, height: 20, borderRadius: 999, border: "none", padding: 2, flexShrink: 0, cursor: disabled ? "not-allowed" : "pointer",
-        background: checked ? "#0A7D5A" : "#CFD8D1", opacity: disabled ? 0.5 : 1, display: "flex", alignItems: "center",
+        background: checked ? "#0A7D5A" : "var(--ws-line-strong-fill, #CFD8D1)", opacity: disabled ? 0.5 : 1, display: "flex", alignItems: "center",
         justifyContent: checked ? "flex-end" : "flex-start", transition: "background .12s",
       }}>
-      <span style={{ width: 16, height: 16, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.25)" }} />
+      <span style={{ width: 16, height: 16, borderRadius: "50%", background: "var(--ws-surface, #fff)", boxShadow: "0 1px 2px rgba(0,0,0,.25)" }} />
     </button>
   );
 }

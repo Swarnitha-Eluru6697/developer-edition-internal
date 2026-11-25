@@ -45,9 +45,9 @@ import { ACTION_ICON, IconAction } from "../../../shared/ui/IconAction";
 const REGISTERED_SINK_ENGINE = "pg_lake";
 
 const STATUS_COLOR: Record<string, string> = {
-  draft: "#5b6d62", validating: "#d97706", validated: "#0A7D5A",
-  deploying: "#d97706", running: "#16a34a", stopped: "#5b6d62",
-  failed: "#b23b3b", cancelled: "#5b6d62",
+  draft: "var(--ws-muted, #5b6d62)", validating: "var(--ws-warn, #d97706)", validated: "var(--ws-accent, #0A7D5A)",
+  deploying: "var(--ws-warn, #d97706)", running: "var(--ws-ok, #16a34a)", stopped: "var(--ws-muted, #5b6d62)",
+  failed: "var(--ws-bad, #b23b3b)", cancelled: "var(--ws-muted, #5b6d62)",
 };
 
 const EMPTY_FORM = {
@@ -150,7 +150,7 @@ export function FlinkPanel() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#fff", overflow: "hidden" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--ws-surface, #fff)", overflow: "hidden" }}>
       {/* Header — the job list, or the selected job with a way back. Every
           per-job action lives in the detail screen, not on the list rows. */}
       {!selected ? (
@@ -167,33 +167,33 @@ export function FlinkPanel() {
         />
       ) : (
         <>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderBottom: "0.5px solid #E3E8E2", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderBottom: "0.5px solid var(--ws-line, #E3E8E2)", flexShrink: 0 }}>
             <button
               onClick={() => setSelectedId(null)}
               title="Back to all jobs"
-              style={{ background: "none", border: "0.5px solid #cfd8d1", borderRadius: 6, cursor: "pointer", color: "#5b6d62", height: 26, width: 26, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+              style={{ background: "none", border: "0.5px solid var(--ws-line-strong, #cfd8d1)", borderRadius: 6, cursor: "pointer", color: "var(--ws-muted, #5b6d62)", height: 26, width: 26, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
             ><i className="ti ti-arrow-left" style={{ fontSize: 14 }} /></button>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selected.name}</div>
-              <div style={{ fontSize: 11, color: "#73827a", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <div style={{ fontSize: 11, color: "var(--ws-subtle, #73827a)", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {(() => { const g = provenanceOf(selected); return g.url ? `${g.url}@${g.ref}` : "not registered from Git"; })()}
               </div>
             </div>
-            <span style={{ color: STATUS_COLOR[selected.status] ?? "#5b6d62", fontWeight: 500, fontSize: 12, flexShrink: 0 }}>● {selected.status}</span>
+            <span style={{ color: STATUS_COLOR[selected.status] ?? "var(--ws-muted, #5b6d62)", fontWeight: 500, fontSize: 12, flexShrink: 0 }}>● {selected.status}</span>
           </div>
 
           {/* Per-job actions */}
-          <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 16px", borderBottom: "0.5px solid #E3E8E2", background: "#F8FAF9", flexShrink: 0, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 16px", borderBottom: "0.5px solid var(--ws-line, #E3E8E2)", background: "var(--ws-bg, #F8FAF9)", flexShrink: 0, flexWrap: "wrap" }}>
             {canEditFlink && (
-              <button onClick={() => act("Validated", () => validateJob(selected.id).unwrap())} style={btn("#fff", "#2E3D36", true)}>
+              <button onClick={() => act("Validated", () => validateJob(selected.id).unwrap())} style={btn("var(--ws-surface, #fff)", "var(--ws-text-2, #2E3D36)", true)}>
                 <i className="ti ti-checkup-list" style={{ fontSize: 13 }} /> Validate
               </button>
             )}
             {canDeployFlink && (<>
-              <button onClick={() => act("Deploy requested", () => deployJob(selected.id).unwrap())} style={{ ...btn("#fff", "#16a34a", true) }}>
+              <button onClick={() => act("Deploy requested", () => deployJob(selected.id).unwrap())} style={{ ...btn("var(--ws-surface, #fff)", "var(--ws-ok, #16a34a)", true) }}>
                 <i className="ti ti-rocket" style={{ fontSize: 13 }} /> Deploy
               </button>
-              <button onClick={() => act("Stop requested", () => stopJob(selected.id).unwrap())} style={{ ...btn("#fff", "#a8470a", true) }}>
+              <button onClick={() => act("Stop requested", () => stopJob(selected.id).unwrap())} style={{ ...btn("var(--ws-surface, #fff)", "var(--ws-warn, #a8470a)", true) }}>
                 <i className="ti ti-player-stop" style={{ fontSize: 13 }} /> Stop
               </button>
             </>)}
@@ -204,7 +204,7 @@ export function FlinkPanel() {
                   onClick={() => act("Synced from Git", () => syncJob({ id: selected.id }).unwrap())}
                   disabled={!g.url || syncing}
                   title={g.url ? "Re-read the repository and update this job's SQL" : "This job was not registered from Git"}
-                  style={{ ...btn("#fff", g.url ? "#0e7490" : "#73827a", true), cursor: g.url ? "pointer" : "not-allowed" }}
+                  style={{ ...btn("var(--ws-surface, #fff)", g.url ? "var(--ws-info, #0e7490)" : "var(--ws-subtle, #73827a)", true), cursor: g.url ? "pointer" : "not-allowed" }}
                 >
                   <Glyph name="pi-refresh" size={13} /> {syncing ? "Syncing…" : "Sync from Git"}
                 </button>
@@ -213,7 +213,7 @@ export function FlinkPanel() {
             <button
               onClick={() => openLogs(selected)}
               title={flinkUi?.url ? "Open this job in the Flink UI" : "Flink UI URL isn't configured"}
-              style={{ ...btn("#fff", flinkUi?.url ? "#7c3aed" : "#73827a", true), cursor: flinkUi?.url ? "pointer" : "not-allowed" }}
+              style={{ ...btn("var(--ws-surface, #fff)", flinkUi?.url ? "var(--ws-purple, #7c3aed)" : "var(--ws-subtle, #73827a)", true), cursor: flinkUi?.url ? "pointer" : "not-allowed" }}
             >
               <i className="ti ti-file-text" style={{ fontSize: 13 }} /> View logs
             </button>
@@ -241,7 +241,7 @@ export function FlinkPanel() {
             <button onClick={closeDrawer} style={drawerBtn(false)}>Cancel</button>
           </>}
         >
-          <div style={{ fontSize: 12, color: "#5b6d62", lineHeight: 1.55, marginBottom: 14 }}>
+          <div style={{ fontSize: 12, color: "var(--ws-muted, #5b6d62)", lineHeight: 1.55, marginBottom: 14 }}>
             The repository's FlinkSQL is cloned and submitted to the runner. Author it in the
             FlinkSQL editor and push it first.
           </div>
@@ -279,7 +279,7 @@ export function FlinkPanel() {
 
           {/* No token field: a private repo is cloned with the Git token
               already saved for this user under Files → Changes. */}
-          <div style={{ fontSize: 11.5, color: "#73827a", lineHeight: 1.5, marginTop: 6 }}>
+          <div style={{ fontSize: 11.5, color: "var(--ws-subtle, #73827a)", lineHeight: 1.5, marginTop: 6 }}>
             Private repo? Save a Git token once under <strong style={{ fontWeight: 600 }}>Changes → Set / update Git token</strong>.
           </div>
         </Drawer>
@@ -290,18 +290,18 @@ export function FlinkPanel() {
         {selected && (
           <div style={{ padding: "12px 16px 16px" }}>
             {selected.validation_errors?.length > 0 && (
-              <div style={{ marginBottom: 12, padding: "8px 10px", background: "#fbe9e9", border: "0.5px solid #fecaca", borderRadius: 6, color: "#b23b3b", fontSize: 12, whiteSpace: "pre-wrap" }}>
+              <div style={{ marginBottom: 12, padding: "8px 10px", background: "var(--ws-bad-bg, #fbe9e9)", border: "0.5px solid var(--ws-bad-line, #fecaca)", borderRadius: 6, color: "var(--ws-bad, #b23b3b)", fontSize: 12, whiteSpace: "pre-wrap" }}>
                 <div style={{ fontWeight: 600, marginBottom: 3 }}>Validation errors</div>
                 {selected.validation_errors.join("\n")}
               </div>
             )}
             {userDescription(selected.description) && (
-              <div style={{ fontSize: 12.5, color: "#4b5a53", marginBottom: 12, lineHeight: 1.5 }}>{userDescription(selected.description)}</div>
+              <div style={{ fontSize: 12.5, color: "var(--ws-text-2, #4b5a53)", marginBottom: 12, lineHeight: 1.5 }}>{userDescription(selected.description)}</div>
             )}
             {(() => {
               const g = provenanceOf(selected);
               return (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "10px 18px", marginBottom: 14, padding: "10px 12px", background: "#f8fbff", border: "0.5px solid #E3E8E2", borderRadius: 8 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "10px 18px", marginBottom: 14, padding: "10px 12px", background: "var(--ws-info-bg, #f8fbff)", border: "0.5px solid var(--ws-line, #E3E8E2)", borderRadius: 8 }}>
                   {g.url && <Meta label="Repository" value={g.url} mono />}
                   {(g.ref || g.checkedOutRef) && <Meta label="Ref" value={g.requestedRef ? g.requestedRef : `${g.checkedOutRef ?? "default"} (default branch)`} mono />}
                   {g.path && g.path !== "." && <Meta label="SQL path" value={g.path} mono />}
@@ -312,26 +312,26 @@ export function FlinkPanel() {
               );
             })()}
             {/* Read-only: the SQL comes from the repo, so edit it there. */}
-            <div style={{ fontSize: 10.5, color: "#73827a", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 4 }}>
+            <div style={{ fontSize: 10.5, color: "var(--ws-subtle, #73827a)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 4 }}>
               SQL from repository (read-only)
             </div>
-            <pre style={{ margin: 0, padding: 12, background: "#0f1117", color: "#e0e0e0", borderRadius: 6, fontSize: 12, lineHeight: 1.5, overflow: "auto" }}>{selected.sql}</pre>
+            <pre style={{ margin: 0, padding: 12, background: "var(--ws-code-bg, #0f1117)", color: "#e0e0e0", borderRadius: 6, fontSize: 12, lineHeight: 1.5, overflow: "auto" }}>{selected.sql}</pre>
           </div>
         )}
 
         {/* ── Job list ── */}
-        {!selected && isLoading && <div style={{ padding: 24, color: "#73827a", fontSize: 13 }}>Loading jobs…</div>}
-        {!selected && isError && <div style={{ padding: 24, color: "#b23b3b", fontSize: 13 }}>Couldn't reach the FlinkSQL Runner.</div>}
+        {!selected && isLoading && <div style={{ padding: 24, color: "var(--ws-subtle, #73827a)", fontSize: 13 }}>Loading jobs…</div>}
+        {!selected && isError && <div style={{ padding: 24, color: "var(--ws-bad, #b23b3b)", fontSize: 13 }}>Couldn't reach the FlinkSQL Runner.</div>}
         {!selected && jobs && jobs.length === 0 && (
           <div style={{ padding: 40, textAlign: "center" }}>
-            <i className="ti ti-wave-sine" style={{ fontSize: 32, color: "#cfd8d1", display: "block", marginBottom: 10 }} />
+            <i className="ti ti-wave-sine" style={{ fontSize: 32, color: "var(--ws-faint, #cfd8d1)", display: "block", marginBottom: 10 }} />
             <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>No FlinkSQL jobs yet</div>
-            <div style={{ fontSize: 12.5, color: "#5b6d62" }}>Register a Git repository containing your FlinkSQL to get started.</div>
+            <div style={{ fontSize: 12.5, color: "var(--ws-muted, #5b6d62)" }}>Register a Git repository containing your FlinkSQL to get started.</div>
           </div>
         )}
         {!selected && jobs && jobs.length > 0 && (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: GRID, padding: "6px 16px", fontSize: 10.5, color: "#73827a", textTransform: "uppercase", letterSpacing: ".06em", borderBottom: "0.5px solid #E3E8E2", background: "#F8FAF9" }}>
+            <div style={{ display: "grid", gridTemplateColumns: GRID, padding: "6px 16px", fontSize: 10.5, color: "var(--ws-subtle, #73827a)", textTransform: "uppercase", letterSpacing: ".06em", borderBottom: "0.5px solid var(--ws-line, #E3E8E2)", background: "var(--ws-thead, #F8FAF9)" }}>
               <div>Name</div><div>Status</div><div>Repository</div><div />
             </div>
             {jobs.map((j) => {
@@ -340,17 +340,17 @@ export function FlinkPanel() {
                 <div
                   key={j.id}
                   onClick={() => setSelectedId(j.id)}
-                  style={{ display: "grid", gridTemplateColumns: GRID, padding: "10px 16px", alignItems: "center", fontSize: 13, cursor: "pointer", borderBottom: "0.5px solid #eef2ed", background: "white" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "#F8FAF9")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "white")}
+                  style={{ display: "grid", gridTemplateColumns: GRID, padding: "10px 16px", alignItems: "center", fontSize: 13, cursor: "pointer", borderBottom: "0.5px solid var(--ws-line, #eef2ed)", background: "var(--ws-surface, white)" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--ws-hover, #F8FAF9)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "var(--ws-surface, white)")}
                 >
                   <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{j.name}</div>
-                  <div><span style={{ color: STATUS_COLOR[j.status] ?? "#5b6d62", fontWeight: 500, fontSize: 12 }}>● {j.status}</span></div>
-                  <div style={{ fontSize: 11.5, color: "#5b6d62", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {git.url ? <>{shortRepo(git.url)}<span style={{ color: "#73827a" }}>@{git.ref}</span></> : <span style={{ color: "#cfd8d1" }}>—</span>}
+                  <div><span style={{ color: STATUS_COLOR[j.status] ?? "var(--ws-muted, #5b6d62)", fontWeight: 500, fontSize: 12 }}>● {j.status}</span></div>
+                  <div style={{ fontSize: 11.5, color: "var(--ws-muted, #5b6d62)", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {git.url ? <>{shortRepo(git.url)}<span style={{ color: "var(--ws-subtle, #73827a)" }}>@{git.ref}</span></> : <span style={{ color: "var(--ws-faint, #cfd8d1)" }}>—</span>}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
-                    <i className="ti ti-chevron-right" style={{ color: "#cfd8d1", fontSize: 14 }} />
+                    <i className="ti ti-chevron-right" style={{ color: "var(--ws-faint, #cfd8d1)", fontSize: 14 }} />
                   </div>
                 </div>
               );
@@ -366,10 +366,10 @@ export function FlinkPanel() {
 function Meta({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div style={{ minWidth: 0 }}>
-      <div style={{ fontSize: 10, color: "#73827a", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 10, color: "var(--ws-subtle, #73827a)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 2 }}>{label}</div>
       <div
         title={value}
-        style={{ fontSize: 12, color: "#2E3D36", fontFamily: mono ? "monospace" : "inherit", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+        style={{ fontSize: 12, color: "var(--ws-text-2, #2E3D36)", fontFamily: mono ? "monospace" : "inherit", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
       >{value}</div>
     </div>
   );
@@ -382,6 +382,6 @@ function shortRepo(url: string): string {
 }
 
 function btn(bg: string, color: string, bordered = false): React.CSSProperties {
-  return { height: 28, padding: "0 11px", fontSize: 12, background: bg, color, border: bordered ? "0.5px solid #cfd8d1" : "none", borderRadius: 6, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 };
+  return { height: 28, padding: "0 11px", fontSize: 12, background: bg, color, border: bordered ? "0.5px solid var(--ws-line-strong, #cfd8d1)" : "none", borderRadius: 6, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 };
 }
 

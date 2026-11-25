@@ -1,0 +1,102 @@
+/*
+ * Workspace dark theme.
+ *
+ * Components style themselves inline with `var(--ws-<token>, <original light hex>)`. The --ws-* variables are defined
+ * ONLY here, for <html data-theme="dark"> (set by app/DeveloperUserMenu.tsx), so light mode falls back to the exact
+ * original colours. Every dark value comes from the shared Pralai palette in app/pralai-dark.css (--pd-*).
+ */
+:root[data-theme="dark"] {
+  /* surfaces */
+  --ws-bg: var(--pd-bg);                 /* page / panel background (#F8FAF9) */
+  --ws-surface: var(--pd-surface);       /* cards, sidebar, header, menus, modals (#fff) */
+  --ws-fill: var(--pd-surface-2);        /* quiet fills, table headers (#EEF2ED, #FAFAFA, ...) */
+  --ws-thead: var(--pd-surface-2);        /* table header rows */
+  --ws-hover: var(--pd-surface-2);       /* row / menu hover */
+  --ws-line-fill: var(--pd-line);        /* dividers and resizers drawn as backgrounds */
+  --ws-line-strong-fill: var(--pd-line-strong);
+  --ws-code-bg: var(--pd-code-bg);
+
+  /* lines */
+  --ws-line: var(--pd-line);
+  --ws-line-strong: var(--pd-line-strong);
+
+  /* text */
+  --ws-text: var(--pd-text);
+  --ws-text-2: var(--pd-text-2);
+  --ws-muted: var(--pd-muted);
+  --ws-subtle: var(--pd-muted);          /* #73827A labels: pd-muted keeps them AA on every surface */
+  --ws-faint: var(--pd-faint);           /* placeholders, disabled, decorative */
+
+  /* brand */
+  --ws-accent: var(--pd-accent);
+  --ws-accent-bg: var(--pd-accent-bg);
+  --ws-accent-line-fill: var(--pd-line-strong);
+  --ws-primary: var(--pd-amber);
+  --ws-on-primary: var(--pd-on-amber);
+  --ws-on-amber: var(--pd-on-amber);
+
+  /* sidebar: active item = surface-3 + 3px amber stroke + white text */
+  --ws-nav-active-bg: var(--pd-surface-3);
+  --ws-nav-active-fg: #FFFFFF;
+  --ws-nav-active-icon: #FFFFFF;
+  --ws-nav-stroke: var(--pd-nav-stroke);
+  --ws-nav-stroke-w: 3px;
+
+  /* status */
+  --ws-ok: var(--pd-ok);         --ws-ok-bg: var(--pd-ok-bg);         --ws-ok-line: var(--pd-ok-bg);
+  --ws-warn: var(--pd-warn);     --ws-warn-bg: var(--pd-warn-bg);     --ws-warn-line: var(--pd-warn-bg);
+  --ws-bad: var(--pd-bad);       --ws-bad-bg: var(--pd-bad-bg);       --ws-bad-line: var(--pd-bad-bg);
+  --ws-info: var(--pd-info);     --ws-info-bg: var(--pd-info-bg);     --ws-info-line: var(--pd-info-line);
+  --ws-purple: var(--pd-purple); --ws-purple-bg: var(--pd-purple-bg);
+}
+
+/* index.html paints html/body/#root light; the page itself. */
+:root[data-theme="dark"],
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] #root { background: var(--pd-bg); color: var(--pd-text); }
+:root[data-theme="dark"] ::selection { background: var(--pd-surface-3); }
+
+/* Form controls with no inline colours of their own. */
+:root[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea {
+  background-color: var(--pd-surface-2);
+  color: var(--pd-text);
+  border-color: var(--pd-line);
+}
+
+/* Pralai logo: the dark-forest stem and "ralai" letters turn white. */
+:root[data-theme="dark"] .pralai-ink { fill: #FFFFFF; }
+
+/* shared/ui/icon-action.css */
+:root[data-theme="dark"] .icon-action { background: var(--pd-surface); color: var(--pd-muted); border-color: var(--pd-line); }
+:root[data-theme="dark"] .icon-action:hover:not(:disabled) { background: var(--pd-surface-2); color: var(--pd-text); border-color: var(--pd-line-strong); }
+:root[data-theme="dark"] .icon-action.danger:hover:not(:disabled) { background: var(--pd-bad-bg); color: var(--pd-bad); border-color: var(--pd-bad-bg); }
+:root[data-theme="dark"] .icon-action.on { background: var(--pd-accent-bg); color: var(--pd-accent); border-color: var(--pd-line-strong); }
+
+/* shared/ui/search-select.css */
+:root[data-theme="dark"] .ss-trigger { background: var(--pd-surface-2); border-color: var(--pd-line); color: var(--pd-text); }
+:root[data-theme="dark"] .ss-trigger:hover:not(:disabled) { border-color: var(--pd-line-strong); }
+:root[data-theme="dark"] .ss-trigger[aria-expanded="true"],
+:root[data-theme="dark"] .ss-trigger:focus-visible { border-color: var(--pd-accent); box-shadow: 0 0 0 3px var(--pd-accent-bg); }
+:root[data-theme="dark"] .ss-trigger:disabled { background: var(--pd-surface); color: var(--pd-faint); }
+:root[data-theme="dark"] .ss-value.muted,
+:root[data-theme="dark"] .ss-group,
+:root[data-theme="dark"] .ss-empty,
+:root[data-theme="dark"] .ss-hint,
+:root[data-theme="dark"] .ss-option.disabled { color: var(--pd-muted); }
+:root[data-theme="dark"] .ss-chev,
+:root[data-theme="dark"] .ss-ico { stroke: var(--pd-muted); }
+:root[data-theme="dark"] .ss-chip { background: var(--pd-surface); border-color: var(--pd-line); color: var(--pd-muted); }
+:root[data-theme="dark"] .ss-menu { background: var(--pd-surface); border-color: var(--pd-line); color: var(--pd-text); box-shadow: var(--pd-shadow); }
+:root[data-theme="dark"] .ss-search { border-bottom-color: var(--pd-line); }
+:root[data-theme="dark"] .ss-search input { background: var(--pd-surface-2); border-color: var(--pd-line); color: var(--pd-text); box-shadow: 0 0 0 3px var(--pd-accent-bg); }
+:root[data-theme="dark"] .ss-search input::placeholder { color: var(--pd-faint); }
+:root[data-theme="dark"] .ss-steppers button { background: var(--pd-surface-2); border-color: var(--pd-line); color: var(--pd-text); }
+:root[data-theme="dark"] .ss-steppers button:hover:not(:disabled) { background: var(--pd-surface-3); }
+:root[data-theme="dark"] .ss-option { color: var(--pd-text); }
+:root[data-theme="dark"] .ss-option.active { background: var(--pd-surface-2); }
+:root[data-theme="dark"] .ss-option.sel { background: var(--pd-accent-bg); color: var(--pd-accent); }
+:root[data-theme="dark"] .ss-option.sel.active { background: var(--pd-surface-3); }
+:root[data-theme="dark"] .ss-check { stroke: var(--pd-accent); }
+:root[data-theme="dark"] .ss-foot { background: var(--pd-surface-2); border-top-color: var(--pd-line); color: var(--pd-muted); }

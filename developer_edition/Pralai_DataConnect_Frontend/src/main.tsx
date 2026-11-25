@@ -6,7 +6,10 @@
  */
 import React from "react";
 import ReactDOM from "react-dom/client";
+import "./components/DeveloperUserMenu"; // sets <html data-theme> before first paint
 import DataConnectApp from "./DataConnectApp";
+import "./components/pralai-dark.css"; // shared Pralai dark palette (--pd-*)
+import "./dark.css"; // DataConnect dark theme, after the app's own styles
 
 // Developer Edition: the built bundle is served on its own, with the backend
 // proxied at the same origin, so production builds use a relative API base.

@@ -34,7 +34,7 @@ function MimeBundle({ bundle }: { bundle: MimeBundleData }) {
     return <SandboxedHtml html={html} />;
   }
   if (bundle["text/plain"]) {
-    return <pre style={{ ...preStyle, padding: "6px 10px", color: "#14201B" }}>{mimeText(bundle, "text/plain")}</pre>;
+    return <pre style={{ ...preStyle, padding: "6px 10px", color: "var(--ws-text, #14201B)" }}>{mimeText(bundle, "text/plain")}</pre>;
   }
   return null;
 }
@@ -42,9 +42,9 @@ function MimeBundle({ bundle }: { bundle: MimeBundleData }) {
 export function PythonOutputs({ outputs, error }: { outputs?: NbOutput[]; error?: string | null }) {
   if (!outputs || outputs.length === 0) {
     if (error) {
-      return <pre style={{ ...preStyle, padding: "6px 10px", color: "#b23b3b" }}>{error}</pre>;
+      return <pre style={{ ...preStyle, padding: "6px 10px", color: "var(--ws-bad, #b23b3b)" }}>{error}</pre>;
     }
-    return <div style={{ padding: "4px 10px", fontSize: 11.5, color: "#73827a" }}>No output.</div>;
+    return <div style={{ padding: "4px 10px", fontSize: 11.5, color: "var(--ws-subtle, #73827a)" }}>No output.</div>;
   }
   return (
     <div style={{ maxHeight: 360, overflow: "auto" }}>
@@ -52,7 +52,7 @@ export function PythonOutputs({ outputs, error }: { outputs?: NbOutput[]; error?
         const p = (o.payload || {}) as OutputPayload;
         if (o.output_type === "stream") {
           const isErr = p.name === "stderr";
-          return <pre key={i} style={{ ...preStyle, padding: "4px 10px", color: isErr ? "#b23b3b" : "#2E3D36", background: isErr ? "#fbe9e9" : undefined }}>{Array.isArray(p.text) ? p.text.join("") : p.text}</pre>;
+          return <pre key={i} style={{ ...preStyle, padding: "4px 10px", color: isErr ? "var(--ws-bad, #b23b3b)" : "var(--ws-text-2, #2E3D36)", background: isErr ? "var(--ws-bad-bg, #fbe9e9)" : undefined }}>{Array.isArray(p.text) ? p.text.join("") : p.text}</pre>;
         }
         if (o.output_type === "display_data" || o.output_type === "execute_result") {
           return <MimeBundle key={i} bundle={p.mime_bundle || {}} />;
@@ -61,7 +61,7 @@ export function PythonOutputs({ outputs, error }: { outputs?: NbOutput[]; error?
           // Jupyter error → {ename, evalue, traceback}. Infra error → {error_code, error_message}.
           const tb = Array.isArray(p.traceback) ? stripAnsi(p.traceback.join("\n")) : null;
           const text = tb || `${p.ename ? p.ename + ": " : ""}${p.evalue || p.error_message || p.error_code || "Error"}`;
-          return <pre key={i} style={{ ...preStyle, padding: "6px 10px", color: "#b23b3b" }}>{text}</pre>;
+          return <pre key={i} style={{ ...preStyle, padding: "6px 10px", color: "var(--ws-bad, #b23b3b)" }}>{text}</pre>;
         }
         return null;
       })}

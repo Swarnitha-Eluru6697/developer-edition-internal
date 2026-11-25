@@ -11,9 +11,24 @@
  * API to fetch dataset/table/column suggestions. (Stubbed here - the real
  * implementation lives behind a `useCatalogQuery` hook.)
  */
-import Editor, { OnChange, OnMount } from "@monaco-editor/react";
+import Editor, { BeforeMount, OnChange, OnMount } from "@monaco-editor/react";
 import { useCallback, useRef } from "react";
 import type { FileLanguage } from "../../../types";
+import { useDeTheme } from "../../../app/DeveloperUserMenu";
+
+// Dark mode: Monaco's own dark theme on the shared Pralai code background (--pd-code-bg).
+const DARK_THEME = "pralai-dark";
+const defineDarkTheme: BeforeMount = (monaco) => {
+  monaco.editor.defineTheme(DARK_THEME, {
+    base: "vs-dark", inherit: true, rules: [],
+    colors: {
+      "editor.background": "#0E1113",
+      "editor.lineHighlightBackground": "#1A1E22",
+      "editorLineNumber.foreground": "#7C858D",
+      "editorGutter.background": "#0E1113",
+    },
+  });
+};
 
 interface Props {
   language: FileLanguage;
@@ -39,6 +54,7 @@ const monacoLanguage = (lang: FileLanguage): string =>
   MONACO_LANGUAGE[lang] ?? "json";
 
 export function CodeEditor({ language, value, onChange, readOnly, onRun, onSave, onSelectionChange }: Props) {
+  const dark = useDeTheme() === "dark";
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const onRunRef = useRef(onRun);
@@ -70,7 +86,8 @@ export function CodeEditor({ language, value, onChange, readOnly, onRun, onSave,
       value={value}
       onChange={handleChange}
       onMount={handleMount}
-      theme="vs"
+      beforeMount={defineDarkTheme}
+      theme={dark ? DARK_THEME : "vs"}
       options={{
         readOnly,
         fontSize: 13,

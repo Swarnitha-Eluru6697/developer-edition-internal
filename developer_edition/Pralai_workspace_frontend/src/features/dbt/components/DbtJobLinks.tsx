@@ -30,9 +30,9 @@ interface Props {
 }
 
 const TAGS: Record<JobKind, { label: string; color: string; background: string }> = {
-  dbt: { label: "dbt", color: "#2F6B14", background: "#eaf3e1" },
-  sql: { label: "SQL", color: "#1e40af", background: "#e0e7ff" },
-  python: { label: "Python", color: "#6b21a8", background: "#f3e8ff" },
+  dbt: { label: "dbt", color: "var(--ws-ok, #2F6B14)", background: "var(--ws-ok-bg, #eaf3e1)" },
+  sql: { label: "SQL", color: "var(--ws-info, #1e40af)", background: "var(--ws-info-bg, #e0e7ff)" },
+  python: { label: "Python", color: "var(--ws-purple, #6b21a8)", background: "var(--ws-purple-bg, #f3e8ff)" },
 };
 
 const WHY: Record<"upstream" | "downstream", Record<LinkBlock, string>> = {
@@ -58,14 +58,14 @@ function JobList({ side, title, hint, projects, kind, value, blocked, also, also
   return (
     <div>
       <div role="group" aria-label={title}
-        style={{ border: "0.5px solid #cfd8d1", borderRadius: 6, maxHeight: 200, overflowY: "auto", background: "#fff", ...hiddenScrollbar }}>
+        style={{ border: "0.5px solid var(--ws-line-strong, #cfd8d1)", borderRadius: 6, maxHeight: 200, overflowY: "auto", background: "var(--ws-surface, #fff)", ...hiddenScrollbar }}>
         {projects.map((p) => {
           const why = blocked.get(p.id);
           const tag = kindOf(p) !== kind ? TAGS[kindOf(p)] : null;
           return (
             <label key={p.id} title={why ? `${p.name}: ${WHY[side][why]}` : undefined}
-              style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", fontSize: 12.5, borderBottom: "0.5px solid #eef2ed",
-                cursor: why ? "not-allowed" : "pointer", color: why ? "#73827a" : "#14201B" }}>
+              style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", fontSize: 12.5, borderBottom: "0.5px solid var(--ws-line, #eef2ed)",
+                cursor: why ? "not-allowed" : "pointer", color: why ? "var(--ws-subtle, #73827a)" : "var(--ws-text, #14201B)" }}>
               <input type="checkbox" checked={value.includes(p.id)} disabled={!!why}
                 onChange={(e) => onToggle(p.id, e.target.checked)} />
               <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
@@ -76,11 +76,11 @@ function JobList({ side, title, hint, projects, kind, value, blocked, also, also
         })}
       </div>
       {also.length > 0 && (
-        <div data-testid={`${side}-also`} style={{ fontSize: 11.5, color: "#5b6d62", marginTop: 6 }}>
+        <div data-testid={`${side}-also`} style={{ fontSize: 11.5, color: "var(--ws-muted, #5b6d62)", marginTop: 6 }}>
           {alsoText}: {also.map((id) => names.get(id) ?? id).join(", ")}
         </div>
       )}
-      <div style={{ fontSize: 11, color: "#73827a", marginTop: 3, lineHeight: 1.45 }}>{hint}</div>
+      <div style={{ fontSize: 11, color: "var(--ws-subtle, #73827a)", marginTop: 3, lineHeight: 1.45 }}>{hint}</div>
     </div>
   );
 }
@@ -92,19 +92,19 @@ type LinkTab = "upstream" | "downstream";
 function LinkTabs({ tab, onTab, counts }: { tab: LinkTab; onTab: (t: LinkTab) => void; counts: Record<LinkTab, number> }) {
   const TITLES: Record<LinkTab, string> = { upstream: "Upstream Jobs", downstream: "Downstream Jobs" };
   return (
-    <div role="tablist" style={{ display: "flex", borderBottom: "0.5px solid #E3E8E2", marginBottom: 12 }}>
+    <div role="tablist" style={{ display: "flex", borderBottom: "0.5px solid var(--ws-line, #E3E8E2)", marginBottom: 12 }}>
       {(["upstream", "downstream"] as const).map((t) => (
         <button key={t} type="button" role="tab" id={`job-links-tab-${t}`} aria-selected={tab === t} aria-controls={`job-links-panel-${t}`}
           onClick={() => onTab(t)}
           style={{
             flex: 1, textAlign: "center", padding: "7px 0", fontSize: 12.5, cursor: "pointer", background: "none", border: "none",
-            fontFamily: "inherit", color: tab === t ? "#14201B" : "#888", fontWeight: tab === t ? 500 : 400,
+            fontFamily: "inherit", color: tab === t ? "var(--ws-text, #14201B)" : "var(--ws-subtle, #888)", fontWeight: tab === t ? 500 : 400,
             borderBottom: tab === t ? "2px solid #0A7D5A" : "2px solid transparent",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
           }}>
           {TITLES[t]}
           {counts[t] > 0 && (
-            <span data-testid={`${t}-count`} style={{ background: "#fdebdd", color: "#a8470a", padding: "1px 5px", borderRadius: 4, fontSize: 10.5, fontWeight: 600 }}>
+            <span data-testid={`${t}-count`} style={{ background: "var(--ws-warn-bg, #fdebdd)", color: "var(--ws-warn, #a8470a)", padding: "1px 5px", borderRadius: 4, fontSize: 10.5, fontWeight: 600 }}>
               {counts[t]}
             </span>
           )}
@@ -118,7 +118,7 @@ export function DbtJobLinks({ selfId, kind, projects, value, onChange }: Props) 
   const [tab, setTab] = useState<LinkTab>("upstream");
   const others = projects.filter((p) => p.id !== selfId).sort((a, b) => a.name.localeCompare(b.name));
   if (!others.length) {
-    return <div style={{ fontSize: 12, color: "#73827a" }}>No other jobs registered yet.</div>;
+    return <div style={{ fontSize: 12, color: "var(--ws-subtle, #73827a)" }}>No other jobs registered yet.</div>;
   }
   const limits = linkLimits(projects, selfId, value.upstream, value.downstream);
   const toggle = (side: keyof JobLinks) => (id: UUID, on: boolean) =>

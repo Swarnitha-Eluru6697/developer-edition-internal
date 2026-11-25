@@ -80,7 +80,7 @@ export function ErrBox({ error }: { error: unknown }) {
   const msg = errorMessage(error);
   return (
     <div className="alert alert-w">
-      <div className="at" style={{ color: "#b23b3b" }}>Failed to load</div>
+      <div className="at" style={{ color: "var(--dc-err-text, #b23b3b)" }}>Failed to load</div>
       <div className="ab">{msg}</div>
     </div>
   );
@@ -92,22 +92,22 @@ export function Empty({ children }: { children: React.ReactNode }) {
 
 // Pipeline progress donut — ported from pipeRing().
 export function Ring({ state, pct }: { state?: string; pct?: number }) {
-  const col = state === "running" ? "#22c55e" : state === "deployed" ? "#0a7d5a" : state === "paused" ? "#f59e0b" : state === "restarting" ? "#f59e0b" : state === "failed" ? "#ef4444" : "#73827a";
+  const col = state === "running" ? "var(--dc-ok, #22c55e)" : state === "deployed" ? "var(--dc-accent, #0a7d5a)" : state === "paused" ? "var(--dc-warn, #f59e0b)" : state === "restarting" ? "var(--dc-warn, #f59e0b)" : state === "failed" ? "var(--dc-bad, #ef4444)" : "var(--dc-neutral, #73827a)";
   const C = Math.round(2 * Math.PI * 13);
   const p = Math.max(0, Math.min(100, Math.round(pct ?? 0)));
   const dash = Math.round((C * p) / 100);
   return (
     <div style={{ width: 34, height: 34, position: "relative", display: "grid", placeItems: "center", flexShrink: 0 }} title={`${p}% processed`}>
       <svg width="34" height="34" viewBox="0 0 34 34" style={{ transform: "rotate(-90deg)" }}>
-        <circle cx="17" cy="17" r="13" fill="none" stroke="#e5e9ee" strokeWidth="3" />
-        <circle cx="17" cy="17" r="13" fill="none" stroke={col} strokeWidth="3" strokeLinecap="round" strokeDasharray={`${dash} ${C}`} />
+        <circle cx="17" cy="17" r="13" fill="none" style={{ stroke: "var(--dc-ring-track, #e5e9ee)" }} strokeWidth="3" />
+        <circle cx="17" cy="17" r="13" fill="none" style={{ stroke: col }} strokeWidth="3" strokeLinecap="round" strokeDasharray={`${dash} ${C}`} />
       </svg>
       <span style={{ position: "absolute", fontSize: 8, fontWeight: 600, color: col }}>{p}%</span>
     </div>
   );
 }
 
-export function ProgressBar({ pct, color = "#22c55e" }: { pct?: number; color?: string }) {
+export function ProgressBar({ pct, color = "var(--dc-ok, #22c55e)" }: { pct?: number; color?: string }) {
   const p = Math.max(0, Math.min(100, Math.round(pct ?? 0)));
   return (
     <div className="prog-bar" style={{ marginTop: 4 }}>
@@ -250,5 +250,5 @@ export const IconPreview = () => (
   <Svg16><path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5M9 3l-2 10" /></Svg16>
 );
 export const IconExternal = () => (
-  <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M6 3h7v7M13 3l-8 8" stroke="#fff" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+  <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M6 3h7v7M13 3l-8 8" style={{ stroke: "var(--dc-ext-icon, #fff)" }} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
 );

@@ -11,8 +11,8 @@ export function WorkspaceFilePanel({ editor }: { editor: WorkspaceEditor }) {
   // Workspace ⋯ → Add file opens the Add New menu below it.
   const [addNewSignal, setAddNewSignal] = useState(0);
   return (
-    <div style={{ borderRight: "0.5px solid #E3E8E2", display: "flex", flexDirection: "column", background: "#F8FAF9", overflow: "hidden", position: "relative" }}>
-      <div style={{ padding: "10px 10px 8px", borderBottom: "0.5px solid #E3E8E2", position: "relative" }}>
+    <div style={{ borderRight: "0.5px solid var(--ws-line, #E3E8E2)", display: "flex", flexDirection: "column", background: "var(--ws-bg, #F8FAF9)", overflow: "hidden", position: "relative" }}>
+      <div style={{ padding: "10px 10px 8px", borderBottom: "0.5px solid var(--ws-line, #E3E8E2)", position: "relative" }}>
         <WorkspaceSwitcher
           workspaces={editor.workspaces}
           activeWs={activeWs}

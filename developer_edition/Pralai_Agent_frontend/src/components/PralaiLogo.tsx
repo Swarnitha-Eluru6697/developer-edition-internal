@@ -52,7 +52,7 @@ export function PralaiLockup({ height = 34, label, reversed = false }: { height?
         <span
           style={{
             display: "block", font: "700 9px/1 Inter, system-ui, sans-serif", letterSpacing: ".16em", textTransform: "uppercase",
-            color: reversed ? "#CFE8DD" : "#0A7D5A", marginTop: -Math.round(height * 0.12), marginLeft: Math.round(width * 0.37), whiteSpace: "nowrap",
+            color: reversed ? "#CFE8DD" : "var(--brand-label, #0A7D5A)", marginTop: -Math.round(height * 0.12), marginLeft: Math.round(width * 0.37), whiteSpace: "nowrap",
           }}
         >
           {label}

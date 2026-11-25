@@ -20,14 +20,14 @@ export function DbtProjectList({ projects, loading, onOpen, onDelete, kind = "db
   return (
     <div>
       {loading && (
-        <div style={{ padding: EMPTY_PAD, textAlign: "center", color: "#73827a", fontSize: 13 }}>Loading projects…</div>
+        <div style={{ padding: EMPTY_PAD, textAlign: "center", color: "var(--ws-subtle, #73827a)", fontSize: 13 }}>Loading projects…</div>
       )}
       {!loading && !projects?.length && (
         <div style={{ padding: EMPTY_PAD, textAlign: "center" }}>
-          <i className={`ti ${k.icon}`} style={{ fontSize: 32, color: "#cfd8d1", display: "block", marginBottom: 10 }} />
+          <i className={`ti ${k.icon}`} style={{ fontSize: 32, color: "var(--ws-faint, #cfd8d1)", display: "block", marginBottom: 10 }} />
           <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 5 }}>{k.emptyTitle}</div>
           {/* Registering lives only in the page header's top-right button. */}
-          <div style={{ fontSize: 12.5, color: "#5b6d62" }}>{k.emptyHint}</div>
+          <div style={{ fontSize: 12.5, color: "var(--ws-muted, #5b6d62)" }}>{k.emptyHint}</div>
         </div>
       )}
       {projects && projects.length > 0 && (
@@ -39,23 +39,23 @@ export function DbtProjectList({ projects, loading, onOpen, onDelete, kind = "db
             <div
               key={p.id}
               onClick={() => onOpen(p)}
-              style={{ ...gridRow(PROJECT_COLS), padding: ROW_PAD, fontSize: 13, cursor: "pointer", borderBottom: "0.5px solid #eef2ed", background: "white" }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "#F8FAF9")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "white")}
+              style={{ ...gridRow(PROJECT_COLS), padding: ROW_PAD, fontSize: 13, cursor: "pointer", borderBottom: "0.5px solid var(--ws-line, #eef2ed)", background: "var(--ws-surface, white)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--ws-hover, #F8FAF9)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "var(--ws-surface, white)")}
             >
               <div>
                 <div style={{ fontWeight: 600 }}>{p.name}</div>
-                <div style={{ fontSize: 11, color: "#73827a", fontFamily: "monospace" }}>{p.git_url.split("/").slice(-2).join("/")}</div>
+                <div style={{ fontSize: 11, color: "var(--ws-subtle, #73827a)", fontFamily: "monospace" }}>{p.git_url.split("/").slice(-2).join("/")}</div>
               </div>
-              <div><span style={{ background: "#E3F6EA", color: "#1e40af", padding: "2px 8px", borderRadius: 4, fontSize: 11.5, fontWeight: 500 }}>{p.engine}</span></div>
-              <div style={{ fontSize: 12, color: "#5b6d62", fontFamily: "monospace" }}>{p.schedule_enabled ? p.schedule_cron : <span style={{ color: "#73827a" }}>manual</span>}</div>
+              <div><span style={{ background: "var(--ws-accent-bg, #E3F6EA)", color: "var(--ws-info, #1e40af)", padding: "2px 8px", borderRadius: 4, fontSize: 11.5, fontWeight: 500 }}>{p.engine}</span></div>
+              <div style={{ fontSize: 12, color: "var(--ws-muted, #5b6d62)", fontFamily: "monospace" }}>{p.schedule_enabled ? p.schedule_cron : <span style={{ color: "var(--ws-subtle, #73827a)" }}>manual</span>}</div>
               <DbtLastRunCell run={p.last_run} unit={k.unit} />
               <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
                 {onDelete && (
                   <IconAction icon={ACTION_ICON.delete} label="Delete project" danger
                     onClick={(e) => { e.stopPropagation(); onDelete(p); }} />
                 )}
-                <i className="ti ti-chevron-right" style={{ color: "#cfd8d1", fontSize: 14 }} />
+                <i className="ti ti-chevron-right" style={{ color: "var(--ws-faint, #cfd8d1)", fontSize: 14 }} />
               </div>
             </div>
           ))}
